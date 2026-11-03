@@ -1,0 +1,75 @@
+/* CSS untuk dashboard_admin.blade.php dipisah ke file ini */
+.services-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+}
+.services-row {
+    display: flex;
+    gap: 1.2rem;
+}
+.service-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: .2s;
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 140px;
+}
+.service-card-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    justify-content: flex-start;
+    text-align: left;
+}
+.service-icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+}
+.service-icon img {
+    width: 44px;
+    height: 44px;
+    object-fit: contain;
+    display: block;
+}
+.service-icon i {
+    font-size: 40px;
+}
+.service-info {
+    text-align: left;
+}
+.service-card-empty {
+    background: transparent;
+    box-shadow: none;
+    pointer-events: none;
+}
+.services-row:has(.service-card-empty) .service-card {
+    max-width: 50%;
+}
+@media (max-width: 700px) {
+    .services-row {
+        flex-direction: column;
+    }
+    .service-card, .service-card-empty {
+        max-width: 100%;
+    }
+    .service-icon img {
+        width: 36px;
+        height: 36px;
+    }
+    .service-icon i {
+        font-size: 32px;
+    }
+}
+.service-card:hover{
+    transform:translateY(-4px);
+    box-shadow:0 6px 12px rgba(0,0,0,0.15);
+}

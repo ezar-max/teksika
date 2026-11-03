@@ -1,0 +1,218 @@
+/* Chat Container */
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px;
+  height: calc(100vh - 180px); /* sisakan ruang header & input */
+  overflow-y: auto;
+  background-color: #f5f6f8;
+padding-top: 60px; /* kasih jarak dari header */
+}
+
+/* Style umum pesan */
+.message {
+  max-width: 60%;
+  padding: 12px 16px;
+  border-radius: 18px;
+  font-size: 14px;
+  line-height: 1.4;
+  word-wrap: break-word;
+  animation: fadeIn 0.3s ease;
+}
+
+/* Pesan Admin */
+.message.admin {
+  align-self: flex-start;
+  background-color: #e4e6eb;
+  color: #000;
+  border-top-left-radius: 5px;
+}
+
+/* Pesan User */
+.message.user {
+  align-self: flex-end;
+  background-color: #0084ff;
+  color: #fff;
+  border-top-right-radius: 5px;
+}
+
+/* Header chat */
+.chat-header-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  padding: 10px 20px;
+  border-bottom: 1px solid #ddd;
+  font-weight: 600;
+}
+
+/* Input Chat */
+.chat-input {
+  display: flex;
+  align-items: center;
+  padding: 10px 20px;
+  background: #fff;
+  border-top: 1px solid #ddd;
+}
+
+.chat-input input {
+  flex: 1;
+  padding: 12px 15px;
+  border-radius: 25px;
+  border: 1px solid #ccc;
+  outline: none;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.chat-input input:focus {
+  border-color: #0084ff;
+  box-shadow: 0 0 5px rgba(0,132,255,0.3);
+}
+
+.chat-input button {
+  margin-left: 10px;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 50%;
+  background-color: #0084ff;
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.chat-input button:hover {
+  background-color: #006fd3;
+}
+
+/* Chat Area */
+.chat-area {
+    background: #f9f9f9;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px #0001;
+    width: 100%;
+    max-width: 1700px;      /* Tambahkan agar tidak terlalu lebar di desktop */
+    margin: 32px auto;     /* Tengah dan beri jarak atas-bawah */
+    height: 80vh;          /* Atur tinggi agar tidak terlalu tinggi */
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 500px;     /* Minimal tinggi box */
+}
+.chat-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #eee;
+    background: #fff;
+    border-radius: 12px 12px 0 0;
+    display: flex;
+    align-items: center;
+}
+.admin-icon {
+    color: #007bff;
+}
+.admin-name {
+    font-weight: 600;
+}
+.chat-container {
+    padding: 20px;
+    min-height: 260px;
+    background: #f9f9f9;
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.bubble-row {
+    display: flex;
+    margin-bottom: 10px;
+}
+.bubble-row.user {
+    justify-content: flex-end;
+}
+.bubble-row.admin {
+    justify-content: flex-start;
+}
+.chat-bubble {
+    max-width: 70%;
+    padding: 10px 16px;
+    border-radius: 18px;
+    background: #e5e5ea;
+    color: #222;
+    font-size: 15px;
+    word-break: break-word;
+}
+.bubble-row.user .chat-bubble {
+    background: #007bff;
+    color: #fff;
+}
+.chat-empty {
+    text-align: center;
+    color: #aaa;
+}
+.chat-input {
+    padding: 16px 20px;
+    border-top: 1px solid #eee;
+    background: #fff;
+    border-radius: 0 0 12px 12px;
+}
+.chat-input-form {
+    display: flex;
+    gap: 8px;
+}
+.chat-input-form input[type="text"] {
+    flex: 1;
+    padding: 10px 14px;
+    border-radius: 20px;
+    border: 1px solid #ddd;
+    outline: none;
+    font-size: 15px;
+}
+.chat-input-form button {
+    background: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    cursor: pointer;
+}
+.chat-input-form button:hover {
+    background: #0056b3;
+}
+
+/* Animasi */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Scrollbar halus */
+.chat-container::-webkit-scrollbar {
+  width: 6px;
+}
+.chat-container::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+@media (max-width: 700px) {
+    .chat-area {
+        border-radius: 0;
+        min-height: 100vh;
+    }
+    .chat-header,
+    .chat-container,
+    .chat-input,
+    .chat-input-form input[type="text"] {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+}

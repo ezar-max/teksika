@@ -1,0 +1,1831 @@
+:root{
+    --blue:#0a7cff;         /* header & aksen utama */
+    --blue-dark:#0b63cc;    /* shadow/hover */
+    --sidebar:#0b73ef;      /* sidebar */
+    --bg:#f3f5f8;           /* latar konten */
+    --card:#ffffff;
+    --text:#1b1e28;
+    --muted:#8b93a7;
+    --line:#e6e9ee;
+    --green:#20c463;
+    --green-deep:#0fb256;
+    --blackpill:#1d1f27;
+    --orange:#ff6a2b;
+    --pill:#f1f3f6;
+    --radius:16px;
+    --shadow:0 8px 20px rgba(10, 28, 68, .08);
+  }
+
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,Arial;
+    color:var(--text);
+    background:#0a7cff; /* biar header menyatu ke tepi */
+  }
+
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #f4f6f8;
+}
+
+/* SIDEBAR */
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 5px;
+    transition: width 0.3s ease;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+
+.sidebar.open {
+    width: 200px;
+    align-items: flex-start;
+    padding-left: 10px;
+}
+
+.sidebar-logo {
+    width: 93px;
+    height: 93px;
+    margin-top: 0px;
+    align-items: center;
+    justify-content: center;
+    object-fit: contain;
+    margin-top: 1px;
+    transition: all 0.3s ease;
+}
+
+.sidebar.open .sidebar-logo {
+    width: 120px;
+    height: 120px;
+}
+
+.sidebar .icon{
+    color: white;
+    font-size: 16px;
+    margin-bottom: 1px;
+}
+
+.sidebar a {
+    color: white;
+    font-size: 20px;
+    margin-top:1px ;
+    text-decoration: none;
+    padding: 12px 6px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.sidebar a::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.sidebar a:hover::before {
+    left: 100%;
+}
+
+.sidebar a:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateX(5px);
+}
+
+.sidebar a.active {
+    background: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar .logout {
+    margin-top: auto;
+    margin-bottom: 20px;
+}
+
+.menu-text {
+    display: none;
+    white-space: nowrap;
+    font-size: medium;
+}
+
+.sidebar.open .menu-text {
+    display: inline;
+}
+
+/* MAIN CONTENT */
+.main {
+    margin-left: 70px;
+    transition: margin-left 0.3s ease;
+}
+
+.main.shift {
+    margin-left: 200px;
+}
+
+/* HEADER */
+.header {
+    background-color: #0a84ff;
+    display: flex;
+    align-items: center;
+    padding: 10px 20px;
+    color: white;
+    gap: 15px;
+}
+
+.menu-toggle {
+    cursor: pointer;
+    font-size: 20px;
+}
+
+.header input {
+    flex: none;
+    width: 250px;
+    padding: 8px 12px;
+    border-radius: 20px;
+    border: none;
+}
+
+.user-info {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.profile {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.profile i {
+    background: white;
+    color: #0a84ff;
+    padding: 5px;
+    border-radius: 50%;
+}
+
+/* WELCOME */
+.welcome {
+    padding: 20px;
+    text-align: center;
+}
+
+/* INFO CARD */
+.info-card {
+    background-color: hsl(209, 100%, 95%); /* biru muda */
+    border-radius: 10px;
+    margin: 0;
+    margin-left: 20px; /* dekat sidebar */
+    width: calc(60% - 40px);
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.info-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.info-text i {
+    color: #0a84ff;
+    margin-bottom: 5px;
+}
+
+.info-card button {
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 6px 12px;
+    cursor: pointer;
+}
+
+/* SECTION TITLE */
+.section-title {
+    padding: 20px;
+    padding-left: 20px;
+}
+
+/* SERVICES */
+.services {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    padding: 0 20px 30px;
+}
+
+.service-card {
+    background-color: white;
+    padding: 15px;
+    border-radius: 10px;
+    text-align: left;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.icon.orange {
+    font-size: 24px;
+    color: white;
+    background-color: orange;
+    padding: 10px;
+    border-radius: 8px;
+    display: inline-block;
+    margin-right: 500px;
+}
+
+.request-btn {
+    background-color: #0a45ff;
+    color: white;
+    border: none;
+    padding: 8px 0;
+    width: 100%;
+    border-radius: 20px;
+    cursor: pointer;
+}
+
+.menu-text {
+    display: none; /* disembunyikan saat sidebar tertutup */
+    white-space: nowrap;
+    font-size: medium;
+}
+
+.sidebar.open .menu-text {
+    display: inline; /* muncul saat sidebar dibuka */
+}
+
+
+/* POPUP BACKGROUND */
+.popup {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.15); /* TRANSPARAN TANPA WARNA */
+    backdrop-filter: blur(2px); /* BLUR TIPIS */
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.25s ease-in-out;
+}
+
+/* POPUP CONTAINER (KOTAK BIRU UTAMA) */
+.popup-content {
+    background: #063ca3; /* BIRU SOLID */
+    padding: 30px;
+    border-radius: 20px;
+    width: 880px;
+    max-width: 92%;
+    text-align: center;
+    box-shadow: 0 6px 28px rgba(0, 0, 0, 0.25);
+    animation: slideUp 0.35s ease;
+    position: relative;
+}
+
+/* TITLE */
+.popup-title {
+    font-size: 22px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 26px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    letter-spacing: 0.7px;
+}
+
+/* STEP CONTAINER */
+.steps-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 26px;
+}
+
+/* STEP CARD (KOTAK DALAM BLUR TRANSPARAN) */
+.step {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 14px;
+    padding: 48px 15px 16px;
+    width: 100%;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* HOVER EFEK STEP */
+.step:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 22px rgba(36, 150, 250, 0.35);
+}
+
+/* ICON STEP */
+.step-icon {
+    color: #fff;
+    font-size: 28px;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: -30px;
+    box-shadow: 0 5px 12px rgba(0, 0, 0, 0.25);
+    border: 3px solid #fff;
+}
+
+/* WARNA ICON SESUAI KATEGORI */
+.icon-green { background: #28c76f; } /* HIJAU */
+.icon-blue { background: #2496FA; } /* BIRU */
+.icon-purple { background: #9c6bff; } /* UNGU */
+
+/* STEP TITLE */
+.step h3 {
+    margin: 10px 0 8px;
+    color: #fff;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+/* STEP DESCRIPTION */
+.step p {
+    font-size: 14px;
+    color: #cde7ff;
+    line-height: 1.5;
+    text-align: center;
+}
+
+/* BUTTON WRAPPER */
+.popup-buttons {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin-top: 8px;
+}
+
+/* BUTTON */
+.main-btn {
+    background: linear-gradient(135deg, #2496FA, #0e6fbb);
+    color: #fff;
+    padding: 13px 24px;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.25s ease-in-out;
+    box-shadow: 0 4px 10px rgba(36, 150, 250, 0.3);
+}
+
+/* BUTTON HOVER */
+.main-btn:hover {
+    background: linear-gradient(135deg, #1b80e6, #0962a8);
+    transform: scale(1.04);
+    box-shadow: 0 6px 18px rgba(36, 150, 250, 0.45);
+}
+
+/* CLOSE BUTTON */
+.close-btn {
+    position: absolute;
+    right: 18px;
+    top: 14px;
+    font-size: 22px;
+    font-weight: bold;
+    color: #fff;
+    cursor: pointer;
+    transition: 0.25s;
+}
+
+.close-btn:hover {
+    color: #6de3ff;
+    transform: rotate(90deg);
+}
+
+/* RESPONSIVE */
+@media (max-width: 900px) {
+    .steps-container {
+        flex-direction: column;
+        gap: 18px;
+    }
+    .step {
+        width: 100%;
+    }
+    .popup-content {
+        padding: 24px 14px;
+    }
+}
+
+/* ANIMASI POPUP */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+@keyframes slideUp {
+    from { transform: translateY(30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+/* Modal khusus logout */
+.modal-logout {
+  display: none;
+  position: fixed;
+  z-index: 2000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  align-items: center;
+  justify-content: center;
+  font-family: 'Montserrat', sans-serif;
+}
+
+/* Konten utama modal */
+.modal-logout-content {
+  background: #fff;
+  border-radius: 16px;
+  width: 420px;
+  max-width: 90%;
+  overflow: hidden;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+  animation: scaleUp 0.25s ease;
+}
+
+/* Header biru di atas */
+.modal-logout-header {
+  background: #4BAAF4;
+  color: #fff;
+  padding: 20px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 18px;
+  position: relative;
+}
+
+/* Bagian user info */
+.modal-logout-user {
+  margin: 18px auto;
+  background: #f4f7fb;
+  padding: 12px 15px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+/* Role badge (sebelah nama) */
+.modal-logout-user .role {
+  background: #e8f4ff;
+  color: #1b82e2;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+/* Peringatan sebelum logout */
+.modal-logout-warning {
+  margin: 10px 18px;
+  background: #fff3cd;
+  color: #856404;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.4;
+}
+
+/* Footer tombol */
+.modal-logout-footer {
+  display: flex;
+  justify-content: space-between;
+  padding: 18px;
+  margin-top: 10px;
+}
+
+/* Tombol batal */
+.btn-cancel {
+  background: #f1f1f1;
+  border: none;
+  color: #333;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-cancel:hover {
+  background: #e0e0e0;
+}
+
+/* Tombol konfirmasi logout */
+.btn-confirm {
+  background: #4BAAF4;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-confirm:hover {
+  background: #399de9;
+}
+
+/* Animasi muncul */
+@keyframes scaleUp {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+/* ===============================
+   MODAL PROFIL
+   =============================== */
+/* === Modal Profile === */
+.modal-profile {
+  display: none; /* hidden by default */
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  backdrop-filter: blur(2px);
+  background: rgba(0, 0, 0, 0.5);
+  justify-content: center;
+  align-items: center;
+}
+
+/* Konten Modal */
+.modal-profile-content {
+  background: #fff;
+  padding: 30px;
+  border-radius: 20px;
+  width: 420px;
+  max-width: 90%;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+  text-align: center;
+  position: relative;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Animasi masuk */
+@keyframes fadeIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+/* Tombol Close (X) */
+.modal-profile-close {
+  position: absolute;
+  top: 12px;
+  right: 18px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #888;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.modal-profile-close:hover {
+  color: #333;
+}
+
+/* Judul */
+.modal-profile h2 {
+  margin: 0;
+  font-size: 22px;
+  color: #333;
+}
+.modal-profile .subtitle {
+  font-size: 14px;
+  color: #777;
+  margin-bottom: 20px;
+}
+
+/* Info Profil */
+.profile-info {
+  margin: 20px 0;
+}
+.profile-icon {
+  font-size: 70px;
+  color: #6c63ff;
+  margin-bottom: 10px;
+}
+.profile-info h3 {
+  margin: 5px 0;
+  font-size: 20px;
+  color: #444;
+}
+.profile-info p {
+  color: #666;
+  font-size: 14px;
+}
+
+/* Statistik */
+.profile-stats {
+  display: flex;
+  justify-content: space-around;
+  margin: 20px 0;
+}
+.profile-stats .stat {
+  background: #f7f7f7;
+  padding: 15px;
+  border-radius: 12px;
+  flex: 1;
+  margin: 0 5px;
+  transition: 0.2s;
+}
+.profile-stats .stat:hover {
+  background: #ececff;
+  transform: translateY(-3px);
+}
+.profile-stats h3 {
+  margin: 0;
+  font-size: 20px;
+  color: #6c63ff;
+}
+.profile-stats p {
+  font-size: 12px;
+  color: #555;
+  margin: 5px 0 0;
+}
+
+/* Info Member */
+.member-info {
+  font-size: 13px;
+  color: #666;
+  margin: 15px 0 25px;
+  line-height: 1.5;
+}
+
+/* Tombol Logout */
+.btn-logout {
+  background: #ff4d4d;
+  color: #fff;
+  border: none;
+  padding: 12px 18px;
+  border-radius: 12px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.btn-logout:hover {
+  background: #e63939;
+}
+
+
+  /* ====== CONTENT ====== */
+  .content{
+    padding:28px 28px 40px;
+    overflow:auto;
+  }
+  .page-title{
+    font-size:28px;font-weight:800;letter-spacing:.3px;margin-bottom:4px
+  }
+  .subtle{color:var(--muted);font-size:12px;margin-bottom:18px}
+  .board{
+    background:linear-gradient(#ffffff,#ffffff) padding-box,
+               radial-gradient(1200px 80px at 50% -40px, #e9f1ff, transparent) border-box;
+    border:1px solid var(--line);
+    border-radius:18px;box-shadow:var(--shadow);padding:22px;margin-top:10px
+  }
+
+  /* ====== BOOKING CARD ====== */
+  .booking{
+    background:var(--card);border:1px solid var(--line);
+    border-radius:16px;padding:18px 18px;
+    display:flex;align-items:center;gap:18px;
+    box-shadow:0 6px 14px rgba(10, 28, 68, .05);
+    user-select:none;
+  }
+  .booking + .booking{margin-top:14px}
+  .title{font-size:18px;font-weight:800;margin-bottom:8px}
+  .meta{font-size:12px;color:var(--muted);line-height:1.6}
+  .right{
+    margin-left:auto;display:flex;align-items:center;gap:16px
+  }
+  .price{font-weight:800}
+  .price strong{color:#24b162}
+  .chip{
+    padding:6px 10px;border-radius:999px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px
+  }
+  .chip.green{background:#e9fbf2;color:var(--green)}
+  .chip.black{background:var(--blackpill);color:#fff}
+  .chip.black i{font-size:8px}
+  .action-row{display:flex;align-items:center;gap:10px}
+  .icon-btn{
+    width:34px;height:34px;border-radius:10px;border:1px solid var(--line);
+    display:grid;place-items:center;background:#fff;cursor:pointer
+  }
+  .btn-cancel{
+    border:none;background:var(--orange);color:#fff;
+    padding:8px 12px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer
+  }
+  .eye{color:#222}
+
+  /* ====== MODAL ====== */
+  .modal{
+    position:fixed;inset:0;display:none;z-index:100;
+  }
+  .modal.open{display:block}
+  .backdrop{
+    position:absolute;inset:0;background:rgba(15,23,42,.55);
+    backdrop-filter:blur(2px);
+  }
+  .dialog{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:min(560px,92vw);background:#fff;border-radius:16px;
+    box-shadow:0 40px 80px rgba(0,0,0,.35);padding:20px 18px;
+  }
+  .dialog .head{
+    display:flex;align-items:center;gap:10px;margin-bottom:14px
+  }
+  .head i{color:#111}
+  .head h3{margin:0;font-size:18px}
+  .form-row{display:grid;grid-template-columns:1fr;gap:12px;margin-top:8px}
+  .label{font-size:12px;color:#666;margin-bottom:6px}
+  .input, .select, .textarea{
+    width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);
+    background:#f9fbff;outline:none;font-size:13px;color:#2a3140
+  }
+  .textarea{min-height:70px;resize:vertical}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:14px}
+  .btn{
+    padding:9px 14px;border-radius:10px;border:1px solid var(--line);background:#fff;cursor:pointer;font-weight:700
+  }
+  .btn.primary{background:#e9f2ff;border-color:#d6e6ff;color:#0a70e5}
+  .btn.dark{background:#0a70e5;border-color:#0a70e5;color:#fff}
+  .close-x{
+    position:absolute;right:12px;top:8px;border:none;background:transparent;font-size:18px;cursor:pointer;color:#222
+  }
+
+  /* Detail styles */
+  .detail-title{font-weight:800;font-size:18px;margin:0 0 4px}
+  .detail-grid{
+    display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;margin-top:10px;font-size:14px
+  }
+  .muter{color:var(--muted);font-size:12px}
+  .price-badge{margin-left:auto;text-align:right}
+  .price-badge .big{color:#24b162;font-size:18px;font-weight:800}
+  .status-mini{background:#eaf7f0;color:var(--green);font-weight:800;padding:4px 8px;border-radius:999px;font-size:10px}
+
+  /* ====== FLOAT BAR (Lihat ARSIKA) ====== */
+  .arsika {
+    position: fixed;
+    right: 20px;
+    bottom: 18px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: #2d5bff;
+    color: #fff;
+    padding: 10px 14px;
+    border-radius: 12px;
+    box-shadow: 0 8px 18px rgba(45, 91, 255, .35);
+    cursor: pointer;
+    z-index: 60;
+  }
+  .arsika i {
+    background: rgba(255,255,255,.2);
+    width:28px;height:28px;border-radius:8px;
+    display:grid;place-items:center;
+  }
+  .arsika small {opacity: .85}
+  .arsika:active{transform:translateY(1px)}
+  /* helper to avoid card click when pressing buttons */
+  .no-pointer{pointer-events:auto}
+
+  @media (max-width:720px){
+    .topbar{padding-left:76px}
+    .search{width:180px}
+    .detail-grid{grid-template-columns:1fr}
+  }
+  .header-booking {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.header-booking h2 {
+  font-size: 24px;
+  font-weight: bold;
+  color: #000;
+  margin-bottom: 5px; /* tambahin jarak bawah */
+}
+
+.btn-request {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: 0.3s;
+}
+
+.btn-request:hover {
+  background-color: #0056b3;
+}
+
+.subtitle {
+  margin-top: 10px; /* opsional biar makin renggang */
+  color: #555; 
+  font-size: 16px;
+}
+
+/* DROPDOWN NOTIF */
+.notif-dropdown {
+  position: absolute;
+  top: 60px;
+  right: 100px; /* atur sesuai posisi bell */
+  width: 280px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 18px rgba(0,0,0,.15);
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 99;
+  font-family: 'Inter', sans-serif;
+}
+
+.notif-dropdown.open {
+  display: flex;
+}
+
+.notif-header {
+  font-weight: 600;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+  background: #f8f9ff;
+}
+
+.notif-item {
+  padding: 12px;
+  font-size: 14px;
+  color: #333;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.notif-item:last-child {
+  border-bottom: none;
+}
+.notif-item:hover {
+  background: #f5f7ff;
+}
+
+.notif-icon {
+  font-size: 16px;
+}
+
+.notif-time {
+  font-size: 12px;
+  color: #777;
+}
+.booking-card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    margin-bottom: 24px;
+    padding: 24px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.booking-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.booking-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+.booking-code {
+    font-size: 1rem;
+    color: #1976d2;
+    font-weight: 600;
+}
+.booking-card-meta {
+    display: flex;
+    gap: 18px;
+    margin-top: 6px;
+    font-size: 0.98rem;
+    color: #666;
+}
+.booking-status.status-success {
+    color: #43a047;
+    font-weight: 600;
+}
+.booking-status.status-waiting {
+    color: #ff9800;
+    font-weight: 600;
+}
+.booking-card-footer {
+    margin-top: 12px;
+    display: flex;
+    gap: 10px;
+}
+.btn-detail {
+    background: #e3f2fd;
+    color: #1976d2;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 14px;
+    cursor: pointer;
+}
+.btn-cancel {
+    background: #ffebee;
+    color: #d32f2f;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 14px;
+    cursor: pointer;
+}
+
+:root{
+    --blue:#0a7cff;         /* header & aksen utama */
+    --blue-dark:#0b63cc;    /* shadow/hover */
+    --sidebar:#0b73ef;      /* sidebar */
+    --bg:#f3f5f8;           /* latar konten */
+    --card:#ffffff;
+    --text:#1b1e28;
+    --muted:#8b93a7;
+    --line:#e6e9ee;
+    --green:#20c463;
+    --green-deep:#0fb256;
+    --blackpill:#1d1f27;
+    --orange:#ff6a2b;
+    --pill:#f1f3f6;
+    --radius:16px;
+    --shadow:0 8px 20px rgba(10, 28, 68, .08);
+  }
+  
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,Arial;
+    color:var(--text);
+    background:var(--bg);
+    overflow-x:hidden;
+  }
+  
+  .header input {
+    flex: none;
+    width: 250px;
+    padding: 10px 15px;
+    border-radius: 20px;
+    border: none;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    transition: all 0.3s ease;
+  }
+  
+  .header input::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+  }
+  
+  .header input:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.3);
+    width: 300px;
+  }
+  
+  .user-info {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+  
+  .user-info .fa-bell {
+    font-size: 18px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+  }
+  
+  .user-info .fa-bell:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+  
+  /* CONTENT - PERBAIKAN TAMPILAN SAJA */
+  .content {
+    padding: 30px;
+  }
+  
+  .header-booking {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  
+  .header-booking h2 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0;
+    position: relative;
+  }
+  
+  .header-booking h2::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 0;
+    width: 60px;
+    height: 4px;
+    background: var(--blue);
+    border-radius: 2px;
+  }
+  
+  .btn-request {
+    background-color: #0a45ff;
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 8px rgba(10, 69, 255, 0.3);
+  }
+  
+  .btn-request:hover {
+    background-color: #0056b3;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(10, 69, 255, 0.4);
+  }
+  
+  .subtitle {
+    margin-top: 15px;
+    color: var(--muted);
+    font-size: 16px;
+    margin-bottom: 25px;
+  }
+  
+  /* BOARD - PERBAIKAN TAMPILAN SAJA */
+  .board {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    padding: 25px;
+    margin-top: 10px;
+    border: 1px solid var(--line);
+  }
+  
+  /* BOOKING CARD - PERBAIKAN TAMPILAN SAJA */
+  .booking-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    border: 1px solid var(--line);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .booking-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: var(--blue);
+    border-radius: 2px 0 0 2px;
+  }
+  
+  .booking-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+  }
+  
+  .booking-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .booking-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  
+  .booking-code {
+    font-size: 14px;
+    color: var(--blue);
+    font-weight: 600;
+    background: rgba(10, 124, 255, 0.1);
+    padding: 4px 10px;
+    border-radius: 20px;
+  }
+  
+  .booking-card-meta {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+  }
+  
+  .booking-date {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  
+  .booking-date i {
+    color: var(--blue);
+  }
+  
+  .booking-status {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  
+  .booking-status.status-progress {
+    background: rgba(32, 196, 99, 0.1);
+    color: var(--green);
+  }
+  
+  .booking-status.status-waiting {
+    background: rgba(255, 152, 0, 0.1);
+    color: #ff9800;
+  }
+  
+  .booking-status.status-rejected {
+    background: rgba(244, 67, 54, 0.1);
+    color: #f44336;
+  }
+  
+  .booking-status.status-cancelled {
+    background: rgba(158, 158, 158, 0.1);
+    color: #9e9e9e;
+  }
+  
+  .booking-worker {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--muted);
+    font-size: 14px;
+    margin-top: 5px;
+  }
+  
+  .booking-worker i {
+    color: var(--blue);
+  }
+  
+  .booking-card-footer {
+    display: flex;
+    gap: 10px;
+    margin-top: 5px;
+  }
+  
+  .btn-detail {
+    background: rgba(10, 124, 255, 0.1);
+    color: var(--blue);
+    border: none;
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  
+  .btn-detail:hover {
+    background: var(--blue);
+    color: white;
+  }
+  
+  .btn-cancel {
+    background: rgba(244, 67, 54, 0.1);
+    color: #f44336;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+  }
+  
+  .btn-cancel:hover {
+    background: #f44336;
+    color: white;
+  }
+  
+  /* DROPDOWN NOTIF - PERBAIKAN TAMPILAN SAJA */
+  .notif-dropdown {
+    position: absolute;
+    top: 60px;
+    right: 100px;
+    width: 280px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 99;
+    font-family: 'Inter', sans-serif;
+    animation: slideDown 0.3s ease;
+  }
+  
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .notif-dropdown.open {
+    display: flex;
+  }
+  
+  .notif-header {
+    font-weight: 600;
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg);
+    font-size: 15px;
+  }
+  
+  .notif-item {
+    padding: 12px 15px;
+    font-size: 14px;
+    color: var(--text);
+    border-bottom: 1px solid var(--line);
+    cursor: pointer;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    transition: all 0.2s ease;
+  }
+  
+  .notif-item:last-child {
+    border-bottom: none;
+  }
+  
+  .notif-item:hover {
+    background: var(--bg);
+  }
+  
+  .notif-icon {
+    font-size: 16px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  
+  .notif-icon .fa-credit-card {
+    color: #1976d2;
+    background: rgba(25, 118, 210, 0.1);
+  }
+  
+  .notif-icon .fa-circle-check {
+    color: var(--green);
+    background: rgba(32, 196, 99, 0.1);
+  }
+  
+  .notif-icon .fa-triangle-exclamation {
+    color: #f44336;
+    background: rgba(244, 67, 54, 0.1);
+  }
+  
+  .notif-icon .fa-ban {
+    color: #9e9e9e;
+    background: rgba(158, 158, 158, 0.1);
+  }
+  
+  .notif-icon .fa-clock {
+    color: #ff9800;
+    background: rgba(255, 152, 0, 0.1);
+  }
+  
+  .notif-time {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  
+  /* MODAL DETAIL - PERBAIKAN TAMPILAN SAJA */
+  .modal {
+    position: fixed;
+    inset: 0;
+    display: none;
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .modal.open {
+    display: flex;
+  }
+  
+  .backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+  }
+  
+  .dialog {
+    position: relative;
+    background: white;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    padding: 25px;
+    animation: modalFadeIn 0.3s ease;
+  }
+  
+  @keyframes modalFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .close-x {
+    position: absolute;
+    right: 15px;
+    top: 15px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    cursor: pointer;
+    color: var(--muted);
+    transition: all 0.3s ease;
+  }
+  
+  .close-x:hover {
+    background: var(--line);
+    color: var(--text);
+  }
+  
+  .detail-title {
+    font-weight: 700;
+    font-size: 22px;
+    margin: 0 0 5px;
+    color: var(--text);
+  }
+  
+  .muter {
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 10px;
+  }
+  
+  .status-mini {
+    background: rgba(32, 196, 99, 0.1);
+    color: var(--green);
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 13px;
+    display: inline-block;
+  }
+  
+  .price-badge {
+    margin-left: auto;
+    text-align: right;
+  }
+  
+  .price-badge .big {
+    color: var(--green);
+    font-size: 22px;
+    font-weight: 700;
+  }
+  
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 20px;
+  }
+  
+  .detail-grid > div {
+    margin-bottom: 15px;
+  }
+  
+  .detail-grid > div > div:last-child {
+    font-size: 15px;
+    color: var(--text);
+    font-weight: 500;
+  }
+  
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 25px;
+  }
+  
+  .modal-actions .btn {
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: none;
+    background: var(--blue);
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .modal-actions .btn:hover {
+    background: var(--blue-dark);
+  }
+  
+  /* EMPTY STATE - PERBAIKAN TAMPILAN SAJA */
+  .empty-state {
+    text-align: center;
+    color: var(--muted);
+    margin-top: 50px;
+    padding: 30px;
+  }
+  
+  .empty-state i {
+    font-size: 50px;
+    color: var(--line);
+    margin-bottom: 15px;
+  }
+  
+  .empty-state div {
+    font-size: 18px;
+    margin-bottom: 10px;
+  }
+  
+  /* MODAL LOGOUT - PERBAIKAN TAMPILAN SAJA */
+  .modal-logout {
+    display: none;
+    position: fixed;
+    z-index: 3000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    align-items: center;
+    justify-content: center;
+    font-family: 'Inter', sans-serif;
+  }
+  
+  .modal-logout-content {
+    background: white;
+    border-radius: 16px;
+    width: 420px;
+    max-width: 90%;
+    overflow: hidden;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+    animation: modalFadeIn 0.3s ease;
+  }
+  
+  .modal-logout-header {
+    background: #4BAAF4;
+    color: white;
+    padding: 20px;
+    text-align: center;
+    position: relative;
+  }
+  
+  .modal-logout-header h2 {
+    margin: 15px 0 5px;
+    font-size: 20px;
+    font-weight: 600;
+  }
+  
+  .modal-logout-header p {
+    margin: 0;
+    opacity: 0.9;
+    font-size: 14px;
+  }
+  
+  .modal-logout-close {
+    position: absolute;
+    right: 15px;
+    top: 15px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    cursor: pointer;
+    color: white;
+    transition: all 0.3s ease;
+  }
+  
+  .modal-logout-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+  
+  .modal-logout-user {
+    margin: 18px auto;
+    background: #f4f7fb;
+    padding: 12px 15px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    margin: 15px;
+  }
+  
+  .modal-logout-user .role {
+    background: #e8f4ff;
+    color: #1b82e2;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: bold;
+  }
+  
+  .modal-logout-warning {
+    margin: 10px 15px;
+    background: #fff3cd;
+    color: #856404;
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 14px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    line-height: 1.4;
+  }
+  
+  .modal-logout-footer {
+    display: flex;
+    justify-content: space-between;
+    padding: 15px;
+    background: #f8f9fa;
+  }
+  
+  .btn-cancel {
+    background: #f1f1f1;
+    border: none;
+    color: #333;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  
+  .btn-cancel:hover {
+    background: #e0e0e0;
+  }
+  
+  .btn-confirm {
+    background: #4BAAF4;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  
+  .btn-confirm:hover {
+    background: #399de9;
+  }
+  
+  /* PAYMENT NOTIFICATION POPUP - PERBAIKAN TAMPILAN SAJA */
+  #payNotify {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 4000;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  
+  #payNotify > div {
+    background: white;
+    border-radius: 16px;
+    padding: 25px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+    text-align: center;
+    max-width: 360px;
+    width: 90%;
+    animation: modalFadeIn 0.3s ease;
+  }
+  
+  #payNotify i {
+    font-size: 36px;
+    color: #ff9800;
+    margin-bottom: 15px;
+  }
+  
+  #payNotify h3 {
+    margin: 0 0 10px;
+    font-size: 20px;
+    color: var(--text);
+  }
+  
+  #payNotify p {
+    margin: 0 0 20px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  
+  #payNotifyClose {
+    background: var(--bg);
+    color: var(--text);
+    border: none;
+    border-radius: 8px;
+    padding: 8px 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  #payNotifyClose:hover {
+    background: var(--line);
+  }
+  
+  #payNotifyLink {
+    background: var(--blue);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 15px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+  }
+  
+  #payNotifyLink:hover {
+    background: var(--blue-dark);
+  }
+  
+  /* SUCCESS POPUP - PERBAIKAN TAMPILAN SAJA */
+  #popupSuccess {
+    position: fixed;
+    top: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--green);
+    color: white;
+    padding: 15px 25px;
+    border-radius: 10px;
+    z-index: 5000;
+    box-shadow: 0 10px 25px rgba(32, 196, 99, 0.3);
+    font-weight: 500;
+    animation: slideDown 0.3s ease;
+  }
+  
+  /* RESPONSIVE - PERBAIKAN TAMPILAN SAJA */
+  @media (max-width: 768px) {
+    .sidebar {
+      width: 0;
+    }
+    
+    .sidebar.open {
+      width: 200px;
+    }
+    
+    .main {
+      margin-left: 0;
+    }
+    
+    .main.shift {
+      margin-left: 0;
+    }
+    
+    .header input {
+      width: 180px;
+    }
+    
+    .header input:focus {
+      width: 200px;
+    }
+    
+    .header-booking {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 15px;
+    }
+    
+    .detail-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .booking-card-meta {
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .booking-card-footer {
+      flex-direction: column;
+    }
+    
+    .modal-logout-footer {
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    .modal-logout-footer button {
+      width: 100%;
+    }
+    
+    .notif-dropdown {
+      right: 20px;
+      width: calc(100% - 40px);
+      max-width: 320px;
+    }
+  }

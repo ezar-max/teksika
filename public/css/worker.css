@@ -1,0 +1,421 @@
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #f4f6f8;
+}
+
+/* SIDEBAR */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 70px;
+    height: 100%;
+    background-color: #0a84ff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 5px;
+    transition: width 0.3s ease;
+    overflow: hidden;
+}
+
+.sidebar.open {
+    width: 200px;
+    align-items: flex-start;
+    padding-left: 10px;
+}
+
+.sidebar-logo {
+    width: 93px;  /* Sesuaikan ukuran */
+    height: 93px;
+    margin-top: 0px;
+    align-items: center;
+    justify-content: center;
+    object-fit: contain;
+    margin-top: 1px;
+}
+
+.sidebar .icon{
+    color: white;
+    font-size: 16px;
+    margin-bottom: 1px;
+}
+
+.sidebar a {
+    color: white;
+    font-size: 20px;
+    margin-top:1px ;
+    text-decoration: none;
+    padding: 6px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: background 0.3s;
+}
+
+.sidebar a:hover {
+    background: #AFDDFF;
+}
+
+.sidebar a.active {
+    background: #AFDDFF; 
+    color: white;
+}
+
+.sidebar .logout {
+    margin-top: auto;
+    margin-bottom: 20px;
+}
+
+.menu-text {
+    display: none; /* disembunyikan saat sidebar tertutup */
+    white-space: nowrap;
+    font-size: medium;
+}
+
+.sidebar.open .menu-text {
+    display: inline; /* muncul saat sidebar dibuka */
+}
+
+
+/* MAIN CONTENT */
+.main {
+    margin-left: 70px;
+    transition: margin-left 0.3s ease;
+}
+
+.main.shift {
+    margin-left: 200px;
+}
+
+/* HEADER */
+.header {
+    background-color: #0a84ff;
+    display: flex;
+    align-items: center;
+    padding: 10px 20px;
+    color: white;
+    gap: 15px;
+}
+
+.menu-toggle {
+    cursor: pointer;
+    font-size: 20px;
+}
+
+.header input {
+    flex: none;
+    width: 250px;
+    padding: 8px 12px;
+    border-radius: 20px;
+    border: none;
+}
+
+.user-info {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.profile {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.profile i {
+    background: white;
+    color: #0a84ff;
+    padding: 5px;
+    border-radius: 50%;
+}
+
+.worker-content {
+    padding: 0 24px 24px 24px;
+}
+.worker-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-top: 24px;
+}
+.worker-title {
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin-bottom: 0;
+}
+.worker-subtitle {
+    color: #555;
+    margin-bottom: 32px;
+}
+.btn-tambah-pekerja {
+    background: #0090ff;
+    color: #fff;
+    font-size: 1.3rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 12px;
+    padding: 18px 36px;
+    box-shadow: 0 4px 8px #0001;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background 0.2s;
+}
+.btn-tambah-pekerja i {
+    margin-right: 10px;
+    font-size: 1.5rem;
+}
+.worker-summary-cards {
+    display: flex;
+    gap: 32px;
+    margin: 32px 0 0 0;
+}
+.worker-summary-card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px #0001;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    padding: 24px;
+    gap: 16px;
+}
+.icon-bg {
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.icon-bg.green {
+    background: #22c55e;
+}
+.icon-bg.purple {
+    background: #a855f7;
+}
+.icon-bg i {
+    color: #fff;
+    font-size: 2rem;
+}
+.summary-label {
+    color: #888;
+}
+.summary-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+}
+.worker-list-container {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px #0001;
+    margin-top: 32px;
+    padding: 24px;
+}
+.worker-list-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 24px;
+}
+.worker-list {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+.worker-card {
+    background: #f7f7f7;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px #0001;
+    width: 320px;
+    margin-bottom: 24px;
+    padding: 0 0 16px 0;
+    display: flex;
+    flex-direction: column;
+}
+.worker-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 16px 0 16px;
+}
+.worker-avatar {
+    width: 48px;
+    height: 48px;
+    background: #ddd;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    margin-right: 8px;
+}
+.worker-name {
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+.worker-role {
+    font-size: 0.95rem;
+    color: #888;
+}
+.worker-card-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 12px;
+}
+.worker-card-actions i {
+    color: #222;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+.worker-card-actions i.fa-trash {
+    color: #ef4444;
+}
+.worker-card-body {
+    padding: 0 16px;
+    font-size: 1rem;
+}
+.worker-info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+.worker-skill-list {
+    margin-top: 8px;
+    display: flex;
+    gap: 8px;
+}
+.worker-skill {
+    background: #b6eab6;
+    color: #222;
+    border-radius: 8px;
+    padding: 6px 18px;
+    font-size: 0.9rem;
+}
+
+/* Popup overlay */
+#addWorkerPopup {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.3);
+    z-index: 999;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Popup card */
+#addWorkerPopup > div {
+    background: #fff;
+    padding: 32px 24px;
+    border-radius: 16px;
+    max-width: 420px;
+    width: 100%;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.15);
+}
+
+/* Title */
+#addWorkerPopup h2 {
+    font-size: 1.4rem;
+    font-weight: bold;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Form layout */
+#formAddWorker {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+/* Dua kolom atas */
+#formAddWorker > div:first-child {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+/* Label */
+#formAddWorker label {
+    font-size: 1rem;
+    margin-bottom: 2px;
+    font-weight: 500;
+}
+
+/* Input dan select */
+#formAddWorker input,
+#formAddWorker select {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: none;
+    background: #f3f3f3;
+    margin-bottom: 10px;
+    font-size: 1rem;
+    box-sizing: border-box;
+    outline: none;
+    transition: box-shadow 0.2s;
+}
+
+#formAddWorker input:focus,
+#formAddWorker select:focus {
+    box-shadow: 0 0 0 2px #2222ff33;
+}
+
+/* Tombol bawah */
+#formAddWorker button {
+    padding: 8px 18px;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    min-width: 100px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+    transition: background 0.2s, color 0.2s;
+}
+
+#formAddWorker button[type="button"] {
+    border: 1px solid #ccc;
+    background: #fff;
+    color: #222;
+}
+
+#formAddWorker button[type="submit"] {
+    border: none;
+    background: #222;
+    color: #fff;
+}
+
+#formAddWorker button:hover {
+    background: #444;
+    color: #fff;
+}
+
+#formAddWorker button[type="button"]:hover {
+    background: #eee;
+    color: #222;
+}
+
+/* Error list */
+#addWorkerPopup ul {
+    margin: 0 0 10px 0;
+    font-size: 0.95rem;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    #addWorkerPopup > div {
+        max-width: 98vw;
+        padding: 18px 8px;
+    }
+    #formAddWorker > div:first-child {
+        flex-direction: column;
+        gap: 0;
+    }
+}

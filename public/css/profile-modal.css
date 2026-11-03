@@ -1,0 +1,187 @@
+/* Profile & Edit Profile Modal Styles (TEKSIKA)
+   -------------------------------------------------- */
+
+/* Base modal overlay */
+.modal-profile {
+  display: none;            /* flex when open */
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  backdrop-filter: blur(2px);
+  background: rgba(0, 0, 0, .5);
+  justify-content: center;
+  align-items: center;
+}
+
+/* Content container (default profile modal) */
+.modal-profile-content {
+  background: #fff;
+  padding: 30px;
+  border-radius: 20px;
+  width: 420px;
+  max-width: 90%;
+  box-shadow: 0 8px 25px rgba(0,0,0,.2);
+  text-align: center;
+  position: relative;
+  animation: fadeIn .3s ease-in-out;
+}
+
+.modal-profile-close {
+  position: absolute;
+  top: 12px;
+  right: 18px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #888;
+  cursor: pointer;
+  transition: color .15s ease;
+}
+.modal-profile-close:hover { color: #333; }
+
+@keyframes fadeIn {
+  from { transform: scale(.98); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+/* --------------------------------------------------
+   Edit Profile Card (Enhanced UI)
+   -------------------------------------------------- */
+.edit-card {
+  max-width: 480px;
+  width: 96vw;
+  background: #fff;
+  border-radius: 16px;
+  padding: 28px 24px 22px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.15);
+  position: absolute;
+  left: 50%;
+  top: 40px; /* Tengah atas, bisa disesuaikan */
+  transform: translateX(-50%);
+  margin: 0 auto;
+  border: 1px solid #e5e7eb;
+}
+
+.edit-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+  display: grid;
+  place-items: center;
+  color: #1976d2;
+  font-size: 28px;
+  font-weight: 700;
+  border: 2px solid #e5e7eb;
+}
+
+.edit-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: #1d4ed8;
+}
+.edit-sub {
+  margin: 0;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.edit-grid {
+  display: grid;
+  grid-template-columns: 1fr; /* Ubah dari 1fr 1fr jadi 1fr */
+  gap: 16px;
+  margin-top: 10px;
+}
+
+.edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.edit-label {
+  font-size: 13px;
+  color: #374151;
+  font-weight: 600;
+}
+
+.input-wrap {
+  position: relative;
+}
+.input-wrap .icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6b7280;
+  font-size: 16px;
+}
+
+.edit-input {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px 12px 10px 38px;
+  background: #f9fafb;
+  outline: none;
+  transition: .15s;
+  font-size: 15px;
+}
+.edit-input:focus {
+  border-color: #93c5fd;
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(59,130,246,.12);
+}
+
+.edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.btn-outline {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  color: #374151;
+  border-radius: 10px;
+  padding: 10px 18px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 15px;
+}
+.btn-outline:hover {
+  background: #f3f4f6;
+}
+
+.btn-primary {
+  background: #1d4ed8;
+  border: 1px solid #1d4ed8;
+  color: #fff;
+  border-radius: 10px;
+  padding: 10px 18px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 15px;
+}
+.btn-primary:hover {
+  background: #1e40af;
+  border-color: #1e40af;
+}
+
+@media (max-width: 680px) {
+  .edit-grid { grid-template-columns: 1fr; }
+  .edit-card { padding: 18px 8px; left: 50%; top: 24px; }
+}

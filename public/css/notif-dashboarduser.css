@@ -1,0 +1,58 @@
+/* Dropdown Notifikasi Dashboard User */
+.notif-dropdown {
+  position: absolute;
+  top: 60px;
+  right: 100px;
+  width: 280px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 99;
+  font-family: 'Inter', sans-serif;
+  animation: slideDown 0.3s ease;
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.notif-dropdown.open { display: flex; }
+.notif-header {
+  font-weight: 600;
+  padding: 12px 15px;
+  border-bottom: 1px solid #e6e9ee;
+  background: #f3f5f8;
+  font-size: 15px;
+  color: #000000;
+}
+.notif-item {
+  padding: 12px 15px;
+  font-size: 14px;
+  color: #222; /* warna item lebih gelap */
+  border-bottom: 1px solid #000000;
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  transition: all 0.2s ease;
+}
+.notif-item:last-child { border-bottom: none; }
+.notif-item:hover { background: #f3f5f8; }
+.notif-icon {
+  font-size: 16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.notif-icon .fa-credit-card { color: #1976d2; background: rgba(25, 118, 210, 0.1); }
+.notif-icon .fa-circle-check { color: #20c463; background: rgba(32, 196, 99, 0.1); }
+.notif-icon .fa-triangle-exclamation { color: #f44336; background: rgba(244, 67, 54, 0.1); }
+.notif-icon .fa-ban { color: #9e9e9e; background: rgba(158, 158, 158, 0.1); }
+.notif-icon .fa-clock { color: #ff9800; background: rgba(255, 152, 0, 0.1); }
+.notif-time { font-size: 12px; color: #8b93a7; margin-top: 4px; }

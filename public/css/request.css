@@ -1,0 +1,168 @@
+/* ======== GLOBAL ======== */
+/* HAPUS padding di body, cukup font & background aja */
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: #f5f6fa;
+  margin: 0;
+  padding: 0; /* biar sidebar & navbar nggak terdorong */
+}
+
+.request-container {
+  padding: 20px; /* kasih padding hanya di area form */
+}
+
+
+
+.card {
+  background: #fff;
+  padding: 20px;
+  margin-bottom: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+h2 {
+  font-size: 22px;
+  margin-bottom: 8px;
+  color: #333;
+}
+.sub {
+  color: #777;
+  font-size: 14px;
+  margin-bottom: 15px;
+}
+
+/* ======== BUTTON OPTIONS ======== */
+.options {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+.option-btn {
+  background: #fff;
+  border: 2px solid #cfcfcf;
+  color: #222;
+  font-size: 1.2rem;
+  border-radius: 12px;
+  padding: 18px 0;
+  flex: 1;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border 0.2s;
+}
+.option-btn:hover {
+  background: #007bff;
+  color: #fff;
+}
+.option-btn.active {
+  background: #1856a7;
+  color: #fff;
+  border: 2px solid #1856a7;
+}
+
+/* ======== INPUT ======== */
+label {
+  display: block;
+  margin-top: 10px;
+  margin-bottom: 5px;
+  font-weight: 600;
+  color: #444;
+}
+/* Batasi styling input hanya di dalam .request-container */
+.request-container input[type="text"],
+.request-container textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  box-sizing: border-box;
+}
+
+
+/* ======== UPLOAD BOX ======== */
+.upload-box {
+  border: 2px dashed #bbb;
+  border-radius: 10px;
+  text-align: center;
+  padding: 20px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+.upload-box:hover {
+  border-color: #007bff;
+}
+.placeholder {
+  color: #666;
+}
+.preview-container {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+  flex-wrap: wrap;
+}
+.preview-container img {
+  width: 100px;
+  height: 100px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid #ccc;
+}
+
+/* ======== PEMBAYARAN ======== */
+.highlight {
+  background: #eaf9ea;
+  padding: 12px;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 15px 0;
+}
+.payment-methods {
+  display: none; /* awalnya disembunyikan */
+  gap: 15px;
+  margin: 15px 0;
+}
+.method {
+  flex: 1;
+  text-align: center;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.method:hover {
+  border-color: #007bff;
+  background: #f0f8ff;
+}
+
+/* ======== URGENCY ======== */
+.urgency {
+  display: flex;
+  gap: 15px;
+  margin: 15px 0;
+}
+.urgency div {
+  flex: 1;
+  text-align: center;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+}
+
+/* ======== BUTTON ======== */
+.btn-submit {
+  width: 100%;
+  background: #007bff;
+  color: #fff;
+  border: none;
+  padding: 12px;
+  font-size: 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.btn-submit:hover {
+  background: #0056b3;
+}

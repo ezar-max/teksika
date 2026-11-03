@@ -1,0 +1,25 @@
+.worker-dropdown {
+    padding: 8px 12px;
+    border: 1.5px solid #2d9cdb;
+    border-radius: 8px;
+    background: #f8fbfd;
+    color: #222;
+    font-size: 15px;
+    font-family: 'Inter', Arial, sans-serif;
+    transition: border 0.2s, box-shadow 0.2s;
+    outline: none;
+    margin-right: 8px;
+    min-width: 160px;
+    box-shadow: 0 1px 4px rgba(45,156,219,0.05);
+}
+
+.worker-dropdown:focus {
+    border-color: #217dbb;
+    box-shadow: 0 0 0 2px #b6e0fe;
+}
+
+.worker-dropdown option {
+    background: #fff;
+    color: #222;
+    padding: 8px;
+}

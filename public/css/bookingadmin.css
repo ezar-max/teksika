@@ -1,0 +1,113 @@
+body {
+    background: #f6f8fa;
+    font-family: 'Inter', Arial, sans-serif;
+}
+
+.header-booking {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.header-booking h2 {
+    font-size: 2rem;
+    font-weight: 800;
+    margin: 0;
+}
+
+.subtitle {
+    color: #888;
+    margin-bottom: 24px;
+    font-size: 1.1rem;
+}
+
+#searchBookingAdmin {
+    width: 100%;
+    max-width: 350px;
+    padding: 10px 16px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    margin-bottom: 28px;
+    font-size: 1rem;
+}
+
+.board {
+    margin-top: 10px;
+}
+
+.booking-card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    margin-bottom: 24px;
+    padding: 24px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: box-shadow 0.2s;
+}
+.booking-card:hover {
+    box-shadow: 0 4px 16px rgba(25, 118, 210, 0.13);
+}
+
+.booking-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.booking-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+.booking-code {
+    font-size: 1rem;
+    color: #1976d2;
+    font-weight: 600;
+}
+.booking-card-meta {
+    display: flex;
+    gap: 18px;
+    margin-top: 6px;
+    font-size: 0.98rem;
+    color: #666;
+}
+.booking-status.status-success {
+    color: #43a047;
+    font-weight: 600;
+}
+.booking-status.status-waiting {
+    color: #ff9800;
+    font-weight: 600;
+}
+.booking-card-footer {
+    margin-top: 12px;
+    display: flex;
+    gap: 10px;
+}
+.btn-detail {
+    background: #e3f2fd;
+    color: #1976d2;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 14px;
+    cursor: pointer;
+    font-weight: 600;
+}
+.btn-cancel {
+    background: #ffebee;
+    color: #d32f2f;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 14px;
+    cursor: pointer;
+    font-weight: 600;
+}
+@media (max-width: 600px) {
+    .booking-card {
+        padding: 16px 10px;
+    }
+    .header-booking h2 {
+        font-size: 1.2rem;
+    }
+}
