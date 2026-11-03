@@ -11,6 +11,6 @@ class Service extends Model
 
     protected $table = 'services';
     protected $fillable = [
-        'nama', 'deskripsi', 'gambar', 'harga_min', 'harga_max', 'status'
+        'nama', 'deskripsi', 'gambar', 'harga_min', 'harga_max', 'durasi_dasar_menit', 'status'
     ];
 }

@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Request</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Request Layanan — TEKSIKA</title>
     <link rel="stylesheet" href="{{ asset('css/dashboard_user.css') }}">
     <link rel="stylesheet" href="{{ asset('css/request.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -136,7 +137,12 @@
     <div class="content">
       <div class="card">
         <h2>Detail Request</h2>
-        <form method="POST" action="{{ route('request.preview') }}" enctype="multipart/form-data" id="requestForm">
+        @if(session('error'))
+            <div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:12px 16px; border-radius:8px; margin-bottom:16px;">
+                <i class="fa-solid fa-circle-exclamation"></i> {{ session('error') }}
+            </div>
+        @endif
+        <form method="POST" action="{{ route('user.request.store') }}" enctype="multipart/form-data" id="requestForm">
             @csrf
 
             <label>Jenis Layanan</label>
@@ -148,19 +154,22 @@
                 </span>
               </div>
               <input type="hidden" id="layananInput" name="layanan" value="{{ $selected->nama }}" />
-              <!-- Tempat menampilkan harga -->
-              <div id="hargaLayanan" style="margin:8px 0 18px; font-weight:600; color:#1856a7;"></div>
+              <input type="hidden" id="id_service" value="{{ $selected->id }}" />
             @else
-              <div class="alert" style="padding:12px; border:1px solid #f5c6cb; background:#f8d7da; color:#721c24; border-radius:8px; margin-bottom:18px;">
-                Silakan pilih layanan dari halaman Beranda terlebih dahulu.
+              <div style="margin-bottom:14px;">
+                <select name="layanan" id="layananInput" onchange="triggerEstimasi()" required style="width:100%; padding:10px 12px; border:1.5px solid #cfcfcf; border-radius:8px; background:#fff;">
+                  <option value="">-- Pilih Layanan --</option>
+                  @if(isset($services))
+                    @foreach($services as $s)
+                      <option value="{{ $s->nama }}">{{ $s->nama }}</option>
+                    @endforeach
+                  @endif
+                </select>
               </div>
-              <a href="{{ route('dashboard_user') }}" class="btn" style="display:inline-block; padding:10px 14px; background:#1856a7; color:#fff; border-radius:8px; text-decoration:none; margin-bottom:18px;">Pilih Layanan</a>
-              <input type="hidden" id="layananInput" name="layanan" value="">
-              <div id="hargaLayanan" style="margin:8px 0 18px; font-weight:600; color:#1856a7;"></div>
             @endif
 
-            <label>Lokasi</label>
-            <input type="text" id="lokasiInput" name="lokasi" placeholder="Masukkan lokasi..." required style="background:#f5f5f5; margin-bottom:14px;" />
+            <label>Lokasi / Alamat</label>
+            <input type="text" id="lokasiInput" name="lokasi" placeholder="Masukkan detail alamat / patokan lokasi..." required style="background:#f5f5f5; margin-bottom:14px;" />
 
             <label>Deskripsi Masalah</label>
             <textarea name="detail" placeholder="Jelaskan detail masalah pekerjaan yang di butuhkan..." required style="background:#f5f5f5; margin-bottom:14px;"></textarea>
@@ -176,63 +185,63 @@
               <div id="previewContainer" class="preview-container"></div>
             </div>
 
-            <label>Tingkat urgensi</label>
+            <label>Tingkat Urgensi</label>
             <div class="urgency" style="display:flex; gap:16px; margin-bottom:18px;">
-              <label style="flex:1; border:1.5px solid #cfcfcf; border-radius:10px; padding:12px;">
-                <input type="radio" name="urgensi" value="rendah" required onclick="setUrgensi(this)"> Normal
-                <div style="font-size:0.95em; color:#888;">
-                  Respon admin: <b>1 jam - 1.30 jam</b><br>
-                  Estimasi pengerjaan: <b>20 - 30 hari</b><br>
-                  <span style="color:#43d17a;">Tarif standar</span>
+              <label style="flex:1; border:1.5px solid #cfcfcf; border-radius:10px; padding:12px; cursor:pointer;">
+                <input type="radio" name="urgensi" value="rendah" checked required onclick="setUrgensi(this); triggerEstimasi();"> Normal
+                <div style="font-size:0.95em; color:#888; margin-top:4px;">
+                  Tarif standar (Tanpa biaya tambahan)
                 </div>
               </label>
-              <label style="flex:1; border:1.5px solid #cfcfcf; border-radius:10px; padding:12px;">
-                <input type="radio" name="urgensi" value="sedang" onclick="setUrgensi(this)"> Mendesak
-                <div style="font-size:0.95em; color:#888;">
-                  Respon admin: <b>30 menit - 1 jam</b><br>
-                  Estimasi pengerjaan: <b>10 - 20 hari</b><br>
-                  <span style="color:#f9a825;">+30% dari tarif normal</span>
+              <label style="flex:1; border:1.5px solid #cfcfcf; border-radius:10px; padding:12px; cursor:pointer;">
+                <input type="radio" name="urgensi" value="sedang" onclick="setUrgensi(this); triggerEstimasi();"> Mendesak
+                <div style="font-size:0.95em; color:#888; margin-top:4px;">
+                  <span style="color:#f9a825; font-weight:600;">+25% dari tarif normal</span>
                 </div>
               </label>
-              <label style="flex:1; border:1.5px solid #cfcfcf; border-radius:10px; padding:12px;">
-                <input type="radio" name="urgensi" value="tinggi" onclick="setUrgensi(this)"> Darurat
-                <div style="font-size:0.95em; color:#888;">
-                  Respon admin: <b>0 - 30 menit</b><br>
-                  Estimasi pengerjaan: <b>5 - 10 hari</b><br>
-                  <span style="color:#ff5252;">+50% dari tarif normal</span>
+              <label style="flex:1; border:1.5px solid #cfcfcf; border-radius:10px; padding:12px; cursor:pointer;">
+                <input type="radio" name="urgensi" value="tinggi" onclick="setUrgensi(this); triggerEstimasi();"> Darurat
+                <div style="font-size:0.95em; color:#888; margin-top:4px;">
+                  <span style="color:#ff5252; font-weight:600;">+50% dari tarif normal</span>
                 </div>
               </label>
             </div>
 
-            <h2>Opsi pembayaran</h2>
-<label>Metode pembayaran</label>
-<div style="display:flex; gap:18px; margin-bottom:18px;">
-  <label class="pay-method" style="flex:1; border:1.5px solid #cfcfcf; border-radius:10px; padding:18px; display:flex; align-items:center; cursor:pointer;">
-    <input type="radio" name="metode_pembayaran" value="E-wallet" required style="margin-right:12px;" />
-    <span style="font-size:2rem; color:#00c853; margin-right:12px;"><i class="fa-solid fa-wallet"></i></span>
-    <div>
-      <div style="font-weight:600;">Qris</div>
-      <div style="font-size:0.95em; color:#888;">Gopay, Ovo, Dana, ShopeePay</div>
-    </div>
-  </label>
-  <label class="pay-method" style="flex:1; border:1.5px solid #cfcfcf; border-radius:10px; padding:18px; display:flex; align-items:center; cursor:pointer;">
-    <input type="radio" name="metode_pembayaran" value="Bank" style="margin-right:12px;" />
-    <span style="font-size:2rem; color:#2196f3; margin-right:12px;"><i class="fa-solid fa-building-columns"></i></span>
-    <div>
-      <div style="font-weight:600;">Bank</div>
-      <div style="font-size:0.95em; color:#888;">BCA, Mandiri, BRI, BNI</div>
-    </div>
-  </label>
-  <label class="pay-method" style="flex:1; border:1.5px solid #cfcfcf; border-radius:10px; padding:18px; display:flex; align-items:center; cursor:pointer;">
-    <input type="radio" name="metode_pembayaran" value="COD" style="margin-right:12px;" />
-    <span style="font-size:2rem; color:#ff9800; margin-right:12px;"><i class="fa-solid fa-money-bill-wave"></i></span>
-    <div>
-      <div style="font-weight:600;">COD</div>
-      <div style="font-size:0.95em; color:#888;">Bayar tunai saat selesai</div>
-    </div>
-  </label>
-</div>
-            <button type="submit" class="btn-submit" style="width:100%; background:#1856a7; color:#fff; font-size:1.1rem; font-weight:600; border-radius:8px; padding:14px 0; margin-top:18px;">Kirim ke Admin <i class="fa-solid fa-paper-plane"></i></button>
+            <!-- Partial Estimasi Algoritma Cerdas (Haversine & Pricing) -->
+            @include('user.request._estimasi')
+
+            <h2>Opsi Pembayaran</h2>
+            <label>Metode Pembayaran</label>
+            <div style="display:flex; gap:18px; margin-bottom:18px;">
+              <label class="pay-method" style="flex:1; border:1.5px solid #cfcfcf; border-radius:10px; padding:18px; display:flex; align-items:center; cursor:pointer;">
+                <input type="radio" name="metode_pembayaran" value="E-wallet" required style="margin-right:12px;" />
+                <span style="font-size:2rem; color:#00c853; margin-right:12px;"><i class="fa-solid fa-wallet"></i></span>
+                <div>
+                  <div style="font-weight:600;">Qris</div>
+                  <div style="font-size:0.95em; color:#888;">Gopay, Ovo, Dana, ShopeePay</div>
+                </div>
+              </label>
+              <label class="pay-method" style="flex:1; border:1.5px solid #cfcfcf; border-radius:10px; padding:18px; display:flex; align-items:center; cursor:pointer;">
+                <input type="radio" name="metode_pembayaran" value="Bank" style="margin-right:12px;" />
+                <span style="font-size:2rem; color:#2196f3; margin-right:12px;"><i class="fa-solid fa-building-columns"></i></span>
+                <div>
+                  <div style="font-weight:600;">Bank Transfer</div>
+                  <div style="font-size:0.95em; color:#888;">BCA, Mandiri, BRI, BNI</div>
+                </div>
+              </label>
+              <label class="pay-method" style="flex:1; border:1.5px solid #cfcfcf; border-radius:10px; padding:18px; display:flex; align-items:center; cursor:pointer;">
+                <input type="radio" name="metode_pembayaran" value="COD" style="margin-right:12px;" />
+                <span style="font-size:2rem; color:#ff9800; margin-right:12px;"><i class="fa-solid fa-money-bill-wave"></i></span>
+                <div>
+                  <div style="font-weight:600;">COD</div>
+                  <div style="font-size:0.95em; color:#888;">Bayar tunai di tempat</div>
+                </div>
+              </label>
+            </div>
+
+            <button type="submit" class="btn-submit" style="width:100%; background:#007bff; color:#fff; font-size:1.1rem; font-weight:700; border:none; border-radius:8px; padding:14px 0; margin-top:10px; cursor:pointer; transition:background 0.2s;">
+                Kirim ke Admin <i class="fa-solid fa-paper-plane" style="margin-left:6px;"></i>
+            </button>
         </form>
       </div>
     </div>

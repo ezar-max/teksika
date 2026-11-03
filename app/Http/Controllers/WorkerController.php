@@ -19,12 +19,19 @@ class WorkerController extends Controller
             'name' => 'required|string|max:100',
             'role' => 'required|string|max:100',
             'alamat' => 'required|string|max:255',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
             'phone' => 'required|string|max:50',
             'skills' => 'required|string|max:255',
             'pengalaman' => 'required|integer|min:0',
+            'rating' => 'nullable|numeric|between:0,5',
             'umur' => 'nullable|integer|min:0',
             'status' => 'required|string|max:20',
         ]);
+
+        if (!isset($validated['rating'])) {
+            $validated['rating'] = 5.0;
+        }
 
         Worker::create($validated);
 
@@ -45,9 +52,12 @@ class WorkerController extends Controller
             'name' => 'required|string|max:100',
             'role' => 'required|string|max:100',
             'alamat' => 'required|string|max:255',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
             'phone' => 'required|string|max:50',
             'skills' => 'required|string|max:255',
             'pengalaman' => 'required|integer|min:0',
+            'rating' => 'nullable|numeric|between:0,5',
             'umur' => 'nullable|integer|min:0',
             'status' => 'required|string|max:20',
         ]);

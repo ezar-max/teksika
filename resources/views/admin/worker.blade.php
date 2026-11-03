@@ -24,9 +24,13 @@
             <img src="{{ asset('images/pembayaran.png') }}" alt="logo" class="icon" weight="50" height="50">
             <span class="menu-text">Pembayaran</span>
         </a>
-        <a href="{{ route('worker') }}" class="menu-item">
+        <a href="{{ route('worker') }}" class="menu-item active">
             <img src="{{ asset('images/worker.png') }}" alt="logo" class="icon" weight="50" height="50">
             <span class="menu-text">Worker</span>
+        </a>
+        <a href="{{ route('admin.pricing.index') }}" class="menu-item">
+            <i class="fa-solid fa-sliders" style="font-size:20px; width:28px; text-align:center;"></i>
+            <span class="menu-text">Aturan Tarif</span>
         </a>
         <a href="{{ route('chat') }}" class="menu-item">
             <img src="{{ asset('images/chat.png') }}" alt="logo" class="icon" weight="50" height="50">
@@ -116,9 +120,12 @@
                                    data-name="{{ $worker->name }}"
                                    data-role="{{ $worker->role }}"
                                    data-alamat="{{ $worker->alamat }}"
+                                   data-latitude="{{ $worker->latitude }}"
+                                   data-longitude="{{ $worker->longitude }}"
                                    data-phone="{{ $worker->phone }}"
                                    data-skills="{{ $worker->skills }}"
                                    data-pengalaman="{{ $worker->pengalaman }}"
+                                   data-rating="{{ $worker->rating ?? 5.0 }}"
                                    data-status="{{ $worker->status }}"></i>
                                 <!-- Tombol delete -->
                                 <form action="{{ url('/worker/' . $worker->id) }}" method="POST" style="display:inline;" id="deleteForm{{ $worker->id }}">
@@ -132,9 +139,15 @@
                         <hr>
                         <div class="worker-card-body">
                             <div class="worker-info-row">
-                                <div>Umur:<br><b>{{ $worker->umur }} tahun</b></div>
+                                <div>Umur:<br><b>{{ $worker->umur ?? '-' }} tahun</b></div>
                                 <div>Pengalaman:<br><b>{{ $worker->pengalaman }} tahun</b></div>
+                                <div>Rating:<br><b><i class="fa-solid fa-star" style="color:#f59e0b;"></i> {{ number_format($worker->rating ?? 5.0, 1) }}</b></div>
                             </div>
+                            @if(!empty($worker->latitude) && !empty($worker->longitude))
+                                <div style="font-size:0.78rem; color:#64748b; margin-top:4px;">
+                                    <i class="fa-solid fa-location-dot" style="color:#ef4444;"></i> GPS: {{ $worker->latitude }}, {{ $worker->longitude }}
+                                </div>
+                            @endif
                             <div>Alamat:<br><b>{{ $worker->alamat }}</b></div>
                             <div>No Telepon:<br><b>{{ $worker->phone }}</b></div>
                             <div>Keahlian:</div>
@@ -168,13 +181,31 @@
             </div>
             <label for="alamat">Alamat</label>
             <input type="text" id="alamat" name="alamat" required style="width:100%;margin-bottom:10px;">
+            <div style="display:flex;gap:12px;">
+                <div style="flex:1;">
+                    <label for="latitude">Latitude (GPS)</label>
+                    <input type="number" step="any" id="latitude" name="latitude" placeholder="-6.1730" style="width:100%;margin-bottom:10px;">
+                </div>
+                <div style="flex:1;">
+                    <label for="longitude">Longitude (GPS)</label>
+                    <input type="number" step="any" id="longitude" name="longitude" placeholder="106.8000" style="width:100%;margin-bottom:10px;">
+                </div>
+            </div>
             <label for="phone">No Telepon</label>
             <input type="text" id="phone" name="phone" required style="width:100%;margin-bottom:10px;">
-            <label for="skills">Keahlian</label>
-            <input type="text" id="skills" name="skills" required style="width:100%;margin-bottom:10px;">
-            <label for="pengalaman">Pengalaman</label>
-            <input type="number" id="pengalaman" name="pengalaman" required style="width:100%;margin-bottom:10px;">
-            <label for="status">status</label>
+            <label for="skills">Keahlian (Pisahkan koma, misal: AC, Listrik)</label>
+            <input type="text" id="skills" name="skills" required placeholder="Contoh: AC, Listrik" style="width:100%;margin-bottom:10px;">
+            <div style="display:flex;gap:12px;">
+                <div style="flex:1;">
+                    <label for="pengalaman">Pengalaman (Tahun)</label>
+                    <input type="number" id="pengalaman" name="pengalaman" required min="0" style="width:100%;margin-bottom:10px;">
+                </div>
+                <div style="flex:1;">
+                    <label for="rating">Rating (0 - 5)</label>
+                    <input type="number" step="0.1" id="rating" name="rating" min="0" max="5" value="5.0" style="width:100%;margin-bottom:10px;">
+                </div>
+            </div>
+            <label for="status">Status</label>
             <select id="status" name="status" style="width:100%;margin-bottom:18px;">
                 <option value="aktif">Aktif</option>
                 <option value="lagi bekerja">Lagi bekerja</option>
@@ -190,7 +221,7 @@
 
 <!-- Popup Edit Tukang -->
 <div id="editWorkerPopup" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.3);z-index:999;align-items:center;justify-content:center;">
-    <div style="background:#fff;padding:32px 24px;border-radius:16px;max-width:420px;width:100%;box-shadow:0 2px 8px rgba(0,0,0,0.15);">
+    <div style="background:#fff;padding:32px 24px;border-radius:16px;max-width:440px;width:100%;box-shadow:0 2px 8px rgba(0,0,0,0.15);max-height:90vh;overflow-y:auto;">
         <h2 style="margin-bottom:18px;"><i class="fa-solid fa-pen"></i> Edit Tukang</h2>
         <form id="formEditWorker" action="" method="POST">
             @csrf
@@ -208,13 +239,31 @@
             </div>
             <label for="edit_alamat">Alamat</label>
             <input type="text" id="edit_alamat" name="alamat" required style="width:100%;margin-bottom:10px;">
+            <div style="display:flex;gap:12px;">
+                <div style="flex:1;">
+                    <label for="edit_latitude">Latitude (GPS)</label>
+                    <input type="number" step="any" id="edit_latitude" name="latitude" style="width:100%;margin-bottom:10px;">
+                </div>
+                <div style="flex:1;">
+                    <label for="edit_longitude">Longitude (GPS)</label>
+                    <input type="number" step="any" id="edit_longitude" name="longitude" style="width:100%;margin-bottom:10px;">
+                </div>
+            </div>
             <label for="edit_phone">No Telepon</label>
             <input type="text" id="edit_phone" name="phone" required style="width:100%;margin-bottom:10px;">
-            <label for="edit_skills">Keahlian</label>
+            <label for="edit_skills">Keahlian (Pisahkan koma)</label>
             <input type="text" id="edit_skills" name="skills" required style="width:100%;margin-bottom:10px;">
-            <label for="edit_pengalaman">Pengalaman</label>
-            <input type="number" id="edit_pengalaman" name="pengalaman" required style="width:100%;margin-bottom:10px;">
-            <label for="edit_status">status</label>
+            <div style="display:flex;gap:12px;">
+                <div style="flex:1;">
+                    <label for="edit_pengalaman">Pengalaman (Tahun)</label>
+                    <input type="number" id="edit_pengalaman" name="pengalaman" required min="0" style="width:100%;margin-bottom:10px;">
+                </div>
+                <div style="flex:1;">
+                    <label for="edit_rating">Rating (0 - 5)</label>
+                    <input type="number" step="0.1" id="edit_rating" name="rating" min="0" max="5" style="width:100%;margin-bottom:10px;">
+                </div>
+            </div>
+            <label for="edit_status">Status</label>
             <select id="edit_status" name="status" style="width:100%;margin-bottom:18px;">
                 <option value="aktif">Aktif</option>
                 <option value="lagi bekerja">Lagi bekerja</option>
@@ -247,18 +296,24 @@
         const name = el.getAttribute("data-name");
         const role = el.getAttribute("data-role");
         const alamat = el.getAttribute("data-alamat");
+        const lat = el.getAttribute("data-latitude") || "";
+        const lon = el.getAttribute("data-longitude") || "";
         const phone = el.getAttribute("data-phone");
         const skills = el.getAttribute("data-skills");
         const pengalaman = el.getAttribute("data-pengalaman");
+        const rating = el.getAttribute("data-rating") || "5.0";
         const status = el.getAttribute("data-status");
 
         document.getElementById("edit_id").value = id;
         document.getElementById("edit_name").value = name;
         document.getElementById("edit_role").value = role;
         document.getElementById("edit_alamat").value = alamat;
+        document.getElementById("edit_latitude").value = lat;
+        document.getElementById("edit_longitude").value = lon;
         document.getElementById("edit_phone").value = phone;
         document.getElementById("edit_skills").value = skills;
         document.getElementById("edit_pengalaman").value = pengalaman;
+        document.getElementById("edit_rating").value = rating;
         document.getElementById("edit_status").value = status;
 
         // update action url form

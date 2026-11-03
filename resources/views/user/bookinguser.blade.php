@@ -964,10 +964,10 @@
                         data-lokasi="{{ $request->lokasi ?? '-' }}"
                         data-desk="{{ $request->detail ?? '-' }}"
                         data-pembayaran="{{ $request->metode_pembayaran ?? '-' }}"
-                        data-estimasi="{{ $request->estimasi ?? '-' }}"
+                        data-estimasi="{{ isset($request->estimasi_total) ? 'Rp ' . number_format($request->estimasi_total, 0, ',', '.') . ' (' . ($request->estimasi_durasi_menit ?? '-') . ' menit)' : '-' }}"
                         data-urgensi="{{ $request->urgensi ?? '-' }}"
                         data-tukang="{{ $request->worker->name ?? '-' }}"
-                        data-harga="{{ number_format($request->jumlah_pembayaran ?? 0,0,',','.') }}">
+                        data-harga="{{ number_format($request->estimasi_total ?? $request->jumlah_pembayaran ?? 0,0,',','.') }}">
                         <div class="booking-card-content">
                             <div class="booking-card-header">
                                 <div class="booking-title">{{ $request->layanan }}</div>
@@ -982,6 +982,14 @@
                                     <i class="fas fa-circle"></i>
                                     {{ $request->status_admin === 'diterima' ? 'Berlangsung' : ($request->status_admin === 'ditolak' ? 'Ditolak' : ($request->status_admin === 'dibatalkan' ? 'Dibatalkan' : 'Menunggu konfirmasi')) }}
                                 </span>
+                            </div>
+                            <div style="margin: 6px 0 2px; font-weight: 700; color: #007bff; font-size: 0.95rem;">
+                                @if(isset($request->estimasi_total))
+                                    Estimasi: Rp {{ number_format($request->estimasi_total, 0, ',', '.') }}
+                                    <span style="font-size:0.8rem; font-weight:500; color:#64748b;">({{ $request->estimasi_durasi_menit ?? '-' }} mnt)</span>
+                                @elseif($request->jumlah_pembayaran)
+                                    Rp {{ number_format($request->jumlah_pembayaran, 0, ',', '.') }}
+                                @endif
                             </div>
                             @if($request->status_admin == 'diterima' && $request->worker)
                                 <div class="booking-worker">

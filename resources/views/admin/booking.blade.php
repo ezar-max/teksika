@@ -30,6 +30,10 @@
             <img src="{{ asset('images/worker.png') }}" alt="logo" class="icon" weight="50" height="50">
             <span class="menu-text">Worker</span>
         </a>
+        <a href="{{ route('admin.pricing.index') }}" class="menu-item">
+            <i class="fa-solid fa-sliders" style="font-size:20px; width:28px; text-align:center;"></i>
+            <span class="menu-text">Aturan Tarif</span>
+        </a>
         <a href="{{ route('chat') }}" class="menu-item">
             <img src="{{ asset('images/chat.png') }}" alt="logo" class="icon" weight="50" height="50">
             <span class="menu-text">Chat</span>
@@ -169,9 +173,11 @@
                                 <button type="submit" class="btn-reject">Tolak</button>
                             </form>
                         @endif
-                        <a href="javascript:void(0)" 
+                        <a href="{{ route('admin.booking.show', $req->id_request) }}" 
                            class="btn-detail" 
-                           onclick="openBookingDetailModal({{ $req->id_request }})">Detail</a>
+                           style="display:inline-flex; align-items:center; gap:5px; text-decoration:none;">
+                            <i class="fa fa-award"></i> Detail &amp; Rekomendasi
+                        </a>
                     </div>
                 </div>
             </div>

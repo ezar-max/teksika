@@ -12,9 +12,12 @@ class Worker extends Model
         'name',
         'role',
         'alamat',
+        'latitude',
+        'longitude',
         'phone',
         'skills',
         'pengalaman',
+        'rating',
         'umur',
         'status'
     ];
