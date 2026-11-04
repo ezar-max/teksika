@@ -13,9 +13,9 @@
 
     <!-- Styles & Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link rel="stylesheet" href="{{ asset('css/dashboard_user.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/profile-modal.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/chatuser.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/dashboard_user.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('css/profile-modal.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('css/chatuser.css') }}?v={{ time() }}">
 </head>
 <body>
     <!-- Sidebar -->
@@ -123,8 +123,17 @@
                 @if(isset($chats) && count($chats) > 0)
                     @foreach($chats as $chat)
                         <div class="bubble-row {{ $chat->sender === 'user' ? 'user' : 'admin' }}">
-                            <div class="chat-bubble">
-                                {{ $chat->message }}
+                            <div class="chat-bubble {{ $chat->image ? 'chat-bubble-has-image' : '' }}">
+                                @if($chat->image)
+                                    <a href="{{ asset('storage/' . $chat->image) }}" target="_blank" onclick="openChatImageModal(event, this.href)" style="display:inline-block; border-radius:10px; overflow:hidden;">
+                                        <img src="{{ asset('storage/' . $chat->image) }}" alt="Foto Chat" class="chat-img-bubble" style="max-width:220px; max-height:200px; width:auto; height:auto; object-fit:cover; border-radius:10px; display:block;">
+                                    </a>
+                                @endif
+                                @if($chat->message)
+                                    <div class="{{ $chat->image ? 'chat-bubble-caption' : '' }}">
+                                        {{ $chat->message }}
+                                    </div>
+                                @endif
                             </div>
                             <div class="bubble-time">
                                 {{ \Carbon\Carbon::parse($chat->created_at)->timezone('Asia/Jakarta')->format('H:i') }}
@@ -141,11 +150,21 @@
 
             <!-- Chat Input -->
             <div class="chat-input">
-                <form action="{{ route('chatuser.send') }}" method="POST" class="chat-input-form">
+                <div id="chatImagePreviewBar" class="chat-image-preview-bar" style="display:none;">
+                    <img id="chatPreviewThumb" src="" alt="Preview" class="chat-preview-thumb">
+                    <span id="chatPreviewName" class="chat-preview-info">foto.jpg</span>
+                    <button type="button" class="chat-preview-remove" onclick="removeChatImage()" title="Hapus Gambar">&times;</button>
+                </div>
+                <form action="{{ route('chatuser.send') }}" method="POST" enctype="multipart/form-data" class="chat-input-form" onsubmit="return validateChatSubmit(this)">
                     @csrf
-                    <input type="hidden" name="admin_id" value="1">
-                    <input type="text" name="message" id="chatMessage" placeholder="Tulis pesan atau pertanyaan Anda..." required autocomplete="off">
-                    <button type="submit" aria-label="Kirim Pesan">
+                    
+                    <label for="chatImageInput" class="chat-attach-btn" title="Kirim Foto / Gambar">
+                        <i class="fa-solid fa-image"></i>
+                        <input type="file" id="chatImageInput" name="image" accept="image/*" style="display:none;" onchange="handleChatImageSelect(this)">
+                    </label>
+
+                    <input type="text" name="message" id="chatMessage" placeholder="Tulis pesan atau kirim gambar..." autocomplete="off">
+                    <button type="submit" aria-label="Kirim Pesan" title="Kirim Pesan">
                         <i class="fa-solid fa-paper-plane"></i>
                     </button>
                 </form>
@@ -158,7 +177,7 @@
     <!-- JS -->
     <script src="{{ asset('js/sidebar.js') }}"></script>
     <script src="{{ asset('js/popup.js') }}"></script>
-    <script src="{{ asset('js/chat.js') }}"></script>
+    <script src="{{ asset('js/chat.js') }}?v={{ time() }}"></script>
     <script>
       (function(){
         var box = document.getElementById('chatContainer');

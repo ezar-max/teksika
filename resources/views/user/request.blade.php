@@ -15,9 +15,17 @@
     <link rel="stylesheet" href="{{ asset('css/dashboard_user.css') }}">
     <link rel="stylesheet" href="{{ asset('css/profile-modal.css') }}">
     <link rel="stylesheet" href="{{ asset('css/request.css') }}">
+    <style>
+        .worker-choice-card[hidden] {
+            display: none !important;
+        }
+    </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    @if(config('services.google_maps.api_key'))
+    <script src="https://maps.googleapis.com/maps/api/js?key={{ urlencode(config('services.google_maps.api_key')) }}&libraries=geometry"></script>
+    @endif
 </head>
 <body>
     <!-- Sidebar -->
@@ -150,28 +158,23 @@
                                 <label class="form-label">Jenis Layanan <span class="required">*</span></label>
                                 @php
                                   $selected = isset($services) ? $services->firstWhere('nama', request('layanan')) : null;
+                                  $activeLayanan = old('layanan', $selected ? $selected->nama : ($services->first()->nama ?? ''));
                                 @endphp
 
-                                @if($selected)
-                                  <div class="selected-service-pill">
-                                    <i class="fa-solid fa-circle-check"></i>
-                                    <span>{{ $selected->nama }}</span>
-                                    <span style="font-size:0.8rem; font-weight:500; color:#64748b; margin-left:auto;">
-                                        (Estimasi: Rp {{ number_format($selected->harga_min, 0, ',', '.') }} - Rp {{ number_format($selected->harga_max, 0, ',', '.') }})
-                                    </span>
-                                  </div>
-                                  <input type="hidden" id="layananInput" name="layanan" value="{{ $selected->nama }}" />
-                                  <input type="hidden" id="id_service" value="{{ $selected->id }}" data-service-name="{{ $selected->nama }}" data-harga-min="{{ $selected->harga_min }}" data-harga-max="{{ $selected->harga_max }}" />
-                                @else
-                                  <select name="layanan" id="layananInput" class="form-control" onchange="triggerEstimasi()" required>
-                                    <option value="">-- Pilih Kategori Layanan --</option>
+                                <select name="layanan" id="layananInput" class="form-control" onchange="updateWorkerChoices(); if(typeof triggerEstimasi === 'function') triggerEstimasi();" required>
                                     @if(isset($services))
                                       @foreach($services as $s)
-                                          <option value="{{ $s->nama }}" data-harga-min="{{ $s->harga_min }}" data-harga-max="{{ $s->harga_max }}">{{ $s->nama }}</option>
+                                          <option value="{{ $s->nama }}" 
+                                                  data-service-id="{{ $s->id }}"
+                                                  data-service-name="{{ $s->nama }}"
+                                                  data-harga-min="{{ $s->harga_min }}" 
+                                                  data-harga-max="{{ $s->harga_max }}"
+                                                  {{ $activeLayanan === $s->nama ? 'selected' : '' }}>
+                                              {{ $s->nama }} (Estimasi: Rp {{ number_format($s->harga_min, 0, ',', '.') }} - Rp {{ number_format($s->harga_max, 0, ',', '.') }})
+                                          </option>
                                       @endforeach
                                     @endif
-                                  </select>
-                                @endif
+                                </select>
                             </div>
 
                             <!-- Mitra Tukang Section -->
@@ -504,18 +507,16 @@
 
         cards.forEach(function (card) {
             const skills = JSON.parse(card.dataset.skills || '[]').map(skill => skill.trim().toLowerCase());
-            const matches = serviceName && card.dataset.available === '1' && skills.includes(serviceName.trim().toLowerCase());
+            const matches = Boolean(serviceName && card.dataset.available === '1' && skills.includes(serviceName.trim().toLowerCase()));
             const radio = card.querySelector('input[name="id_worker_pilihan"]');
-            card.hidden = !matches;
-            if (radio) {
-                radio.disabled = !matches;
-                radio.required = false;
-                if (!matches && radio.checked) {
-                    radio.checked = false;
-                    card.classList.remove('is-selected');
-                }
-            }
+
             if (matches) {
+                card.hidden = false;
+                card.style.display = 'flex';
+                if (radio) {
+                    radio.disabled = false;
+                    radio.required = false;
+                }
                 visibleCards++;
                 const range = hargaMin === hargaMax
                     ? `Rp ${new Intl.NumberFormat('id-ID').format(hargaMin)}`
@@ -524,6 +525,17 @@
                 if (priceEl) {
                     priceEl.textContent = `Tarif dasar: ${range}`;
                 }
+            } else {
+                card.hidden = true;
+                card.style.display = 'none';
+                if (radio) {
+                    radio.disabled = true;
+                    radio.required = false;
+                    if (radio.checked) {
+                        radio.checked = false;
+                    }
+                }
+                card.classList.remove('is-selected');
             }
         });
 
@@ -542,33 +554,54 @@
     }
 
     function calculateWorkerEstimate(workerCard, serviceBasePrice) {
-        const workerBaseRate = Number(workerCard.dataset.tarif) > 0
+        const workerBaseRate = Number(workerCard?.dataset?.tarif || 0) > 0
             ? Number(workerCard.dataset.tarif)
             : serviceBasePrice;
         if (!(workerBaseRate > 0)) return null;
 
-        const ratingPremium = Math.max(0, Number(workerCard.dataset.rating || 3) - 3) * 0.02;
-        const experiencePremium = Math.max(0, Number(workerCard.dataset.experience || 0)) * 0.01;
+        const rating = Number(workerCard?.dataset?.rating || 3);
+        const experience = Number(workerCard?.dataset?.experience || 0);
+        const ratingPremium = Math.max(0, rating - 3) * 0.02;
+        const experiencePremium = Math.max(0, experience) * 0.01;
         const qualificationFactor = Math.min(1.25, 1 + ratingPremium + experiencePremium);
         const adjustedRate = Math.round(workerBaseRate * qualificationFactor);
         const qualificationFee = adjustedRate - Math.round(workerBaseRate);
+
         const urgency = document.querySelector('input[name="urgensi"]:checked')?.value || 'rendah';
         const damage = document.querySelector('input[name="tingkat_kerusakan"]:checked')?.value || 'ringan';
-        const urgencyFactor = Number(pricingRules[`faktor_urgensi_${urgency}`] || 1);
-        const damageFactor = Number(pricingRules[`faktor_kerusakan_${damage}`] || 1);
+        const urgencyFactor = Number(pricingRules[`faktor_urgensi_${urgency}`] || (urgency === 'tinggi' ? 1.40 : (urgency === 'sedang' ? 1.20 : 1.00)));
+        const damageFactor = Number(pricingRules[`faktor_kerusakan_${damage}`] || (damage === 'berat' ? 1.10 : (damage === 'sedang' ? 1.05 : 1.00)));
+
         const urgencyFee = Math.round(adjustedRate * (urgencyFactor - 1));
         const laborTotal = Math.round(adjustedRate * urgencyFactor * damageFactor);
         const damageFee = laborTotal - adjustedRate - urgencyFee;
-        const distance = getEstimatedDistanceKm();
-        const transportFee = Math.round(Math.max(0, distance - Number(pricingRules.jarak_gratis_km || 5)) * Number(pricingRules.tarif_per_km || 2500));
+
+        // Gunakan jarak rute berkendara Google Maps (fallback garis lurus)
+        const distance = (typeof window.currentRouteDistanceKm === 'number' && !window.currentRouteUnavailable)
+            ? window.currentRouteDistanceKm
+            : getEstimatedDistanceKm();
+        const jarakGratisKm = Number(pricingRules.jarak_gratis_km || 5);
+        const tarifPerKm = Number(pricingRules.tarif_per_km || 2500);
+        const transportFee = distance > jarakGratisKm
+            ? Math.round((distance - jarakGratisKm) * tarifPerKm)
+            : 0;
 
         return {
             baseRate: Math.round(workerBaseRate),
+            rating: rating,
+            experience: experience,
+            qualificationFactor: qualificationFactor,
             adjustedRate: adjustedRate,
             qualificationFee: qualificationFee,
+            urgency: urgency,
+            urgencyFactor: urgencyFactor,
             urgencyFee: urgencyFee,
+            damage: damage,
+            damageFactor: damageFactor,
             damageFee: damageFee,
             laborTotal: laborTotal,
+            distance: distance,
+            jarakGratisKm: jarakGratisKm,
             transportFee: transportFee,
             total: laborTotal + transportFee
         };
@@ -599,54 +632,96 @@
         const selectedOption = serviceInput && serviceInput.tagName === 'SELECT'
             ? serviceInput.selectedOptions[0]
             : document.getElementById('id_service');
-        const serviceName = serviceInput && serviceInput.value ? serviceInput.value : '';
+        const serviceName = serviceInput && serviceInput.value ? serviceInput.value : (selectedOption?.dataset?.serviceName || '');
+        const serviceBasePrice = selectedOption ? Number(selectedOption.dataset.hargaMin || 0) : 0;
+
         const matchingWorkers = Array.from(document.querySelectorAll('.worker-choice-card')).filter(function (card) {
             const skills = JSON.parse(card.dataset.skills || '[]').map(skill => skill.trim().toLowerCase());
             return card.dataset.available === '1' && serviceName && skills.includes(serviceName.trim().toLowerCase());
         });
         const chosenCard = selectedWorker ? selectedWorker.closest('.worker-choice-card') : null;
-        const serviceBasePrice = selectedOption ? Number(selectedOption.dataset.hargaMin || 0) : 0;
+
         const estimatedWorkers = matchingWorkers.map(card => ({
             card: card,
             estimate: calculateWorkerEstimate(card, serviceBasePrice)
         })).filter(item => item.estimate !== null)
             .sort((left, right) => left.estimate.total - right.estimate.total);
+
         estimatedWorkers.forEach(function (item) {
             const priceEl = item.card.querySelector('.worker-choice-price');
             if (priceEl) {
                 priceEl.textContent = `Estimasi total ${formatRupiah(item.estimate.total)} · kualifikasi +${formatRupiah(item.estimate.qualificationFee)}`;
             }
         });
+
         const estimateCard = chosenCard || estimatedWorkers[0]?.card || null;
         const estimate = estimateCard
             ? calculateWorkerEstimate(estimateCard, serviceBasePrice)
             : (serviceBasePrice > 0
                 ? calculateWorkerEstimate({ dataset: { tarif: String(serviceBasePrice), rating: '3', experience: '0' } }, serviceBasePrice)
                 : null);
-        const priceSource = estimateCard
-            ? `${estimateCard.dataset.workerName}${chosenCard ? '' : ' (tarif terendah saat ini)'}`
-            : (serviceBasePrice > 0 ? 'harga awal layanan (belum ada tukang cocok)' : '');
+
+        let priceSource = '';
+        if (estimateCard) {
+            priceSource = chosenCard
+                ? `${estimateCard.dataset.workerName} (Tukang pilihan)`
+                : `${estimateCard.dataset.workerName} (Rekomendasi tarif terendah)`;
+        } else if (serviceBasePrice > 0) {
+            priceSource = `${serviceName} (Tarif standar layanan)`;
+        }
+
         const urgency = document.querySelector('input[name="urgensi"]:checked')?.value || 'rendah';
         const damage = document.querySelector('input[name="tingkat_kerusakan"]:checked')?.value || 'ringan';
-        const urgencyFactor = Number(pricingRules[`faktor_urgensi_${urgency}`] || 1);
-        const damageFactor = Number(pricingRules[`faktor_kerusakan_${damage}`] || 1);
+        const urgencyFactor = Number(pricingRules[`faktor_urgensi_${urgency}`] || (urgency === 'tinggi' ? 1.40 : (urgency === 'sedang' ? 1.20 : 1.00)));
+        const damageFactor = Number(pricingRules[`faktor_kerusakan_${damage}`] || (damage === 'berat' ? 1.10 : (damage === 'sedang' ? 1.05 : 1.00)));
         const qualificationPercent = estimate && estimate.baseRate > 0
             ? Math.round((estimate.adjustedRate / estimate.baseRate - 1) * 100)
             : 0;
+        const urgencyPercent = Math.round((urgencyFactor - 1) * 100);
+        const damagePercent = Math.round((damageFactor - 1) * 100);
 
-        document.getElementById('priceBreakdownWorker').textContent = estimate
-            ? `Estimasi untuk ${priceSource}. Rating & pengalaman menyesuaikan tarif hingga maksimal 25%.`
-            : 'Pilih layanan untuk melihat estimasi dari tarif teknisi.';
-        document.getElementById('priceBaseLabel').textContent = `Tarif dasar tukang (${priceSource})`;
+        const workerDescEl = document.getElementById('priceBreakdownWorker');
+        if (workerDescEl) {
+            if (estimateCard) {
+                workerDescEl.textContent = `Estimasi dihitung menggunakan ${priceSource}. Rating & pengalaman menyesuaikan tarif hingga maksimal 25%.`;
+            } else if (serviceName) {
+                workerDescEl.textContent = `Belum ada mitra khusus siap bekerja untuk kategori ini. Estimasi memakai tarif dasar layanan ${serviceName}.`;
+            } else {
+                workerDescEl.textContent = 'Pilih kategori layanan di atas untuk melihat rincian estimasi tarif.';
+            }
+        }
+
+        const priceBaseLabel = document.getElementById('priceBaseLabel');
+        if (priceBaseLabel) {
+            if (estimateCard && chosenCard) {
+                priceBaseLabel.textContent = `Tarif dasar tukang (${estimateCard.dataset.workerName})`;
+            } else if (estimateCard) {
+                priceBaseLabel.textContent = `Tarif dasar tukang (${estimateCard.dataset.workerName} - Rekomendasi)`;
+            } else if (serviceName) {
+                priceBaseLabel.textContent = `Tarif dasar layanan (${serviceName})`;
+            } else {
+                priceBaseLabel.textContent = 'Tarif dasar layanan';
+            }
+        }
         document.getElementById('priceBase').textContent = estimate ? formatRupiah(estimate.baseRate) : '-';
         document.getElementById('priceQualificationLabel').textContent = `Penyesuaian rating & pengalaman (+${qualificationPercent}%)`;
         document.getElementById('priceQualification').textContent = estimate ? `+ ${formatRupiah(estimate.qualificationFee)}` : '-';
-        document.getElementById('priceUrgencyLabel').textContent = `Tambahan urgensi (+${Math.round((urgencyFactor - 1) * 100)}%)`;
+        document.getElementById('priceUrgencyLabel').textContent = `Tambahan urgensi (+${urgencyPercent}%)`;
         document.getElementById('priceUrgency').textContent = estimate ? `+ ${formatRupiah(estimate.urgencyFee)}` : '-';
-        document.getElementById('priceDamageLabel').textContent = `Tambahan kerusakan (+${Math.round((damageFactor - 1) * 100)}%)`;
+        document.getElementById('priceDamageLabel').textContent = `Kerusakan tambahan (+${damagePercent}%)`;
         document.getElementById('priceDamage').textContent = estimate ? `+ ${formatRupiah(estimate.damageFee)}` : '-';
         document.getElementById('priceLaborTotal').textContent = estimate ? formatRupiah(estimate.laborTotal) : '-';
-        document.getElementById('priceTransport').textContent = estimate ? formatRupiah(estimate.transportFee) : '-';
+
+        const priceTransportEl = document.getElementById('priceTransport');
+        if (priceTransportEl) {
+            if (estimate) {
+                priceTransportEl.textContent = estimate.transportFee > 0
+                    ? formatRupiah(estimate.transportFee)
+                    : `Rp 0 (Bebas biaya \u2264 ${estimate.jarakGratisKm} km)`;
+            } else {
+                priceTransportEl.textContent = '-';
+            }
+        }
         document.getElementById('priceTotal').textContent = estimate ? formatRupiah(estimate.total) : '-';
     }
 

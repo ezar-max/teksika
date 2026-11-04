@@ -44,10 +44,34 @@ class ChatController extends Controller
 
     public function store(Request $request)
     {
-        \App\Models\Chat::create([
+        $request->validate([
+            'message' => 'nullable|string|max:5000',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+        ]);
+
+        if (empty($request->message) && !$request->hasFile('image')) {
+            return back()->with('error', 'Pesan atau gambar tidak boleh kosong.');
+        }
+
+        $imagePath = null;
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('chat_images', 'public');
+        }
+
+        // Pastikan admin_id valid dan ada di tabel users, atau ambil admin pertama, atau fallback null
+        $adminId = null;
+        if ($request->filled('admin_id') && User::where('id', $request->admin_id)->exists()) {
+            $adminId = (int) $request->admin_id;
+        } elseif ($defaultAdmin = User::where('role', 'admin')->first()) {
+            $adminId = $defaultAdmin->id;
+        }
+
+        Chat::create([
             'user_id' => auth()->id(),
+            'admin_id' => $adminId,
             'sender' => 'user',
             'message' => $request->message,
+            'image' => $imagePath,
         ]);
         return redirect()->route('chatuser');
     }
@@ -82,12 +106,13 @@ class ChatController extends Controller
         $messages = Chat::where('user_id', $userId)
             ->where('id', '>', $afterId)
             ->orderBy('id')
-            ->get(['id', 'sender', 'message', 'created_at'])
+            ->get(['id', 'sender', 'message', 'image', 'created_at'])
             ->map(function (Chat $chat) {
                 return [
                     'id' => $chat->id,
                     'sender' => $chat->sender,
                     'message' => $chat->message,
+                    'image_url' => $chat->image ? asset('storage/' . $chat->image) : null,
                     'time' => $chat->created_at->copy()->timezone('Asia/Jakarta')->format('H:i'),
                 ];
             });
@@ -99,14 +124,25 @@ class ChatController extends Controller
     {
         $request->validate([
             'user_id' => 'required|exists:users,id',
-            'message' => 'required|string'
+            'message' => 'nullable|string|max:5000',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
         ]);
+
+        if (empty($request->message) && !$request->hasFile('image')) {
+            return back()->with('error', 'Pesan atau gambar tidak boleh kosong.');
+        }
+
+        $imagePath = null;
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('chat_images', 'public');
+        }
 
         Chat::create([
             'user_id' => $request->user_id,           // user tujuan
             'admin_id' => auth()->id(),               // admin sebagai pengirim
             'sender' => 'admin',                      // penanda pesan dari admin
             'message' => $request->message,
+            'image' => $imagePath,
         ]);
 
         return redirect()->route('chat', ['user_id' => $request->user_id]);

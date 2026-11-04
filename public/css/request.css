@@ -252,6 +252,10 @@ textarea.form-control {
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.worker-choice-card[hidden] {
+  display: none !important;
+}
+
 .worker-choice-card:hover {
   border-color: var(--blue-border);
   transform: translateY(-2px);

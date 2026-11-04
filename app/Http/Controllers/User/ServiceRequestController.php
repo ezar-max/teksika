@@ -83,16 +83,17 @@ class ServiceRequestController extends Controller
     {
         $validated = $request->validate([
             'kabupaten' => 'required|string|max:100',
-            'kecamatan' => 'required|string|max:100',
+            'kecamatan' => 'nullable|string|max:100',
             'jalan' => 'required|string|max:120',
         ]);
 
-        $query = sprintf(
-            '%s, Kecamatan %s, %s, Indonesia',
+        $queryParts = array_filter([
             $validated['jalan'],
-            $validated['kecamatan'],
-            $validated['kabupaten']
-        );
+            !empty($validated['kecamatan']) ? ('Kecamatan ' . $validated['kecamatan']) : null,
+            $validated['kabupaten'],
+            'Indonesia',
+        ]);
+        $query = implode(', ', $queryParts);
         $location = $geocoder->forward($query);
         if ($location === null) {
             return response()->json([
@@ -144,7 +145,8 @@ class ServiceRequestController extends Controller
                 'distance_km' => $route['distance_km'],
                 'duration_minutes' => $route['duration_minutes'],
                 'geometry' => $route['geometry'],
-                'source' => 'osrm',
+                'encoded_polyline' => $route['encoded_polyline'] ?? null,
+                'source' => $route['source'] ?? 'osrm',
                 'office' => $office,
             ],
         ]);

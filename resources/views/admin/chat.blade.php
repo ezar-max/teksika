@@ -12,9 +12,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- CSS & Icons -->
-    <link rel="stylesheet" href="{{ asset('css/dashboard_admin.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/profile-modal.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/chatadmin.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/dashboard_admin.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('css/profile-modal.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('css/chatadmin.css') }}?v={{ time() }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body>
@@ -81,38 +81,31 @@
 
         <!-- Content -->
         <div class="chat-content">
-            <h1 class="chat-title"><i class="fa-solid fa-comments" style="color:#007bff; margin-right:8px;"></i> Pesan & Komunikasi</h1>
-            <p class="chat-subtitle">Pusat interaksi langsung dengan customer untuk konfirmasi perbaikan dan konsultasi teknis</p>
-            
-            <div class="chat-stats">
-                <div class="stats">
-                    <div class="card blue">
-                        <div>
-                            <p class="label">Total Pesan</p>
-                            <h2>{{ $totalMessages ?? 0 }}</h2>
-                        </div>
-                        <div class="icon">
-                            <i class="fa-solid fa-message"></i>
-                        </div>
-                    </div>
-
-                    <div class="card purple">
-                        <div>
-                            <p class="label">Pesan Belum Dibaca</p>
-                            <h2>{{ $unreadCount ?? 0 }}</h2>
-                        </div>
-                        <div class="icon">
-                            <i class="fa-solid fa-envelope"></i>
+            <div class="chat-top-header">
+                <div class="chat-title-group">
+                    <h1 class="chat-title"><i class="fa-solid fa-comments" style="color:#007bff;"></i> Pesan & Komunikasi</h1>
+                    <p class="chat-subtitle">Pusat interaksi langsung dengan customer untuk konfirmasi perbaikan dan konsultasi teknis</p>
+                </div>
+                <div class="chat-mini-stats">
+                    <div class="mini-stat-card blue" title="Total Pesan Masuk">
+                        <i class="fa-solid fa-message"></i>
+                        <div class="mini-stat-content">
+                            <span class="mini-stat-num">{{ $totalMessages ?? 0 }}</span>
+                            <span class="mini-stat-label">Total Pesan</span>
                         </div>
                     </div>
-
-                    <div class="card green">
-                        <div>
-                            <p class="label">Total Pelanggan</p>
-                            <h2>{{ $totalCustomers ?? 0 }}</h2>
+                    <div class="mini-stat-card purple" title="Pesan Belum Dibaca">
+                        <i class="fa-solid fa-envelope"></i>
+                        <div class="mini-stat-content">
+                            <span class="mini-stat-num">{{ $unreadCount ?? 0 }}</span>
+                            <span class="mini-stat-label">Belum Dibaca</span>
                         </div>
-                        <div class="icon">
-                            <i class="fa-solid fa-users"></i>
+                    </div>
+                    <div class="mini-stat-card green" title="Total Pelanggan Aktif">
+                        <i class="fa-solid fa-users"></i>
+                        <div class="mini-stat-content">
+                            <span class="mini-stat-num">{{ $totalCustomers ?? 0 }}</span>
+                            <span class="mini-stat-label">Pelanggan</span>
                         </div>
                     </div>
                 </div>
@@ -175,7 +168,18 @@
                         @if(isset($chats) && count($chats) > 0)
                             @foreach($chats as $chat)
                             <div class="bubble-row {{ $chat->sender === 'admin' ? 'user' : 'admin' }}">
-                                <div class="chat-bubble">{{ $chat->message }}</div>
+                                <div class="chat-bubble {{ $chat->image ? 'chat-bubble-has-image' : '' }}">
+                                    @if($chat->image)
+                                        <a href="{{ asset('storage/' . $chat->image) }}" target="_blank" onclick="openChatImageModal(event, this.href)" style="display:inline-block; border-radius:10px; overflow:hidden;">
+                                            <img src="{{ asset('storage/' . $chat->image) }}" alt="Foto Chat" class="chat-img-bubble" style="max-width:220px; max-height:200px; width:auto; height:auto; object-fit:cover; border-radius:10px; display:block;">
+                                        </a>
+                                    @endif
+                                    @if($chat->message)
+                                        <div class="{{ $chat->image ? 'chat-bubble-caption' : '' }}">
+                                            {{ $chat->message }}
+                                        </div>
+                                    @endif
+                                </div>
                                 <div class="muter">
                                     {{ \Carbon\Carbon::parse($chat->created_at)->timezone('Asia/Jakarta')->format('H:i') }}
                                 </div>
@@ -191,10 +195,21 @@
 
                     @if(isset($selectedUser))
                     <div class="chat-input">
-                        <form action="{{ route('chat.send') }}" method="POST" class="chat-input-form">
+                        <div id="chatImagePreviewBar" class="chat-image-preview-bar" style="display:none;">
+                            <img id="chatPreviewThumb" src="" alt="Preview" class="chat-preview-thumb">
+                            <span id="chatPreviewName" class="chat-preview-info">foto.jpg</span>
+                            <button type="button" class="chat-preview-remove" onclick="removeChatImage()" title="Hapus Gambar">&times;</button>
+                        </div>
+                        <form action="{{ route('chat.send') }}" method="POST" enctype="multipart/form-data" class="chat-input-form" onsubmit="return validateChatSubmit(this)">
                             @csrf
                             <input type="hidden" name="user_id" value="{{ $selectedUser->id }}">
-                            <input type="text" name="message" placeholder="Tuliskan balasan untuk customer..." required autocomplete="off">
+                            
+                            <label for="chatImageInput" class="chat-attach-btn" title="Kirim Foto / Gambar">
+                                <i class="fa-solid fa-image"></i>
+                                <input type="file" id="chatImageInput" name="image" accept="image/*" style="display:none;" onchange="handleChatImageSelect(this)">
+                            </label>
+
+                            <input type="text" name="message" id="chatMessage" placeholder="Tuliskan balasan atau kirim gambar..." autocomplete="off">
                             <button type="submit" title="Kirim Balasan">
                                 <i class="fa-solid fa-paper-plane"></i>
                             </button>
@@ -215,7 +230,7 @@
     <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="{{ asset('js/chatadmin.js') }}"></script>
-    <script src="{{ asset('js/chat.js') }}"></script>
+    <script src="{{ asset('js/chat.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('js/sidebar.js') }}"></script>
     <script>
     function openAdminProfileModal(){

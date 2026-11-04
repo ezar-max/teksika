@@ -412,106 +412,163 @@
     position: fixed;
     inset: 0;
     display: none;
-    z-index: 2000;
+    z-index: 99999;
     align-items: center;
     justify-content: center;
+    padding: 20px;
+    box-sizing: border-box;
   }
   
   .modal.open {
     display: flex;
   }
-  /* Efek blur/dim pada konten utama saat modal detail dibuka */
-  #main.modal-dim {
-    filter: blur(4px) brightness(0.85);
-    transition: filter 0.2s ease;
-  }
   
   .backdrop {
-    position: absolute;
+    position: fixed;
     inset: 0;
-    background: transparent; /* hilangkan overlay hitam */
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 1;
     pointer-events: auto;
   }
   
   .dialog {
     position: relative;
-    background: white;
-    border-radius: 16px;
-    width: 90%;
-    max-width: 920px;
+    background: #ffffff;
+    border-radius: 20px;
+    width: 94%;
+    max-width: 880px;
     max-height: 90vh;
     overflow-y: auto;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    padding: 25px;
-    animation: modalFadeIn 0.3s ease;
+    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.45);
+    padding: 26px 30px;
+    z-index: 2;
+    animation: modalFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   }
   
   @keyframes modalFadeIn {
     from {
       opacity: 0;
-      transform: translateY(-20px);
+      transform: translateY(-20px) scale(0.98);
     }
     to {
       opacity: 1;
-      transform: translateY(0);
+      transform: translateY(0) scale(1);
     }
   }
+
+  .modal-dialog-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e2e8f0;
+    margin-bottom: 18px;
+  }
+
+  .modal-dialog-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .detail-title {
+    font-weight: 800;
+    font-size: 1.35rem;
+    color: #0f172a;
+    margin: 0 0 8px 0;
+    line-height: 1.3;
+    word-break: break-word;
+  }
+
+  .detail-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .detail-code-badge {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #475569;
+    background: #f1f5f9;
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+  }
+
+  .modal-dialog-side {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+  }
   
+  .price-badge {
+    text-align: right;
+  }
+  
+  .price-badge .big {
+    color: #10b981;
+    font-size: 1.45rem;
+    font-weight: 800;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .price-badge .muter {
+    font-size: 0.75rem;
+    color: #64748b;
+    margin: 2px 0 0 0;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+
   .close-x {
-    position: absolute;
-    right: 15px;
-    top: 15px;
-    width: 32px;
-    height: 32px;
+    position: static;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
-    background: var(--bg);
-    border: none;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+    font-size: 22px;
+    line-height: 1;
     cursor: pointer;
-    color: var(--muted);
-    transition: all 0.3s ease;
+    color: #64748b;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
   }
   
   .close-x:hover {
-    background: var(--line);
-    color: var(--text);
-  }
-  
-  .detail-title {
-    font-weight: 700;
-    font-size: 22px;
-    margin: 0 0 5px;
-    color: var(--text);
+    background: #fee2e2;
+    border-color: #fca5a5;
+    color: #ef4444;
+    transform: rotate(90deg);
   }
   
   .muter {
-    color: var(--muted);
-    font-size: 14px;
-    margin-bottom: 10px;
+    color: #64748b;
+    font-size: 13px;
+    margin-bottom: 4px;
+    font-weight: 600;
   }
   
   .status-mini {
     background: rgba(32, 196, 99, 0.1);
     color: var(--green);
-    font-weight: 600;
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 13px;
-    display: inline-block;
-  }
-  
-  .price-badge {
-    margin-left: auto;
-    text-align: right;
-  }
-  
-  .price-badge .big {
-    color: var(--green);
-    font-size: 22px;
     font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    display: inline-block;
   }
   
   .detail-grid {
@@ -1221,16 +1278,21 @@
     <div class="modal" id="modalDetail" aria-hidden="true">
         <div class="backdrop" data-close="detail"></div>
         <div class="dialog">
-            <button class="close-x" data-close="detail" aria-label="Tutup">&times;</button>
-            <div style="display:flex;align-items:start;gap:15px">
-                <div>
-                    <div class="detail-title" id="dJudul"></div>
-                    <div class="muter" id="dKode"></div>
-                    <div class="status-mini" id="dStatus"></div>
+            <!-- Header Modal Modern & Terpisah Rapi -->
+            <div class="modal-dialog-header">
+                <div class="modal-dialog-info">
+                    <h2 class="detail-title" id="dJudul"></h2>
+                    <div class="detail-meta-row">
+                        <span class="detail-code-badge" id="dKode"></span>
+                        <span class="status-mini" id="dStatus"></span>
+                    </div>
                 </div>
-                <div class="price-badge">
-                    <div class="big" id="dHarga"></div>
-                    <div class="muter" id="dPembayaran"></div>
+                <div class="modal-dialog-side">
+                    <div class="price-badge">
+                        <div class="big" id="dHarga"></div>
+                        <div class="muter" id="dPembayaran"></div>
+                    </div>
+                    <button class="close-x" data-close="detail" aria-label="Tutup" title="Tutup Detail">&times;</button>
                 </div>
             </div>
             <div class="detail-modal-layout">
@@ -1480,23 +1542,25 @@
                 : (card.dataset.statusHarga.startsWith('Estimasi awal')
                     ? 'Estimasi langsung dari isian form. Biaya material/suku cadang belum termasuk; admin dapat mengirim harga final setelah pemeriksaan.'
                     : 'Rincian mengikuti penawaran tukang. Material dan transportasi ditampilkan terpisah.');
-            document.getElementById('modalDetail').classList.add('open');
-            (function(){ const m = document.getElementById('main'); if (m) m.classList.add('modal-dim'); })();
+            // Buka Modal Detail
+            const modal = document.getElementById('modalDetail');
+            if (modal) modal.classList.add('open');
         });
     });
     
+    // Tutup Modal Detail via Tombol Tutup / Cross
     document.querySelectorAll('[data-close="detail"]').forEach(el => {
         el.addEventListener('click', () => {
-            document.getElementById('modalDetail').classList.remove('open');
-            (function(){ const m = document.getElementById('main'); if (m) m.classList.remove('modal-dim'); })();
+            const modal = document.getElementById('modalDetail');
+            if (modal) modal.classList.remove('open');
         });
     });
     
+    // Tutup Modal Detail jika klik area luar (Backdrop)
     window.addEventListener('click', function(e) {
         const modal = document.getElementById('modalDetail');
-        if (e.target.classList.contains('backdrop')) {
+        if (modal && e.target.classList.contains('backdrop')) {
             modal.classList.remove('open');
-            const m = document.getElementById('main'); if (m) m.classList.remove('modal-dim');
         }
     });
     

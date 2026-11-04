@@ -1,364 +1,826 @@
-body {
-    background: linear-gradient(135deg, #e0e7ff 0%, #f8fafc 100%);
-    font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
-    color: #222;
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
+/* ==========================================================================
+   TEKSIKA — MODERN PAYMENT CHECKOUT (FINTECH STYLE)
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+    --pay-primary: #007bff;
+    --pay-primary-dark: #005ecf;
+    --pay-primary-soft: #eff6ff;
+    --pay-primary-border: #bfdbfe;
+    --pay-text-main: #0f172a;
+    --pay-text-muted: #64748b;
+    --pay-bg-page: #f8fafc;
+    --pay-card-bg: #ffffff;
+    --pay-border: #e2e8f0;
+    --pay-success: #10b981;
+    --pay-success-soft: #ecfdf5;
+    --pay-warning: #f59e0b;
+    --pay-warning-soft: #fffbeb;
+    --pay-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.05), 0 8px 10px -6px rgba(15, 23, 42, 0.03);
+    --pay-shadow-lg: 0 20px 30px -10px rgba(0, 123, 255, 0.08), 0 10px 15px -5px rgba(15, 23, 42, 0.04);
 }
 
-.container {
-    width: 380px; /* Ukuran yang jauh lebih kecil */
-    max-width: 85vw; /* Membatasi maksimum lebar 85% dari viewport */
-    background: #fff;
-    border-radius: 15px; /* Mengurangi border radius */
-    box-shadow: 0 8px 25px rgba(24, 86, 167, 0.1), 0 2px 6px rgba(24, 86, 167, 0.08);
-    padding: 20px; /* Padding yang lebih kecil */
-    animation: fadeIn 0.7s ease-out;
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--pay-bg-page);
+    background-image: radial-gradient(#cbd5e1 0.75px, transparent 0.75px), radial-gradient(#cbd5e1 0.75px, #f8fafc 0.75px);
+    background-size: 30px 30px;
+    background-position: 0 0, 15px 15px;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    color: var(--pay-text-main);
+    min-height: 100vh;
+    padding: 24px 16px 48px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.payment-page-wrapper {
+    width: 100%;
+    max-width: 960px;
+    margin: 0 auto;
+}
+
+/* Header Navbar Pembayaran */
+.payment-navbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0 24px;
+    border-bottom: 1px solid var(--pay-border);
+    margin-bottom: 24px;
+}
+
+.payment-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+}
+
+.payment-brand img {
+    height: 38px;
+    width: auto;
+    object-fit: contain;
+}
+
+.payment-brand-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--pay-primary);
+    letter-spacing: -0.02em;
+}
+
+.payment-nav-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: #ffffff;
+    border: 1px solid var(--pay-border);
+    color: var(--pay-text-muted);
+    font-size: 0.86rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.payment-nav-back:hover {
+    color: var(--pay-primary);
+    border-color: var(--pay-primary-border);
+    background: var(--pay-primary-soft);
+    transform: translateX(-2px);
+}
+
+.payment-secure-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--pay-success);
+    background: var(--pay-success-soft);
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid #a7f3d0;
+}
+
+/* Layout Grid 2 Kolom */
+.payment-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 24px;
+    align-items: start;
+}
+
+@media (max-width: 820px) {
+    .payment-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Card Kontainer */
+.payment-card {
+    background: var(--pay-card-bg);
+    border: 1px solid var(--pay-border);
+    border-radius: 20px;
+    box-shadow: var(--pay-shadow);
+    padding: 24px;
     position: relative;
     overflow: hidden;
+}
+
+.payment-section-title {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--pay-text-main);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    letter-spacing: -0.01em;
+}
+
+.payment-section-title i {
+    color: var(--pay-primary);
+    font-size: 1.15rem;
+}
+
+/* Selected Method Banner (Locked sesuai pilihan user saat booking) */
+.selected-method-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 20px;
+    background: #f8fafc;
+    border: 1.5px solid var(--pay-border);
+    border-radius: 16px;
+    margin-bottom: 22px;
+}
+
+.method-banner-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.method-banner-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    font-size: 1.35rem;
+    flex-shrink: 0;
+}
+
+.method-banner-icon.icon-bank {
+    background: #e0f2fe;
+    color: #0284c7;
+    border: 1px solid #bae6fd;
+}
+
+.method-banner-icon.icon-qris {
+    background: #ffe4e6;
+    color: #e11d48;
+    border: 1px solid #fecdd3;
+}
+
+.method-banner-icon.icon-cash {
+    background: #dcfce7;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+}
+
+.method-banner-badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--pay-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 2px;
+}
+
+.method-banner-title {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--pay-text-main);
+    letter-spacing: -0.01em;
+}
+
+.method-banner-sub {
+    font-size: 0.8rem;
+    color: var(--pay-text-muted);
+    margin-top: 2px;
+}
+
+.method-locked-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #475569;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    padding: 6px 12px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+/* Category Tabs (Virtual Account, QRIS, Tunai) */
+.payment-methods-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.method-tab-btn {
+    border: 1.5px solid var(--pay-border);
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 12px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    font-family: inherit;
+    text-align: center;
+}
+
+.method-tab-btn i {
+    font-size: 1.35rem;
+    color: var(--pay-text-muted);
+    transition: color 0.2s;
+}
+
+.method-tab-btn span {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--pay-text-main);
+}
+
+.method-tab-btn:hover {
+    border-color: var(--pay-primary-border);
+    background: var(--pay-primary-soft);
+}
+
+.method-tab-btn.active {
+    border-color: var(--pay-primary);
+    background: var(--pay-primary-soft);
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
+}
+
+.method-tab-btn.active i {
+    color: var(--pay-primary);
+}
+
+.method-tab-btn.active span {
+    color: var(--pay-primary);
+}
+
+/* Bank Selection Cards Grid */
+.bank-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+@media (max-width: 520px) {
+    .bank-cards-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.bank-card-option {
+    position: relative;
+    border: 1.5px solid var(--pay-border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    background: #ffffff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.bank-card-option input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.bank-card-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.bank-badge {
+    font-weight: 800;
+    font-size: 0.85rem;
+    padding: 4px 10px;
+    border-radius: 8px;
+    letter-spacing: 0.04em;
+    min-width: 56px;
+    text-align: center;
+}
+
+.bank-badge.bca { background: #005baa; color: #ffffff; }
+.bank-badge.bri { background: #00529c; color: #ffffff; }
+.bank-badge.mandiri { background: #003d79; color: #ffb703; }
+.bank-badge.bni { background: #006677; color: #ffffff; }
+
+.bank-title-wrap {
     display: flex;
     flex-direction: column;
 }
 
-/* Efek cahaya halus di sudut */
-.container::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 4px; /* Mengurangi tinggi */
-    background: linear-gradient(90deg, #1856a7, #3b82f6, #60a5fa);
-    border-radius: 15px 15px 0 0;
-}
-
-@keyframes fadeIn {
-    from { 
-        opacity: 0; 
-        transform: translateY(20px);
-    }
-    to { 
-        opacity: 1; 
-        transform: translateY(0);
-    }
-}
-
-h1 {
-    font-size: 1.4rem; /* Ukuran font yang jauh lebih kecil */
+.bank-name {
+    font-size: 0.88rem;
     font-weight: 700;
-    color: #1856a7;
-    margin-bottom: 12px; /* Margin yang jauh lebih kecil */
-    letter-spacing: 0.3px;
-    text-align: center;
-    position: relative;
+    color: var(--pay-text-main);
 }
 
-/* Garis bawah halus di bawah judul */
-h1::after {
-    content: '';
-    position: absolute;
-    bottom: -6px; /* Jarak yang jauh lebih kecil */
-    left: 50%;
-    transform: translateX(-50%);
-    width: 40px; /* Lebar yang jauh lebih kecil */
-    height: 2px; /* Tinggi yang lebih kecil */
-    background: linear-gradient(90deg, #1856a7, #3b82f6);
-    border-radius: 2px;
+.bank-type {
+    font-size: 0.72rem;
+    color: var(--pay-text-muted);
 }
 
-/* Layout form menjadi 2 kolom */
-.form-row {
-    display: flex;
-    gap: 10px; /* Gap yang jauh lebih kecil */
-    margin-bottom: 8px; /* Margin yang jauh lebih kecil */
+.bank-check-indicator {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1.5px solid #cbd5e1;
+    display: grid;
+    place-items: center;
+    font-size: 0.7rem;
+    color: transparent;
+    transition: all 0.2s;
 }
 
-.form-col {
-    flex: 1;
+.bank-card-option:hover {
+    border-color: var(--pay-primary-border);
+    background: #fcfdfe;
 }
 
-.form-label {
-    font-weight: 600;
-    color: #1856a7;
-    margin-bottom: 3px; /* Margin yang sangat kecil */
-    display: block;
-    font-size: 0.8rem; /* Font size yang sangat kecil */
-    letter-spacing: 0.2px;
+.bank-card-option.selected {
+    border-color: var(--pay-primary);
+    background: var(--pay-primary-soft);
 }
 
-.form-control, textarea, .payment-method-select {
-    border: 1.2px solid #d4dfee; /* Border yang lebih tipis */
-    border-radius: 6px; /* Border radius yang lebih kecil */
-    padding: 8px 10px; /* Padding yang sangat kecil */
-    font-size: 0.85rem; /* Font size yang sangat kecil */
-    background: #f8faff;
-    transition: all 0.3s ease;
-    margin-bottom: 8px; /* Margin yang sangat kecil */
-    width: 100%;
-    box-sizing: border-box;
+.bank-card-option.selected .bank-check-indicator {
+    background: var(--pay-primary);
+    border-color: var(--pay-primary);
+    color: #ffffff;
 }
 
-.form-control:focus, textarea:focus, .payment-method-select:focus {
-    border-color: #3b82f6;
-    outline: none;
-    background: #fff;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1); /* Shadow yang sangat kecil */
-}
-
-.form-check {
-    margin-bottom: 6px; /* Margin yang sangat kecil */
-    display: flex;
-    align-items: center;
-}
-
-.form-check-input {
-    accent-color: #1856a7;
-    width: 0.9em; /* Ukuran yang sangat kecil */
-    height: 0.9em; /* Ukuran yang sangat kecil */
-    margin-right: 5px; /* Margin yang sangat kecil */
-    cursor: pointer;
-}
-
-.form-check-label {
-    font-size: 0.8rem; /* Font size yang sangat kecil */
-    color: #444;
-    cursor: pointer;
-    user-select: none;
-}
-
-.btn-primary {
-    background: linear-gradient(90deg, #1856a7 0%, #3b82f6 100%);
-    color: #fff;
-    border: none;
-    border-radius: 6px; /* Border radius yang lebih kecil */
-    padding: 8px 0; /* Padding yang sangat kecil */
-    font-size: 0.85rem; /* Font size yang sangat kecil */
-    font-weight: 600;
-    width: 100%;
-    box-shadow: 0 2px 5px rgba(24, 86, 167, 0.15); /* Shadow yang sangat kecil */
-    transition: all 0.3s ease;
-    margin-top: 4px; /* Margin yang sangat kecil */
-    cursor: pointer;
-    letter-spacing: 0.2px;
+/* Virtual Account Display Box (High-End Fintech) */
+.va-display-box {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    border-radius: 16px;
+    padding: 20px 22px;
+    color: #ffffff;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 20px -5px rgba(15, 23, 42, 0.2);
     position: relative;
     overflow: hidden;
 }
 
-/* Efek cahaya saat hover */
-.btn-primary::before {
+.va-display-box::after {
     content: '';
     position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transition: left 0.5s;
+    top: -30px;
+    right: -30px;
+    width: 120px;
+    height: 120px;
+    background: radial-gradient(circle, rgba(0, 123, 255, 0.25) 0%, transparent 70%);
+    border-radius: 50%;
 }
 
-.btn-primary:hover {
-    background: linear-gradient(90deg, #3b82f6 0%, #1856a7 100%);
-    box-shadow: 0 3px 8px rgba(24, 86, 167, 0.2);
-    transform: translateY(-1px);
-}
-
-.btn-primary:hover::before {
-    left: 100%;
-}
-
-.btn-primary:active {
-    transform: translateY(0);
-    box-shadow: 0 1px 3px rgba(24, 86, 167, 0.15);
-}
-
-.mb-3 {
-    margin-bottom: 10px !important; /* Margin yang sangat kecil */
-}
-
-input[type="number"]::-webkit-inner-spin-button,
-input[type="number"]::-webkit-outer-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
-
-textarea {
-    min-height: 50px; /* Tinggi minimum yang sangat kecil */
-    resize: vertical;
-    font-family: inherit;
-}
-
-/* Responsif untuk layar kecil */
-@media (max-width: 768px) {
-    body {
-        padding: 15px;
-    }
-    
-    .container {
-        width: 100%; /* Di mobile gunakan lebar penuh */
-        padding: 15px 12px 12px; /* Padding yang sangat kecil di mobile */
-    }
-    
-    h1 {
-        font-size: 1.2rem;
-        margin-bottom: 10px;
-    }
-    
-    /* Mengubah layout menjadi single column di mobile */
-    .form-row {
-        flex-direction: column;
-        gap: 0;
-    }
-    
-    .form-control, textarea {
-        padding: 7px 9px;
-        font-size: 0.8rem;
-    }
-    
-    .btn-primary {
-        padding: 7px 0;
-        font-size: 0.8rem;
-    }
-}
-
-/* Efek hover pada checkbox */
-.form-check:hover .form-check-label {
-    color: #1856a7;
-}
-
-/* Placeholder styling */
-::placeholder {
-    color: #a0aec0;
-    font-size: 0.8rem; /* Font size yang sangat kecil */
-}
-
-/* Tambahkan styling untuk kode booking */
-.booking-code {
-    display: flex;
-    align-items: center;
-    margin-bottom: 8px; /* Margin yang sangat kecil */
-    background: #f0f7ff;
-    padding: 8px 10px; /* Padding yang sangat kecil */
-    border-radius: 6px; /* Border radius yang lebih kecil */
-    border-left: 2px solid #1856a7; /* Border yang lebih tipis */
-}
-
-.booking-code-label {
-    font-weight: 600;
-    color: #1856a7;
-    margin-right: 6px; /* Margin yang sangat kecil */
-    font-size: 0.8rem; /* Font size yang sangat kecil */
-}
-
-.booking-code-value {
-    font-weight: 700;
-    color: #333;
-    font-size: 0.85rem; /* Font size yang sangat kecil */
-    letter-spacing: 0.3px; /* Spacing yang sangat kecil */
-}
-
-/* Tambahkan styling untuk jumlah pembayaran */
-.payment-amount {
+.va-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 8px; /* Margin yang sangat kecil */
-    background: #f0f7ff;
-    padding: 8px 10px; /* Padding yang sangat kecil */
-    border-radius: 6px; /* Border radius yang lebih kecil */
-    border-left: 2px solid #1856a7; /* Border yang lebih tipis */
+    margin-bottom: 14px;
 }
 
-.payment-amount-label {
-    font-weight: 600;
-    color: #1856a7;
-    font-size: 0.8rem; /* Font size yang sangat kecil */
-}
-
-.payment-amount-value {
+.va-bank-tag {
+    font-size: 0.75rem;
     font-weight: 700;
-    color: #333;
-    font-size: 0.9rem; /* Font size yang sangat kecil */
-}
-
-/* Tambahkan styling untuk metode pembayaran */
-.payment-method {
-    margin-bottom: 8px; /* Margin yang sangat kecil */
-}
-
-.payment-method-label {
-    font-weight: 600;
-    color: #1856a7;
-    margin-bottom: 4px; /* Margin yang sangat kecil */
-    display: block;
-    font-size: 0.8rem; /* Font size yang sangat kecil */
-}
-
-.payment-method-select {
-    width: 100%;
-    border: 1.2px solid #d4dfee; /* Border yang lebih tipis */
-    border-radius: 6px; /* Border radius yang lebih kecil */
-    padding: 8px 10px; /* Padding yang sangat kecil */
-    font-size: 0.85rem; /* Font size yang sangat kecil */
-    background: #f8faff;
-    transition: all 0.3s ease;
-    cursor: pointer;
-}
-
-.payment-method-select:focus {
-    border-color: #3b82f6;
-    outline: none;
-    background: #fff;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1); /* Shadow yang sangat kecil */
-}
-
-/* Tambahkan styling untuk bagian informasi pembayaran */
-.payment-info {
-    background: #f8faff;
-    border-radius: 6px; /* Border radius yang lebih kecil */
-    padding: 10px; /* Padding yang sangat kecil */
-    margin-bottom: 8px; /* Margin yang sangat kecil */
-    border-left: 2px solid #1856a7; /* Border yang lebih tipis */
-}
-
-.payment-info-title {
-    font-weight: 600;
-    color: #1856a7;
-    margin-bottom: 6px; /* Margin yang sangat kecil */
-    font-size: 0.8rem; /* Font size yang sangat kecil */
-}
-
-/* Tambahkan styling untuk tombol sekunder */
-.btn-secondary {
-    background: #f8fafc;
-    color: #1856a7;
-    border: 1.2px solid #d4dfee; /* Border yang lebih tipis */
-    border-radius: 6px; /* Border radius yang lebih kecil */
-    padding: 7px 0; /* Padding yang sangat kecil */
-    font-size: 0.85rem; /* Font size yang sangat kecil */
-    font-weight: 600;
-    width: 100%;
-    transition: all 0.3s ease;
-    margin-top: 6px; /* Margin yang sangat kecil */
-    cursor: pointer;
-}
-
-.btn-secondary:hover {
-    background: #eef2ff;
-    border-color: #1856a7;
-}
-
-/* Bagian untuk tombol aksi */
-.form-actions {
+    color: #93c5fd;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
     display: flex;
-    gap: 8px; /* Gap yang sangat kecil */
-    margin-top: 4px; /* Margin yang sangat kecil */
+    align-items: center;
+    gap: 6px;
 }
 
-.form-actions .btn-primary,
-.form-actions .btn-secondary {
-    flex: 1;
-    margin-top: 0;
+.va-bank-tag::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #60a5fa;
+    display: inline-block;
+}
+
+.va-auto-verify {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #34d399;
+    background: rgba(16, 185, 129, 0.15);
+    padding: 3px 9px;
+    border-radius: 999px;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.va-number-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+}
+
+.va-number-text {
+    font-family: 'SF Mono', 'Roboto Mono', Menlo, Consolas, monospace;
+    font-size: 1.3rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    color: #ffffff;
+    user-select: all;
+}
+
+.btn-copy-va {
+    background: var(--pay-primary);
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: inherit;
+    transition: all 0.2s ease;
+}
+
+.btn-copy-va:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+}
+
+.btn-copy-va.copied {
+    background: #10b981;
+}
+
+.va-account-info {
+    font-size: 0.78rem;
+    color: #94a3b8;
+    line-height: 1.4;
+    display: flex;
+    justify-content: space-between;
+}
+
+.va-account-info span strong {
+    color: #ffffff;
+}
+
+/* Instruction Accordion */
+.payment-guide-box {
+    border: 1px solid var(--pay-border);
+    border-radius: 12px;
+    background: #f8fafc;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.guide-toggle-btn {
+    width: 100%;
+    padding: 12px 16px;
+    background: none;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--pay-text-main);
+    cursor: pointer;
+}
+
+.guide-toggle-btn i {
+    transition: transform 0.2s ease;
+    color: var(--pay-text-muted);
+}
+
+.guide-toggle-btn.open i {
+    transform: rotate(180deg);
+}
+
+.guide-content-body {
+    display: none;
+    padding: 0 16px 14px;
+    font-size: 0.82rem;
+    color: #475569;
+    line-height: 1.6;
+    border-top: 1px solid var(--pay-border);
+    margin-top: 4px;
+}
+
+.guide-content-body.open {
+    display: block;
+}
+
+.guide-content-body ol {
+    margin: 8px 0 0 18px;
+    padding: 0;
+}
+
+.guide-content-body li {
+    margin-bottom: 4px;
+}
+
+/* QRIS Mode Container */
+.qris-container {
+    text-align: center;
+    padding: 10px 0;
+}
+
+.qris-card {
+    background: #ffffff;
+    border: 1.5px solid var(--pay-border);
+    border-radius: 18px;
+    padding: 24px 20px;
+    display: inline-block;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+    max-width: 320px;
+    width: 100%;
+    margin-bottom: 16px;
+}
+
+.qris-brand-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.qris-badge-tag {
+    background: #e11d48;
+    color: #ffffff;
+    font-weight: 900;
+    font-size: 0.88rem;
+    padding: 3px 10px;
+    border-radius: 6px;
+    letter-spacing: 0.08em;
+}
+
+.qris-img-wrap {
+    background: #ffffff;
+    padding: 10px;
+    border-radius: 12px;
+    border: 1px solid var(--pay-border);
+    display: inline-block;
+    margin-bottom: 12px;
+}
+
+.qris-img-wrap img {
+    max-width: 200px;
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 6px;
+}
+
+.qris-caption {
+    font-size: 0.82rem;
+    color: var(--pay-text-muted);
+    line-height: 1.45;
+}
+
+.qris-caption strong {
+    color: var(--pay-text-main);
+}
+
+.qris-supported-logos {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 0.72rem;
+    color: #64748b;
+    margin-top: 10px;
+}
+
+.qris-supported-badge {
+    background: #f1f5f9;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+/* Tunai (Cash) Container */
+.cash-container {
+    padding: 16px;
+    background: #f0fdf4;
+    border: 1.5px dashed #86efac;
+    border-radius: 16px;
+    color: #166534;
+    margin-bottom: 20px;
+}
+
+.cash-info-title {
+    font-weight: 800;
+    font-size: 0.92rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.cash-info-desc {
+    font-size: 0.82rem;
+    color: #15803d;
+    line-height: 1.5;
+}
+
+/* Customer Fields Form */
+.form-group-wrap {
+    margin-bottom: 14px;
+}
+
+.form-label-modern {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--pay-text-main);
+    margin-bottom: 6px;
+}
+
+.form-input-modern {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid var(--pay-border);
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: 0.88rem;
+    color: var(--pay-text-main);
+    background: #ffffff;
+    transition: all 0.2s ease;
+}
+
+.form-input-modern:focus {
+    outline: none;
+    border-color: var(--pay-primary);
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.12);
+}
+
+/* Order Summary Column (Kanan) */
+.order-summary-card {
+    background: #ffffff;
+    border: 1px solid var(--pay-border);
+    border-radius: 20px;
+    box-shadow: var(--pay-shadow-lg);
+    padding: 24px;
+    position: sticky;
+    top: 24px;
+}
+
+.summary-header-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--pay-primary);
+    background: var(--pay-primary-soft);
+    padding: 4px 10px;
+    border-radius: 999px;
+    margin-bottom: 12px;
+}
+
+.summary-booking-id {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--pay-text-main);
+    letter-spacing: -0.01em;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.summary-service-pill {
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: #f1f5f9;
+    color: #475569;
+    padding: 3px 8px;
+    border-radius: 6px;
+}
+
+.summary-divider {
+    height: 1px;
+    background: var(--pay-border);
+    margin: 16px 0;
+}
+
+.summary-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.84rem;
+    color: var(--pay-text-muted);
+    margin-bottom: 8px;
+}
+
+.summary-row.total-row {
+    margin-top: 14px;
+    margin-bottom: 20px;
+    padding-top: 14px;
+    border-top: 2px dashed var(--pay-border);
+}
+
+.total-label {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--pay-text-main);
+}
+
+.total-amount-display {
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: var(--pay-primary);
+    letter-spacing: -0.02em;
+}
+
+.btn-submit-payment {
+    width: 100%;
+    padding: 14px 20px;
+    background: linear-gradient(135deg, #007bff 0%, #005ecf 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 14px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0, 123, 255, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-submit-payment:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 123, 255, 0.45);
+}
+
+.btn-submit-payment:active {
+    transform: translateY(0);
+}
+
+.summary-guarantee-note {
+    text-align: center;
+    font-size: 0.75rem;
+    color: #94a3b8;
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.summary-guarantee-note i {
+    color: var(--pay-success);
 }

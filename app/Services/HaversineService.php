@@ -39,7 +39,8 @@ class HaversineService
     }
 
     /**
-     * Ambil jarak, durasi, dan geometri jalan dari OSRM public demo.
+     * Ambil jarak, durasi, dan geometri jalan dari Google Maps Compute Routes (utama)
+     * dengan fallback otomatis ke OSRM public demo.
      * Hasil null berarti rute jalan tidak dapat dihitung.
      */
     public function getDrivingRoute(
@@ -55,6 +56,14 @@ class HaversineService
             return $cachedRoute;
         }
 
+        // 1. Provider Utama: Google Maps Routes API (Compute Routes)
+        $route = $this->fetchGoogleDrivingRoute($lat1, $lon1, $lat2, $lon2);
+        if ($route !== null) {
+            Cache::put($cacheKey, $route, 86400);
+            return $route;
+        }
+
+        // 2. Fallback: Open Source Routing Machine (OSRM)
         if (!Cache::add('osrm_public_demo_request', true, 1)) {
             return null;
         }
@@ -65,6 +74,115 @@ class HaversineService
         }
 
         return $route;
+    }
+
+    /**
+     * Request rute jalan ke Google Maps Routes API (v2:computeRoutes)
+     */
+    protected function fetchGoogleDrivingRoute(float $lat1, float $lon1, float $lat2, float $lon2): ?array
+    {
+        $apiKey = trim((string) config('services.google_maps.api_key', ''));
+        if ($apiKey === '') {
+            return null;
+        }
+
+        try {
+            $response = Http::withHeaders([
+                'Content-Type' => 'application/json',
+                'X-Goog-Api-Key' => $apiKey,
+                'X-Goog-FieldMask' => 'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline',
+            ])->timeout(8)->post('https://routes.googleapis.com/directions/v2:computeRoutes', [
+                'origin' => [
+                    'location' => [
+                        'latLng' => [
+                            'latitude' => $lat1,
+                            'longitude' => $lon1,
+                        ],
+                    ],
+                ],
+                'destination' => [
+                    'location' => [
+                        'latLng' => [
+                            'latitude' => $lat2,
+                            'longitude' => $lon2,
+                        ],
+                    ],
+                ],
+                'travelMode' => 'DRIVE',
+                'routingPreference' => 'TRAFFIC_UNAWARE',
+                'computeAlternativeRoutes' => false,
+            ]);
+
+            if ($response->successful()) {
+                $route = $response->json('routes.0');
+                $encodedPolyline = $route['polyline']['encodedPolyline'] ?? null;
+                $distanceMeters = $route['distanceMeters'] ?? null;
+                $durationRaw = $route['duration'] ?? null;
+
+                if (is_numeric($distanceMeters) && is_string($encodedPolyline) && $encodedPolyline !== '') {
+                    $durationSeconds = is_string($durationRaw)
+                        ? (float) rtrim($durationRaw, 's')
+                        : (float) ($durationRaw ?? 0);
+                    $geometry = $this->decodeGooglePolyline($encodedPolyline);
+
+                    if (!empty($geometry)) {
+                        return [
+                            'distance_km' => round(((float) $distanceMeters) / 1000, 2),
+                            'duration_minutes' => max(1, (int) round($durationSeconds / 60)),
+                            'geometry' => $geometry,
+                            'encoded_polyline' => $encodedPolyline,
+                            'source' => 'google_routes',
+                        ];
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::info('Google Maps Compute Routes request failed, falling back to OSRM.');
+        }
+
+        return null;
+    }
+
+    /**
+     * Decode Google Encoded Polyline string menjadi array koordinat [lon, lat]
+     */
+    public function decodeGooglePolyline(string $encoded): array
+    {
+        $points = [];
+        $index = 0;
+        $len = strlen($encoded);
+        $lat = 0;
+        $lng = 0;
+
+        while ($index < $len) {
+            $shift = 0;
+            $result = 0;
+            do {
+                $b = ord($encoded[$index++]) - 63;
+                $result |= ($b & 0x1f) << $shift;
+                $shift += 5;
+            } while ($b >= 0x20 && $index < $len);
+            $dlat = (($result & 1) ? ~($result >> 1) : ($result >> 1));
+            $lat += $dlat;
+
+            if ($index >= $len) {
+                break;
+            }
+
+            $shift = 0;
+            $result = 0;
+            do {
+                $b = ord($encoded[$index++]) - 63;
+                $result |= ($b & 0x1f) << $shift;
+                $shift += 5;
+            } while ($b >= 0x20 && $index < $len);
+            $dlng = (($result & 1) ? ~($result >> 1) : ($result >> 1));
+            $lng += $dlng;
+
+            $points[] = [round($lng * 1e-5, 6), round($lat * 1e-5, 6)];
+        }
+
+        return $points;
     }
 
     /**

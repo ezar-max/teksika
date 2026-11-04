@@ -10,16 +10,154 @@ class OpenStreetMapGeocodingService
 {
     public function reverse(float $latitude, float $longitude): ?array
     {
-        $cacheKey = sprintf('nominatim_address_v2_%.5f_%.5f', $latitude, $longitude);
+        $apiKey = trim((string) config('services.google_maps.api_key', ''));
+        $cachePrefix = $apiKey !== '' ? 'gmaps_nominatim_address_v3' : 'nominatim_address_v2';
+        $cacheKey = sprintf('%s_%.5f_%.5f', $cachePrefix, $latitude, $longitude);
         $cachedAddress = Cache::get($cacheKey);
         if ($cachedAddress !== null) {
             return $cachedAddress;
         }
 
+        // 1. Provider Utama: Google Maps Places API (Nearby Search)
+        if ($apiKey !== '') {
+            $googleResult = $this->reverseGooglePlaces($latitude, $longitude, $apiKey);
+            if ($googleResult !== null) {
+                // Jika jalan spesifik atau RT/RW belum lengkap di Google Places, perkaya dengan fallback Nominatim bila tersedia
+                if (($googleResult['jalan'] === '' || $googleResult['rt'] === '' || $googleResult['rw'] === '')
+                    && Cache::add('nominatim_public_request', true, 1)) {
+                    $osmFallback = $this->reverseNominatim($latitude, $longitude);
+                    if ($osmFallback !== null) {
+                        if ($googleResult['jalan'] === '' && $osmFallback['jalan'] !== '') {
+                            $googleResult['jalan'] = $osmFallback['jalan'];
+                        }
+                        if ($googleResult['kabupaten'] === '' && $osmFallback['kabupaten'] !== '') {
+                            $googleResult['kabupaten'] = $osmFallback['kabupaten'];
+                        }
+                        if ($googleResult['kecamatan'] === '' && $osmFallback['kecamatan'] !== '') {
+                            $googleResult['kecamatan'] = $osmFallback['kecamatan'];
+                        }
+                        if ($googleResult['rt'] === '' && $osmFallback['rt'] !== '') {
+                            $googleResult['rt'] = $osmFallback['rt'];
+                        }
+                        if ($googleResult['rw'] === '' && $osmFallback['rw'] !== '') {
+                            $googleResult['rw'] = $osmFallback['rw'];
+                        }
+                    }
+                }
+
+                Cache::put($cacheKey, $googleResult, 2592000);
+                return $googleResult;
+            }
+        }
+
+        // 2. Fallback: Nominatim OpenStreetMap
         if (!Cache::add('nominatim_public_request', true, 1)) {
             return null;
         }
 
+        $result = $this->reverseNominatim($latitude, $longitude);
+        if ($result !== null) {
+            Cache::put($cacheKey, $result, 2592000);
+        }
+
+        return $result;
+    }
+
+    private function reverseGooglePlaces(float $latitude, float $longitude, string $apiKey): ?array
+    {
+        try {
+            $response = Http::withHeaders([
+                'Content-Type' => 'application/json',
+                'X-Goog-Api-Key' => $apiKey,
+                'X-Goog-FieldMask' => 'places.displayName,places.formattedAddress,places.addressComponents,places.location',
+            ])->timeout(5)->post('https://places.googleapis.com/v1/places:searchNearby', [
+                'locationRestriction' => [
+                    'circle' => [
+                        'center' => [
+                            'latitude' => $latitude,
+                            'longitude' => $longitude,
+                        ],
+                        'radius' => 300.0,
+                    ],
+                ],
+                'rankPreference' => 'DISTANCE',
+                'maxResultCount' => 5,
+                'languageCode' => 'id',
+            ]);
+
+            if (!$response->successful()) {
+                return null;
+            }
+
+            $places = $response->json('places', []);
+            if (!is_array($places) || empty($places)) {
+                return null;
+            }
+
+            $kabupaten = '';
+            $kecamatan = '';
+            $jalan = '';
+            $kelurahan = '';
+            $contextParts = [];
+
+            foreach ($places as $place) {
+                if (!empty($place['formattedAddress'])) {
+                    $contextParts[] = $place['formattedAddress'];
+                }
+                if (!empty($place['displayName']['text'])) {
+                    $contextParts[] = $place['displayName']['text'];
+                }
+
+                $components = $place['addressComponents'] ?? [];
+                foreach ($components as $component) {
+                    $types = $component['types'] ?? [];
+                    $longText = trim((string) ($component['longText'] ?? ''));
+                    if ($longText === '') {
+                        continue;
+                    }
+
+                    if ($kabupaten === '' && in_array('administrative_area_level_2', $types, true)) {
+                        $kabupaten = $longText;
+                    }
+                    if ($kecamatan === '' && in_array('administrative_area_level_3', $types, true)) {
+                        $kecamatan = preg_replace('/^(?:Kecamatan|Kec\.)\s+/iu', '', $longText) ?? $longText;
+                    }
+                    if ($jalan === '' && in_array('route', $types, true)) {
+                        $jalan = $longText;
+                    }
+                    if ($kelurahan === '' && (in_array('administrative_area_level_4', $types, true) || in_array('sublocality_level_1', $types, true))) {
+                        $kelurahan = $longText;
+                    }
+                }
+            }
+
+            if ($jalan === '' && $kelurahan !== '') {
+                $jalan = $kelurahan;
+            }
+
+            $addressContext = implode(' ', $contextParts);
+            $result = [
+                'kabupaten' => $kabupaten,
+                'kecamatan' => $kecamatan,
+                'jalan' => $jalan,
+                'rt' => $this->extractRtRw('RT', null, $addressContext),
+                'rw' => $this->extractRtRw('RW', null, $addressContext),
+                'provider' => 'google_maps',
+            ];
+
+            if ($kabupaten === '' && $kecamatan === '' && $jalan === '') {
+                return null;
+            }
+
+            return $result;
+        } catch (\Throwable $exception) {
+            Log::info('Google Maps Places reverse lookup failed, falling back to OpenStreetMap.');
+            return null;
+        }
+    }
+
+    private function reverseNominatim(float $latitude, float $longitude): ?array
+    {
         try {
             $response = Http::withHeaders([
                 'User-Agent' => 'TEKSIKA/1.0 (OpenStreetMap reverse geocoding)',
@@ -53,8 +191,6 @@ class OpenStreetMapGeocodingService
                 return null;
             }
 
-            Cache::put($cacheKey, $result, 2592000);
-
             return $result;
         } catch (\Throwable $exception) {
             Log::info('OpenStreetMap reverse geocoding request failed.');
@@ -66,29 +202,75 @@ class OpenStreetMapGeocodingService
     public function forward(string $query): ?array
     {
         $query = trim($query);
-        $cacheKey = 'nominatim_search_' . sha1(mb_strtolower($query));
+        $apiKey = trim((string) config('services.google_maps.api_key', ''));
+        $cachePrefix = $apiKey !== '' ? 'gmaps_nominatim_search_' : 'nominatim_search_';
+        $cacheKey = $cachePrefix . sha1(mb_strtolower($query));
         $cachedLocation = Cache::get($cacheKey);
         if ($cachedLocation !== null) {
             return $cachedLocation;
         }
 
         $location = null;
-        if (Cache::add('nominatim_public_request', true, 1)) {
+
+        // 1. Provider Utama: Google Maps Places Text Search
+        if ($apiKey !== '') {
+            $location = $this->searchGooglePlaces($query, $apiKey);
+        }
+
+        // 2. Fallback: Nominatim OpenStreetMap
+        if ($location === null && Cache::add('nominatim_public_request', true, 1)) {
             $location = $this->searchNominatim($query);
         }
 
+        // 3. Fallback: Photon Komoot
         if ($location === null) {
             $location = $this->searchPhoton($query);
         }
 
         if ($location !== null) {
-            $result = $location;
-            Cache::put($cacheKey, $result, 2592000);
-
-            return $result;
+            Cache::put($cacheKey, $location, 2592000);
+            return $location;
         }
 
         return null;
+    }
+
+    private function searchGooglePlaces(string $query, string $apiKey): ?array
+    {
+        try {
+            $response = Http::withHeaders([
+                'Content-Type' => 'application/json',
+                'X-Goog-Api-Key' => $apiKey,
+                'X-Goog-FieldMask' => 'places.displayName,places.formattedAddress,places.location',
+            ])->timeout(5)->post('https://places.googleapis.com/v1/places:searchText', [
+                'textQuery' => $query,
+                'languageCode' => 'id',
+                'regionCode' => 'ID',
+                'maxResultCount' => 1,
+            ]);
+
+            if (!$response->successful()) {
+                return null;
+            }
+
+            $place = $response->json('places.0');
+            $lat = $place['location']['latitude'] ?? null;
+            $lng = $place['location']['longitude'] ?? null;
+
+            if (!is_numeric($lat) || !is_numeric($lng)) {
+                return null;
+            }
+
+            return [
+                'latitude' => (float) $lat,
+                'longitude' => (float) $lng,
+                'display_name' => (string) ($place['formattedAddress'] ?? $place['displayName']['text'] ?? ''),
+                'provider' => 'google_maps',
+            ];
+        } catch (\Throwable $exception) {
+            Log::info('Google Maps Places forward geocoding failed, falling back to OpenStreetMap.');
+            return null;
+        }
     }
 
     private function searchNominatim(string $query): ?array

@@ -86,6 +86,33 @@ class AlgoritmaTest extends TestCase
         $this->assertSame(25000.0, $capped['biaya_kualifikasi']);
     }
 
+    public function test_google_compute_routes_distance_and_polyline_decoding(): void
+    {
+        Cache::flush();
+        config(['services.google_maps.api_key' => 'test-demo-key']);
+
+        Http::fake([
+            'routes.googleapis.com/directions/v2:computeRoutes*' => Http::response([
+                'routes' => [[
+                    'distanceMeters' => 2393,
+                    'duration' => '578s',
+                    'polyline' => [
+                        'encodedPolyline' => '_p~iF~ps|U_ulLnnqC_mqNvxq`@',
+                    ],
+                ]],
+            ], 200),
+        ]);
+
+        $route = $this->haversine->getDrivingRoute(-6.4239, 106.9401, -6.4300, 106.9500);
+
+        $this->assertNotNull($route);
+        $this->assertSame(2.39, $route['distance_km']);
+        $this->assertSame(10, $route['duration_minutes']);
+        $this->assertSame('google_routes', $route['source']);
+        $this->assertNotEmpty($route['geometry']);
+        Http::assertSent(fn (ClientRequest $request) => str_contains($request->url(), 'routes.googleapis.com/directions/v2:computeRoutes'));
+    }
+
     public function test_osrm_failure_returns_no_route(): void
     {
         Cache::flush();
