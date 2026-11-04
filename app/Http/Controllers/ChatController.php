@@ -35,7 +35,7 @@ class ChatController extends Controller
             $selectedUser = User::find($request->user_id);
             $chats = Chat::with('user')
                 ->where('user_id', $request->user_id)
-                ->orderBy('created_at')
+                ->orderBy('id')
                 ->get();
         }
 
@@ -54,8 +54,45 @@ class ChatController extends Controller
 
     public function chatuser()
     {
-        $chats = Chat::where('user_id', auth()->id())->get(); // atau sesuaikan query-nya
+        $chats = Chat::where('user_id', auth()->id())->orderBy('id')->get();
         return view('user.chatuser', compact('chats'));
+    }
+
+    public function messagesForAdmin(Request $request)
+    {
+        $validated = $request->validate([
+            'user_id' => 'required|integer|exists:users,id',
+            'after_id' => 'nullable|integer|min:0',
+        ]);
+
+        return $this->newMessagesResponse($validated['user_id'], $validated['after_id'] ?? 0);
+    }
+
+    public function messagesForUser(Request $request)
+    {
+        $validated = $request->validate([
+            'after_id' => 'nullable|integer|min:0',
+        ]);
+
+        return $this->newMessagesResponse(auth()->id(), $validated['after_id'] ?? 0);
+    }
+
+    private function newMessagesResponse(int $userId, int $afterId)
+    {
+        $messages = Chat::where('user_id', $userId)
+            ->where('id', '>', $afterId)
+            ->orderBy('id')
+            ->get(['id', 'sender', 'message', 'created_at'])
+            ->map(function (Chat $chat) {
+                return [
+                    'id' => $chat->id,
+                    'sender' => $chat->sender,
+                    'message' => $chat->message,
+                    'time' => $chat->created_at->copy()->timezone('Asia/Jakarta')->format('H:i'),
+                ];
+            });
+
+        return response()->json(['messages' => $messages])->header('Cache-Control', 'no-store');
     }
 
     public function send(Request $request)

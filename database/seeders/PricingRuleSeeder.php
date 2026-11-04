@@ -83,17 +83,38 @@ class PricingRuleSeeder extends Seeder
             ],
             [
                 'key' => 'faktor_urgensi_sedang',
-                'value' => '1.25',
+                'value' => '1.20',
                 'label' => 'Faktor Urgensi Mendesak/Sedang',
                 'tipe' => 'number',
-                'keterangan' => 'Pengali harga untuk urgensi mendesak (+25%).',
+                'keterangan' => 'Pengali harga untuk urgensi mendesak (+20%).',
             ],
             [
                 'key' => 'faktor_urgensi_tinggi',
-                'value' => '1.50',
+                'value' => '1.40',
                 'label' => 'Faktor Urgensi Darurat/Tinggi',
                 'tipe' => 'number',
-                'keterangan' => 'Pengali harga untuk urgensi darurat (+50%).',
+                'keterangan' => 'Pengali harga untuk urgensi darurat (+40%).',
+            ],
+            [
+                'key' => 'faktor_kerusakan_ringan',
+                'value' => '1.00',
+                'label' => 'Faktor Kerusakan Ringan',
+                'tipe' => 'number',
+                'keterangan' => 'Tidak ada tambahan harga untuk kerusakan ringan.',
+            ],
+            [
+                'key' => 'faktor_kerusakan_sedang',
+                'value' => '1.05',
+                'label' => 'Faktor Kerusakan Sedang',
+                'tipe' => 'number',
+                'keterangan' => 'Tambahan harga 5% untuk kerusakan sedang.',
+            ],
+            [
+                'key' => 'faktor_kerusakan_berat',
+                'value' => '1.10',
+                'label' => 'Faktor Kerusakan Berat',
+                'tipe' => 'number',
+                'keterangan' => 'Tambahan harga 10% untuk kerusakan berat.',
             ],
 
             // Pengali Durasi Kerja berdasarkan Kompleksitas

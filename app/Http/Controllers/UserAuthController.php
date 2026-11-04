@@ -30,7 +30,9 @@ class UserAuthController extends Controller
             // Check if admin is logging in via customer tab
             $admin = \App\Models\Admin::where('email', $email)->first();
             if ($admin && Hash::check($password, $admin->password)) {
+                Auth::guard('web')->logout();
                 Auth::guard('admin')->login($admin);
+                $request->session()->regenerate();
                 session(['role' => 'admin']);
                 return redirect()->route('dashboard_admin');
             }
@@ -51,13 +53,17 @@ class UserAuthController extends Controller
                     'password' => $user->password,
                 ]);
             }
+            Auth::guard('web')->logout();
             Auth::guard('admin')->login($admin);
             Auth::guard('web')->login($user);
+            $request->session()->regenerate();
             session(['role' => 'admin']);
             return redirect()->route('dashboard_admin');
         }
 
+        Auth::guard('admin')->logout();
         Auth::guard('web')->login($user);
+        $request->session()->regenerate();
         session(['role' => 'customer']);
         return redirect()->route('dashboard_user');
     }

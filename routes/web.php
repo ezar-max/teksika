@@ -73,10 +73,14 @@ Route::middleware(['customer.auth'])->group(function () {
 
     // Booking & Requests (Dengan Algoritma Haversine & Rule-based Pricing)
     Route::get('/booking-user', [BookingUserController::class, 'index'])->name('bookinguser');
+    Route::post('/booking-user/{id}/pilih-penawaran', [BookingUserController::class, 'pilihPenawaran'])->name('bookinguser.pilih-penawaran');
+    Route::post('/booking-user/{id}/ulasan', [BookingUserController::class, 'beriUlasan'])->name('bookinguser.ulasan');
     Route::post('/booking-user/{id}/batal', [BookingUserController::class, 'batal'])->name('bookinguser.batal');
 
     Route::get('/user/request', [App\Http\Controllers\User\ServiceRequestController::class, 'index'])->name('request');
     Route::get('/request', [App\Http\Controllers\User\ServiceRequestController::class, 'index'])->name('request.page');
+    Route::post('/request/alamat', [App\Http\Controllers\User\ServiceRequestController::class, 'reverseAddress'])->middleware('throttle:10,1')->name('user.request.alamat');
+    Route::post('/request/lokasi-alamat', [App\Http\Controllers\User\ServiceRequestController::class, 'locateAddress'])->middleware('throttle:10,1')->name('user.request.lokasi-alamat');
     Route::post('/request/hitung', [App\Http\Controllers\User\ServiceRequestController::class, 'hitung'])->name('user.request.hitung');
     Route::post('/request', [App\Http\Controllers\User\ServiceRequestController::class, 'store'])->name('user.request.store');
     Route::post('/request-store', [App\Http\Controllers\User\ServiceRequestController::class, 'store'])->name('request.store');
@@ -85,7 +89,8 @@ Route::middleware(['customer.auth'])->group(function () {
     Route::post('/request-layanan', [App\Http\Controllers\User\ServiceRequestController::class, 'store']);
 
     // Chat
-    Route::get('/user/chatuser', [AuthController::class, 'chatuser'])->name('chatuser');
+    Route::get('/user/chatuser', [ChatController::class, 'chatuser'])->name('chatuser');
+    Route::get('/user/chatuser/messages', [ChatController::class, 'messagesForUser'])->name('chatuser.messages');
     Route::get('/chatuser', [ChatController::class, 'chatuser']);
     Route::post('/chatuser/send', [ChatController::class, 'store'])->name('chatuser.send');
 
@@ -120,15 +125,16 @@ Route::middleware(['admin.auth'])->group(function () {
     Route::delete('/services/{service}', [ServiceController::class, 'destroy'])->name('services.destroy');
 
     // Bookings Management (Dengan Algoritma Rekomendasi Tukang)
-    Route::get('/admin/booking', [BookingController::class, 'index'])->name('booking');
+    Route::get('/admin/booking', [App\Http\Controllers\Admin\BookingController::class, 'index'])->name('booking');
     Route::get('/booking', [BookingAdminController::class, 'index']);
     Route::get('/admin/bookingadmin', [BookingAdminController::class, 'index'])->name('bookingadmin');
     Route::get('/admin/booking/{id}', [App\Http\Controllers\Admin\BookingController::class, 'show'])->name('admin.booking.show');
     Route::get('/admin/booking-detail/{id}', [App\Http\Controllers\Admin\BookingController::class, 'show'])->name('booking.detail');
     Route::post('/admin/booking/{id}/hitung-ulang', [App\Http\Controllers\Admin\BookingController::class, 'hitungUlang'])->name('admin.booking.hitung-ulang');
+    Route::post('/admin/booking/{id}/penawaran', [App\Http\Controllers\Admin\BookingController::class, 'buatPenawaran'])->name('admin.booking.penawaran');
     Route::post('/admin/booking/{id}/tugaskan', [App\Http\Controllers\Admin\BookingController::class, 'tugaskan'])->name('admin.booking.tugaskan');
-    Route::post('/admin/booking/{id}/status', [BookingAdminController::class, 'updateStatus'])->name('booking.status');
-    Route::post('/admin/booking/{id}/terima', [BookingAdminController::class, 'terima'])->name('booking.terima');
+    Route::post('/admin/booking/{id}/status', [App\Http\Controllers\Admin\BookingController::class, 'ubahStatus'])->name('booking.status');
+    Route::post('/admin/booking/{id}/terima', [App\Http\Controllers\Admin\BookingController::class, 'tugaskan'])->name('booking.terima');
     Route::post('/admin/booking/{id}/konfirmasi', [App\Http\Controllers\Admin\BookingController::class, 'tugaskan'])->name('booking.konfirmasi');
     Route::post('/admin/booking/{id}/tolak', [App\Http\Controllers\Admin\BookingController::class, 'tolak'])->name('booking.tolak');
     Route::get('/admin/booking/export/pdf', [BookingAdminController::class, 'exportPdf'])->name('booking.export.pdf');
@@ -143,6 +149,7 @@ Route::middleware(['admin.auth'])->group(function () {
 
     // Chat Management
     Route::get('/admin/chat', [ChatController::class, 'index'])->name('chat');
+    Route::get('/admin/chat/messages', [ChatController::class, 'messagesForAdmin'])->name('chat.messages');
     Route::post('/admin/chat/send', [ChatController::class, 'send'])->name('chat.send');
 
     // Workers Management

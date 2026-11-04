@@ -1,31 +1,23 @@
 
     /* RESET */
     * {
-      margin: 0;
-      padding: 0;
       box-sizing: border-box;
-      font-family: 'Inter', sans-serif;
     }
     body {
-      display: flex;
-      height: 100vh;
-      background: #f4f7fc;
+      min-height: 100vh;
+      background: #f8fafc;
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     }
-
-
 
     /* MAIN CONTENT */
     .main {
-      margin-left: 70px;
+      margin-left: 80px;
       transition: margin-left 0.3s ease;
       min-height: 100vh;
-      width: calc(100vw - 70px);
-      background: #f4f7fc;
-      /* Tambahkan ini agar full */
+      background: #f8fafc;
     }
     .main.shift {
-      margin-left: 200px;
-      width: calc(100vw - 200px);
+      margin-left: 230px;
     }
 
 

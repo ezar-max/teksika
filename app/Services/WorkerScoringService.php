@@ -9,6 +9,9 @@ class WorkerScoringService
     protected HaversineService $haversine;
     protected PricingService $pricing;
 
+    const DEFAULT_KANTOR_LAT = -6.4239;
+    const DEFAULT_KANTOR_LON = 106.9401;
+
     public function __construct(HaversineService $haversine, PricingService $pricing)
     {
         $this->haversine = $haversine;
@@ -16,34 +19,75 @@ class WorkerScoringService
     }
 
     /**
-     * Dapatkan daftar tukang yang memenuhi kualifikasi beserta skor rekomendasi (Weighted Scoring)
+     * Dapatkan daftar tukang yang memenuhi kualifikasi beserta skor rekomendasi (Weighted Scoring).
+     *
+     * Konsep Jarak:
+     * Dihitung dari Kantor Pusat TEKSIKA ke rumah user (bukan per lokasi tukang individual).
+     * Nilai jarak ini konstan untuk seluruh kandidat tukang pada pesanan yang sama dan menjadi
+     * dasar filter radius operasional layanan serta dasar penentuan biaya jarak di PricingService.
      *
      * @param string $serviceName Nama layanan (misal 'AC', 'Listrik')
-     * @param float $userLat Latitude user
-     * @param float $userLon Longitude user
+     * @param float $userLat Latitude rumah user
+     * @param float $userLon Longitude rumah user
+     * @param float|null $kantorLat (Opsional) Override latitude kantor pusat
+     * @param float|null $kantorLon (Opsional) Override longitude kantor pusat
      * @return array List tukang dengan rincian skor & ranking, terurut dari skor tertinggi
      */
-    public function rankWorkers(string $serviceName, float $userLat, float $userLon): array
-    {
+    public function rankWorkers(
+        string $serviceName,
+        float $userLat,
+        float $userLon,
+        ?float $kantorLat = null,
+        ?float $kantorLon = null
+    ): array {
         $rules = $this->pricing->getRules();
         $radiusMax = (float) ($rules['radius_maksimal_km'] ?? 15.0);
+
+        $kantorLat ??= self::DEFAULT_KANTOR_LAT;
+        $kantorLon ??= self::DEFAULT_KANTOR_LON;
+
+        // 1. Hitung Jarak Haversine dari Kantor Pusat TEKSIKA ke Rumah User
+        $jarakKantorKm = $this->haversine->calculateDistance(
+            $kantorLat,
+            $kantorLon,
+            $userLat,
+            $userLon,
+            2
+        );
+
+        // Filter Radius Maksimal Kantor Pusat ke Rumah User:
+        // Jika rumah user melebihi radius operasional, kantor tidak dapat melayani pesanan ini
+        if ($jarakKantorKm > $radiusMax) {
+            return [];
+        }
 
         $wJarak = (float) ($rules['bobot_jarak'] ?? 0.25);
         $wRating = (float) ($rules['bobot_rating'] ?? 0.15);
         $wPengalaman = (float) ($rules['bobot_pengalaman'] ?? 0.15);
         $wBeban = (float) ($rules['bobot_beban_kerja'] ?? 0.45);
 
-        // Ambil semua tukang aktif yang memiliki koordinat
+        // Normalisasi Skor Jarak (Cost Criterion):
+        // Makin dekat rumah user ke kantor pusat, nilai makin mendekati 1.
+        // Catatan: Karena dihitung dari kantor pusat, nilai ini sama untuk seluruh kandidat tukang.
+        $skorJarak = max(0.0, 1.0 - ($jarakKantorKm / $radiusMax));
+
+        $reviewStats = DB::table('worker_reviews')
+            ->select('id_worker', DB::raw('COUNT(*) as review_count'), DB::raw('AVG(rating) as review_average'))
+            ->groupBy('id_worker');
+
         $workers = DB::table('workers')
+            ->leftJoinSub($reviewStats, 'review_stats', function ($join) {
+                $join->on('workers.id', '=', 'review_stats.id_worker');
+            })
             ->where('status', 'aktif')
-            ->whereNotNull('latitude')
-            ->whereNotNull('longitude')
+            ->whereNotIn('status_ketersediaan', ['tidak_tersedia', 'libur'])
+            ->select('workers.*', 'review_stats.review_count', 'review_stats.review_average')
             ->get();
 
         $candidates = [];
 
         foreach ($workers as $worker) {
-            // 1. Filter Skill: Kolom skills atau role harus memuat nama layanan
+            // 2. Filter Skill: Kolom skills atau role harus memuat nama layanan
             $hasSkill = false;
             $serviceNeedle = strtolower(trim($serviceName));
 
@@ -67,39 +111,28 @@ class WorkerScoringService
                 continue; // Skip jika tidak memiliki skill yang sesuai
             }
 
-            // 2. Hitung Jarak Haversine
-            $jarakKm = $this->haversine->calculateDistance(
-                $userLat,
-                $userLon,
-                (float) $worker->latitude,
-                (float) $worker->longitude,
-                2
-            );
-
-            // Filter Radius Maksimal
-            if ($jarakKm > $radiusMax) {
-                continue;
-            }
-
             // 3. Hitung Job Aktif (status 'dikonfirmasi' atau 'dikerjakan' di tabel request)
             $jobAktif = DB::table('request')
                 ->where('id_worker', $worker->id)
                 ->whereIn('status', ['dikonfirmasi', 'dikerjakan'])
                 ->count();
 
-            // 4. Normalisasi Kriteria
-            // a. Jarak (Cost Criterion): Semakin dekat, nilai semakin mendekati 1
-            $skorJarak = max(0.0, 1.0 - ($jarakKm / $radiusMax));
+            if ($jobAktif > 0 || ($worker->status_ketersediaan ?? 'siap') === 'sedang_bekerja') {
+                continue;
+            }
 
-            // b. Rating (Benefit Criterion): Skala 0 - 5
-            $ratingVal = isset($worker->rating) ? (float) $worker->rating : 5.0;
+            // 4. Normalisasi Kriteria Penilaian Tukang
+            // a. Rating (Benefit Criterion): Skala 0 - 5
+            $ratingVal = $worker->review_count > 0
+                ? (float) $worker->review_average
+                : (isset($worker->rating) ? (float) $worker->rating : 5.0);
             $skorRating = min(1.0, max(0.0, $ratingVal / 5.0));
 
-            // c. Pengalaman (Benefit Criterion): Maksimal patokan 10 tahun
+            // b. Pengalaman (Benefit Criterion): Maksimal patokan 10 tahun
             $pengalamanTahun = isset($worker->pengalaman) ? (int) $worker->pengalaman : 0;
             $skorPengalaman = min(1.0, max(0.0, $pengalamanTahun / 10.0));
 
-            // d. Beban Kerja (Cost Criterion): Maksimal patokan 5 job aktif
+            // c. Beban Kerja (Cost Criterion): Maksimal patokan 5 job aktif (makin sedikit makin tinggi nilainya)
             $skorBeban = max(0.0, 1.0 - min(1.0, $jobAktif / 5.0));
 
             // 5. Hitung Skor Akhir (Weighted Sum)
@@ -113,13 +146,16 @@ class WorkerScoringService
                 'id_worker' => $worker->id,
                 'name' => $worker->name,
                 'skills' => $worker->skills,
+                'tarif' => $worker->tarif,
+                'foto' => $worker->foto ?? null,
                 'phone' => $worker->phone ?? null,
-                'latitude' => (float) $worker->latitude,
-                'longitude' => (float) $worker->longitude,
+                'latitude' => (float) ($worker->latitude ?? $kantorLat),
+                'longitude' => (float) ($worker->longitude ?? $kantorLon),
                 'rating' => $ratingVal,
+                'jumlah_ulasan' => (int) ($worker->review_count ?? 0),
                 'pengalaman' => $pengalamanTahun,
                 'job_aktif' => $jobAktif,
-                'jarak_km' => $jarakKm,
+                'jarak_km' => $jarakKantorKm,
                 'skor_jarak' => round($skorJarak, 4),
                 'skor_rating' => round($skorRating, 4),
                 'skor_pengalaman' => round($skorPengalaman, 4),
@@ -128,10 +164,18 @@ class WorkerScoringService
             ];
         }
 
-        // Urutkan berdasarkan skor_total DESC, jika seri urutkan jarak ASC
+        // Urutkan berdasarkan skor_total DESC.
+        // Jika skor seri (karena skor_jarak identik), pemecah seri menggunakan:
+        // 1) Rating pelanggan tertinggi -> 2) Beban kerja aktif paling sedikit -> 3) Pengalaman terbanyak
         usort($candidates, function ($a, $b) {
-            if ($b['skor_total'] == $a['skor_total']) {
-                return $a['jarak_km'] <=> $b['jarak_km'];
+            if (abs($b['skor_total'] - $a['skor_total']) < 0.0001) {
+                if ($b['rating'] != $a['rating']) {
+                    return $b['rating'] <=> $a['rating'];
+                }
+                if ($a['job_aktif'] != $b['job_aktif']) {
+                    return $a['job_aktif'] <=> $b['job_aktif'];
+                }
+                return $b['pengalaman'] <=> $a['pengalaman'];
             }
             return $b['skor_total'] <=> $a['skor_total'];
         });
@@ -145,6 +189,21 @@ class WorkerScoringService
         }
 
         return $ranked;
+    }
+
+    /**
+     * Dapatkan titik koordinat kantor pusat aktif
+     *
+     * @return array ['latitude' => float, 'longitude' => float]
+     */
+    public function getKantorCoordinates(): array
+    {
+        $rules = $this->pricing->getRules();
+        return [
+            'latitude' => self::DEFAULT_KANTOR_LAT,
+            'longitude' => self::DEFAULT_KANTOR_LON,
+            'name' => 'Kantor Pusat TEKSIKA - SMKN 1 Gunung Putri',
+        ];
     }
 
     /**

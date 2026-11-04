@@ -3,137 +3,620 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pengaturan Tarif & Parameter Algoritma — TEKSIKA</title>
+    <title>Aturan Tarif & Parameter Algoritma — TEKSIKA Admin</title>
     <link rel="stylesheet" href="{{ asset('css/dashboard_admin.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; color: #1e293b; margin: 0; }
-        .main-container { padding: 24px 32px; max-width: 1100px; }
-        .card-box { background: #fff; border-radius: 14px; border: 1px solid #e2e8f0; padding: 24px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
-        .card-title { font-size: 1.15rem; font-weight: 700; color: #0f172a; margin: 0 0 4px 0; display: flex; align-items: center; gap: 8px; }
-        .card-desc { font-size: 0.85rem; color: #64748b; margin: 0 0 18px 0; }
-        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; }
-        .field-group { display: flex; flex-direction: column; gap: 6px; }
-        .field-label { font-size: 0.85rem; font-weight: 600; color: #334155; }
-        .field-input { padding: 10px 14px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; font-family: inherit; }
-        .field-input:focus { outline: none; border-color: #007bff; box-shadow: 0 0 0 3px rgba(0,123,255,0.1); }
-        .field-hint { font-size: 0.75rem; color: #94a3b8; }
-        .weight-badge { padding: 8px 14px; border-radius: 8px; font-weight: 700; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px; }
-        .weight-badge.valid { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
-        .weight-badge.invalid { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
+            margin: 0;
+        }
+
+        .pricing-content {
+            padding: 24px 32px 60px;
+            max-width: 1280px;
+        }
+
+        /* Top Header Row */
+        .pricing-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .pricing-title {
+            font-size: 1.55rem;
+            font-weight: 800;
+            color: var(--admin-text-main, #0f172a);
+            margin: 0 0 4px 0;
+            letter-spacing: -0.02em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .pricing-subtitle {
+            color: var(--admin-text-muted, #64748b);
+            font-size: 0.9rem;
+            margin: 0;
+        }
+
+        .pricing-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* Mode Status Badge */
+        .mode-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+
+        .badge-locked {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+        }
+
+        .badge-unlocked {
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+            animation: pulseGlow 1.8s infinite;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.2); }
+            50% { box-shadow: 0 0 0 6px rgba(0, 123, 255, 0.1); }
+        }
+
+        /* Bento Summary Cards (Matching Worker & Booking) */
+        .pricing-summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 28px;
+        }
+
+        .pricing-summary-card {
+            background: #ffffff;
+            border-radius: 18px;
+            border: 1.5px solid #e2e8f0;
+            box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
+            padding: 20px 22px;
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .pricing-summary-card:hover {
+            border-color: #cbd5e1;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.08);
+        }
+
+        .pricing-summary-card .icon-bg {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            flex-shrink: 0;
+        }
+
+        .icon-bg.blue { background: #eff6ff; color: #007bff; border: 1px solid #bfdbfe; }
+        .icon-bg.green { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+        .icon-bg.yellow { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+        .icon-bg.purple { background: #faf5ff; color: #9333ea; border: 1px solid #e9d5ff; }
+
+        .pricing-summary-card .stat-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .pricing-summary-card .stat-info .stat-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #0f172a;
+            line-height: 1.15;
+            letter-spacing: -0.02em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .pricing-summary-card .stat-info .stat-label {
+            font-size: 0.82rem;
+            color: #64748b;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        /* Bento Card Box */
+        .card-box {
+            background: #ffffff;
+            border-radius: 20px;
+            border: 1.5px solid #e2e8f0;
+            padding: 28px 30px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04);
+            transition: all 0.2s ease;
+        }
+
+        .card-box:hover {
+            border-color: #cbd5e1;
+            box-shadow: 0 8px 24px -2px rgba(15, 23, 42, 0.07);
+        }
+
+        .card-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-bottom: 22px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .card-title-group {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .card-icon-bubble {
+            width: 46px;
+            height: 46px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .bubble-blue { background: #eff6ff; color: #007bff; border: 1.5px solid #bfdbfe; }
+        .bubble-purple { background: #faf5ff; color: #9333ea; border: 1.5px solid #e9d5ff; }
+        .bubble-amber { background: #fffbeb; color: #d97706; border: 1.5px solid #fde68a; }
+
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #0f172a;
+            margin: 0;
+            letter-spacing: -0.01em;
+        }
+
+        .card-desc {
+            font-size: 0.86rem;
+            color: #64748b;
+            margin: 3px 0 0 0;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 22px;
+        }
+
+        .field-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .field-label {
+            font-size: 0.86rem;
+            font-weight: 700;
+            color: #334155;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Field Input: Readonly Mode vs Edit Mode */
+        .field-input {
+            padding: 12px 16px;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 12px;
+            font-size: 0.96rem;
+            font-family: inherit;
+            color: #0f172a;
+            background: #ffffff;
+            box-sizing: border-box;
+            transition: all 0.2s ease;
+        }
+
+        /* State: Read-Only (Tetap / Terkunci) */
+        .field-input.is-readonly {
+            background: #f8fafc !important;
+            border-color: #e2e8f0 !important;
+            color: #1e293b !important;
+            font-weight: 700 !important;
+            cursor: default !important;
+            user-select: text !important;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.02) !important;
+        }
+
+        .field-input.is-readonly:focus {
+            outline: none !important;
+            border-color: #e2e8f0 !important;
+            box-shadow: none !important;
+        }
+
+        /* State: Edit Mode Active */
+        .field-input:not(.is-readonly) {
+            background: #ffffff;
+            border-color: #93c5fd;
+            font-weight: 600;
+            cursor: text;
+        }
+
+        .field-input:not(.is-readonly):focus {
+            outline: none;
+            background: #ffffff;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
+        }
+
+        .field-hint {
+            font-size: 0.78rem;
+            color: #64748b;
+            line-height: 1.4;
+        }
+
+        /* Weight total badge */
+        .weight-badge {
+            padding: 8px 18px;
+            border-radius: 999px;
+            font-weight: 800;
+            font-size: 0.88rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            transition: all 0.2s ease;
+        }
+
+        .weight-badge.valid {
+            background: #dcfce7;
+            color: #15803d;
+            border: 1.5px solid #86efac;
+        }
+
+        .weight-badge.invalid {
+            background: #fee2e2;
+            color: #b91c1c;
+            border: 1.5px solid #fca5a5;
+        }
+
+        .alert-box {
+            padding: 16px 20px;
+            border-radius: 14px;
+            margin-bottom: 24px;
+            font-weight: 600;
+            font-size: 0.92rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+        }
+
+        .alert-success {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #166534;
+        }
+
+        .alert-error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+        }
+
+        /* Locked Notice Banner at bottom */
+        .pricing-locked-banner {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border: 1.5px dashed #cbd5e1;
+            border-radius: 18px;
+            padding: 22px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            margin-top: 10px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+
+        .locked-icon-bubble {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            background: #ffffff;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.35rem;
+            border: 1px solid #cbd5e1;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+        }
+
+        /* Editing Action Bar at bottom */
+        .pricing-editing-bar {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 14px;
+            margin-top: 24px;
+            margin-bottom: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        @media (max-width: 768px) {
+            .pricing-content {
+                padding: 18px;
+            }
+            .pricing-summary-cards {
+                grid-template-columns: 1fr;
+            }
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
-    <!-- Sidebar Admin -->
+
+    <!-- Sidebar Admin Standar -->
     <div class="sidebar" id="sidebar">
-        <img src="{{ asset('images/logo-putih.png') }}" alt="Logo" class="sidebar-logo">
+        <div class="sidebar-brand-wrapper">
+            <img src="{{ asset('images/logo-putih.png') }}" alt="Logo TEKSIKA" class="sidebar-logo">
+        </div>
 
         <a href="{{ route('dashboard_admin') }}" class="menu-item">
-            <img src="{{ asset('images/home.png') }}" alt="logo" class="icon" width="22" height="22">
+            <img src="{{ asset('images/home.png') }}" alt="Beranda" class="icon">
             <span class="menu-text">Beranda</span>
         </a>
         <a href="{{ route('booking') }}" class="menu-item">
-            <img src="{{ asset('images/booking.png') }}" alt="logo" class="icon" width="22" height="22">
+            <img src="{{ asset('images/booking.png') }}" alt="Booking" class="icon">
             <span class="menu-text">Booking</span>
         </a>
         <a href="{{ route('transaksi') }}" class="menu-item">
-            <img src="{{ asset('images/pembayaran.png') }}" alt="logo" class="icon" width="22" height="22">
+            <img src="{{ asset('images/pembayaran.png') }}" alt="Pembayaran" class="icon">
             <span class="menu-text">Pembayaran</span>
         </a>
         <a href="{{ route('worker') }}" class="menu-item">
-            <img src="{{ asset('images/worker.png') }}" alt="logo" class="icon" width="22" height="22">
+            <img src="{{ asset('images/worker.png') }}" alt="Worker" class="icon">
             <span class="menu-text">Worker</span>
         </a>
         <a href="{{ route('admin.pricing.index') }}" class="menu-item active">
-            <i class="fa-solid fa-sliders" style="font-size:20px; width:28px; text-align:center;"></i>
+            <i class="fa-solid fa-sliders icon" aria-hidden="true"></i>
             <span class="menu-text">Aturan Tarif</span>
         </a>
         <a href="{{ route('chat') }}" class="menu-item">
-            <img src="{{ asset('images/chat.png') }}" alt="logo" class="icon" width="22" height="22">
+            <img src="{{ asset('images/chat.png') }}" alt="Chat" class="icon">
             <span class="menu-text">Chat</span>
         </a>
 
+        <!-- Log Out Tunggal Admin -->
         <div class="logout">
-            <a href="{{ route('logout') }}" class="menu-item">
-                <i class="fa-solid fa-right-from-bracket"></i>
+            <a href="javascript:void(0)" onclick="openLogoutModal()" class="menu-item logout-link" title="Keluar">
+                <i class="fa-solid fa-right-from-bracket icon-logout"></i>
                 <span class="menu-text">Keluar</span>
             </a>
         </div>
     </div>
 
-    <!-- Main Content -->
+    <!-- Main Content Area -->
     <div class="main">
-        <div class="header" style="background:#fff; padding:16px 32px; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between;">
-            <div style="display:flex; align-items:center; gap:12px;">
-                <div class="menu-toggle" id="menuToggle" style="cursor:pointer; font-size:1.2rem;">
-                    <i class="fa-solid fa-bars"></i>
+        <!-- Header Atas (Persis Selaras dengan Worker, Booking, & Transaksi) -->
+        <div class="header">
+            <div class="menu-toggle" id="menuToggle" title="Toggle Sidebar">
+                <i class="fa-solid fa-bars"></i>
+            </div>
+            
+            <div class="user-info">
+                @php
+                    $currentAdminUser = Auth::guard('admin')->user() ?? auth()->user();
+                @endphp
+                
+                <div class="header-profile-pill" onclick="openAdminProfileModal()" title="Profil Akun Administrator">
+                    <div class="admin-avatar-icon"><i class="fa-solid fa-user-shield"></i></div>
+                    <span>{{ $currentAdminUser->name ?? 'Admin' }}</span>
+                    <i class="fa-solid fa-chevron-down profile-chevron"></i>
                 </div>
-                <h2 style="margin:0; font-size:1.25rem; font-weight:700;">Pengaturan Tarif &amp; Parameter Algoritma</h2>
             </div>
         </div>
 
-        <div class="main-container">
+        <!-- Content Area -->
+        <div class="pricing-content">
+
+            <!-- Title & Action Bar (Persis Selaras dengan Halaman Admin Lainnya) -->
+            <div class="pricing-header-row">
+                <div>
+                    <h1 class="pricing-title">
+                        <i class="fa-solid fa-sliders" style="color:#007bff;"></i>
+                        Aturan Tarif &amp; Parameter Algoritma
+                    </h1>
+                    <div class="pricing-subtitle">
+                        Formula jarak Haversine, radius jangkauan, dan bobot rekomendasi tukang berbasis Weighted Scoring
+                    </div>
+                </div>
+
+                <div class="pricing-header-actions">
+                    <!-- Status Terkunci / Edit -->
+                    <span id="badgeLockStatus" class="mode-status-badge badge-locked">
+                        <i class="fa-solid fa-lock"></i> Parameter Terkunci (Mode Tetap)
+                    </span>
+
+                    <!-- Tombol Edit Utama (Saat Mode Tetap) -->
+                    <button type="button" id="btnEditHeader" class="btn-primary" onclick="enableEditMode()">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                        <span>Edit Parameter Tarif</span>
+                    </button>
+
+                    <!-- Tombol Aksi saat Mode Edit Aktif (Awalnya Sembunyi) -->
+                    <div id="groupEditHeader" style="display:none; align-items:center; gap:10px;">
+                        <button type="button" class="btn-cancel" onclick="cancelEditMode()">
+                            <i class="fa-solid fa-xmark"></i> Batal
+                        </button>
+                        <button type="button" class="btn-primary" onclick="submitPricingForm()">
+                            <i class="fa-solid fa-floppy-disk"></i> Simpan Perubahan
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bento Summary Cards (4 Kartu Ringkasan Cerdas) -->
+            <div class="pricing-summary-cards">
+                <!-- Card 1: Radius Maksimal -->
+                <div class="pricing-summary-card">
+                    <div class="icon-bg blue">
+                        <i class="fa-solid fa-route"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">{{ $rules['radius_maksimal_km']->value ?? '15.0' }} KM</div>
+                        <div class="stat-label">Radius Jangkauan Maksimal</div>
+                    </div>
+                </div>
+
+                <!-- Card 2: Tarif Tambahan -->
+                <div class="pricing-summary-card">
+                    <div class="icon-bg green">
+                        <i class="fa-solid fa-money-bill-wave"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">Rp {{ number_format((float)($rules['tarif_per_km']->value ?? 2500), 0, ',', '.') }}</div>
+                        <div class="stat-label">Tarif Tambahan Per KM</div>
+                    </div>
+                </div>
+
+                <!-- Card 3: Bobot Algoritma -->
+                <div class="pricing-summary-card">
+                    <div class="icon-bg purple">
+                        <i class="fa-solid fa-scale-balanced"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value"><span id="summaryTotalBobot">1.00</span> / 1.00</div>
+                        <div class="stat-label">Status Bobot Rekomendasi</div>
+                    </div>
+                </div>
+
+                <!-- Card 4: Pengali Urgensi -->
+                <div class="pricing-summary-card">
+                    <div class="icon-bg yellow">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">{{ $rules['faktor_urgensi_rendah']->value ?? '1.00' }}x - {{ $rules['faktor_urgensi_tinggi']->value ?? '1.40' }}x</div>
+                        <div class="stat-label">Rentang Pengali Urgensi</div>
+                    </div>
+                </div>
+            </div>
 
             @if(session('success'))
-                <div style="background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; padding:14px 18px; border-radius:10px; margin-bottom:20px; font-weight:600;">
-                    <i class="fa-solid fa-circle-check"></i> {{ session('success') }}
+                <div class="alert-box alert-success">
+                    <i class="fa-solid fa-circle-check" style="font-size:1.2rem;"></i>
+                    <span>{{ session('success') }}</span>
                 </div>
             @endif
 
             @if(session('error'))
-                <div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:14px 18px; border-radius:10px; margin-bottom:20px; font-weight:600;">
-                    <i class="fa-solid fa-circle-exclamation"></i> {{ session('error') }}
+                <div class="alert-box alert-error">
+                    <i class="fa-solid fa-circle-exclamation" style="font-size:1.2rem;"></i>
+                    <span>{{ session('error') }}</span>
                 </div>
             @endif
 
-            <form action="{{ route('admin.pricing.update') }}" method="POST">
+            <!-- Form Parameter Tarif & Algoritma -->
+            <form id="pricingForm" action="{{ route('admin.pricing.update') }}" method="POST">
                 @csrf
 
-                <!-- Section 1: Jarak & Tarif Transportasi (Haversine & Pricing) -->
+                <!-- Section 1: Biaya Jarak & Radius -->
                 <div class="card-box">
-                    <h3 class="card-title">
-                        <i class="fa-solid fa-route" style="color:#007bff;"></i>
-                        Tarif Jarak &amp; Transportasi
-                    </h3>
-                    <p class="card-desc">Aturan biaya jarak dan radius pengerjaan yang dihitung dengan rumus Haversine.</p>
+                    <div class="card-header-row">
+                        <div class="card-title-group">
+                            <div class="card-icon-bubble bubble-blue">
+                                <i class="fa-solid fa-route"></i>
+                            </div>
+                            <div>
+                                <h3 class="card-title">Biaya Jarak &amp; Radius Layanan</h3>
+                                <p class="card-desc">Aturan biaya jarak kantor pusat TEKSIKA ke lokasi pemesan dan batas jangkauan order.</p>
+                            </div>
+                        </div>
+                    </div>
 
                     <div class="form-grid">
                         <div class="field-group">
-                            <label class="field-label" for="jarak_gratis_km">Batas Jarak Gratis (km)</label>
-                            <input type="number" step="0.1" min="0" class="field-input" id="jarak_gratis_km" name="jarak_gratis_km" value="{{ $rules['jarak_gratis_km']->value ?? '5.0' }}" required>
-                            <span class="field-hint">Perjalanan di bawah jarak ini bebas biaya transportasi.</span>
+                            <label class="field-label" for="jarak_gratis_km">
+                                <i class="fa-solid fa-gift" style="color:#007bff;"></i>
+                                Batas Jarak Gratis (km)
+                            </label>
+                            <input type="number" step="0.1" min="0" class="field-input is-readonly" id="jarak_gratis_km" name="jarak_gratis_km" value="{{ $rules['jarak_gratis_km']->value ?? '5.0' }}" readonly required>
+                            <span class="field-hint">Jarak di bawah batas ini dibebaskan dari biaya transportasi tukang.</span>
                         </div>
 
                         <div class="field-group">
-                            <label class="field-label" for="tarif_per_km">Tarif Tambahan Per KM (Rp)</label>
-                            <input type="number" min="0" step="100" class="field-input" id="tarif_per_km" name="tarif_per_km" value="{{ $rules['tarif_per_km']->value ?? '2500' }}" required>
-                            <span class="field-hint">Dikenakan untuk setiap km setelah batas gratis.</span>
+                            <label class="field-label" for="tarif_per_km">
+                                <i class="fa-solid fa-money-bill-wave" style="color:#10b981;"></i>
+                                Tarif Per KM Tambahan (Rp)
+                            </label>
+                            <input type="number" min="0" step="100" class="field-input is-readonly" id="tarif_per_km" name="tarif_per_km" value="{{ $rules['tarif_per_km']->value ?? '2500' }}" readonly required>
+                            <span class="field-hint">Dikenakan untuk setiap km setelah melewati batas gratis.</span>
                         </div>
 
                         <div class="field-group">
-                            <label class="field-label" for="kecepatan_kmh">Estimasi Kecepatan Tempuh (km/jam)</label>
-                            <input type="number" min="10" max="100" class="field-input" id="kecepatan_kmh" name="kecepatan_kmh" value="{{ $rules['kecepatan_kmh']->value ?? '30' }}" required>
-                            <span class="field-hint">Standar kota = 30 km/jam (2 menit per km).</span>
+                            <label class="field-label" for="kecepatan_kmh">
+                                <i class="fa-solid fa-gauge-high" style="color:#f59e0b;"></i>
+                                Estimasi Kecepatan Tempuh (km/jam)
+                            </label>
+                            <input type="number" min="10" max="100" class="field-input is-readonly" id="kecepatan_kmh" name="kecepatan_kmh" value="{{ $rules['kecepatan_kmh']->value ?? '30' }}" readonly required>
+                            <span class="field-hint">Standar lalu lintas dalam kota = 30 km/jam (~2 menit per km).</span>
                         </div>
 
                         <div class="field-group">
-                            <label class="field-label" for="radius_maksimal_km">Radius Maksimal Tukang (km)</label>
-                            <input type="number" min="1" max="100" step="0.5" class="field-input" id="radius_maksimal_km" name="radius_maksimal_km" value="{{ $rules['radius_maksimal_km']->value ?? '15.0' }}" required>
-                            <span class="field-hint">Tukang di luar radius ini tidak akan direkomendasikan.</span>
+                            <label class="field-label" for="radius_maksimal_km">
+                                <i class="fa-solid fa-circle-notch" style="color:#ef4444;"></i>
+                                Radius Maksimal Layanan (km)
+                            </label>
+                            <input type="number" min="1" max="100" step="0.5" class="field-input is-readonly" id="radius_maksimal_km" name="radius_maksimal_km" value="{{ $rules['radius_maksimal_km']->value ?? '15.0' }}" readonly required>
+                            <span class="field-hint">Lokasi di luar radius ini akan ditolak otomatis oleh sistem.</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Section 2: Bobot Algoritma Weighted Scoring -->
                 <div class="card-box">
-                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
-                        <div>
-                            <h3 class="card-title" style="margin:0;">
-                                <i class="fa-solid fa-scale-balanced" style="color:#007bff;"></i>
-                                Bobot Penilaian Tukang (Weighted Scoring)
-                            </h3>
-                            <p class="card-desc" style="margin:4px 0 0 0;">Total penjumlahan keempat bobot kriteria <b>harus bernilai tepat 1,00 (100%)</b>.</p>
+                    <div class="card-header-row">
+                        <div class="card-title-group">
+                            <div class="card-icon-bubble bubble-purple">
+                                <i class="fa-solid fa-scale-balanced"></i>
+                            </div>
+                            <div>
+                                <h3 class="card-title">Bobot Algoritma Rekomendasi (Weighted Scoring)</h3>
+                                <p class="card-desc">Total penjumlahan keempat bobot kriteria harus bernilai tepat <b>1.00 (100%)</b>.</p>
+                            </div>
                         </div>
                         <div id="weightBadge" class="weight-badge valid">
                             <i class="fa-solid fa-check"></i> Total Bobot: <span id="weightTotalText">1.00</span> / 1.00
@@ -142,75 +625,134 @@
 
                     <div class="form-grid">
                         <div class="field-group">
-                            <label class="field-label" for="bobot_jarak">Bobot Jarak (0 - 1)</label>
-                            <input type="number" step="0.01" min="0" max="1" class="field-input weight-input" id="bobot_jarak" name="bobot_jarak" value="{{ $rules['bobot_jarak']->value ?? '0.25' }}" oninput="updateTotalWeight()" required>
-                            <span class="field-hint">Prioritas kedekatan lokasi tukang ke pengguna.</span>
+                            <label class="field-label" for="bobot_jarak">
+                                <i class="fa-solid fa-location-dot" style="color:#007bff;"></i>
+                                Bobot Jarak Kantor (0 - 1)
+                            </label>
+                            <input type="number" step="0.01" min="0" max="1" class="field-input weight-input is-readonly" id="bobot_jarak" name="bobot_jarak" value="{{ $rules['bobot_jarak']->value ?? '0.25' }}" oninput="updateTotalWeight()" readonly required>
+                            <span class="field-hint">Tingkat pengaruh kedekatan lokasi terhadap prioritas penugasan.</span>
                         </div>
 
                         <div class="field-group">
-                            <label class="field-label" for="bobot_rating">Bobot Rating (0 - 1)</label>
-                            <input type="number" step="0.01" min="0" max="1" class="field-input weight-input" id="bobot_rating" name="bobot_rating" value="{{ $rules['bobot_rating']->value ?? '0.15' }}" oninput="updateTotalWeight()" required>
-                            <span class="field-hint">Prioritas kepuasan pelanggan dari tukang.</span>
+                            <label class="field-label" for="bobot_rating">
+                                <i class="fa-solid fa-star" style="color:#f59e0b;"></i>
+                                Bobot Rating User (0 - 1)
+                            </label>
+                            <input type="number" step="0.01" min="0" max="1" class="field-input weight-input is-readonly" id="bobot_rating" name="bobot_rating" value="{{ $rules['bobot_rating']->value ?? '0.15' }}" oninput="updateTotalWeight()" readonly required>
+                            <span class="field-hint">Prioritas kepuasan pelanggan dan skor ulasan tukang.</span>
                         </div>
 
                         <div class="field-group">
-                            <label class="field-label" for="bobot_pengalaman">Bobot Pengalaman (0 - 1)</label>
-                            <input type="number" step="0.01" min="0" max="1" class="field-input weight-input" id="bobot_pengalaman" name="bobot_pengalaman" value="{{ $rules['bobot_pengalaman']->value ?? '0.15' }}" oninput="updateTotalWeight()" required>
-                            <span class="field-hint">Prioritas jam terbang / tahun kerja tukang.</span>
+                            <label class="field-label" for="bobot_pengalaman">
+                                <i class="fa-solid fa-award" style="color:#10b981;"></i>
+                                Bobot Pengalaman Kerja (0 - 1)
+                            </label>
+                            <input type="number" step="0.01" min="0" max="1" class="field-input weight-input is-readonly" id="bobot_pengalaman" name="bobot_pengalaman" value="{{ $rules['bobot_pengalaman']->value ?? '0.15' }}" oninput="updateTotalWeight()" readonly required>
+                            <span class="field-hint">Prioritas jam terbang dan tahun kerja aktif teknisi.</span>
                         </div>
 
                         <div class="field-group">
-                            <label class="field-label" for="bobot_beban_kerja">Bobot Beban Kerja (0 - 1)</label>
-                            <input type="number" step="0.01" min="0" max="1" class="field-input weight-input" id="bobot_beban_kerja" name="bobot_beban_kerja" value="{{ $rules['bobot_beban_kerja']->value ?? '0.45' }}" oninput="updateTotalWeight()" required>
-                            <span class="field-hint">Prioritas tukang dengan tugas aktif lebih sedikit.</span>
+                            <label class="field-label" for="bobot_beban_kerja">
+                                <i class="fa-solid fa-briefcase" style="color:#6366f1;"></i>
+                                Bobot Beban Kerja (0 - 1)
+                            </label>
+                            <input type="number" step="0.01" min="0" max="1" class="field-input weight-input is-readonly" id="bobot_beban_kerja" name="bobot_beban_kerja" value="{{ $rules['bobot_beban_kerja']->value ?? '0.45' }}" oninput="updateTotalWeight()" readonly required>
+                            <span class="field-hint">Distribusi tugas adil ke tukang dengan beban kerja lebih sedikit.</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Section 3: Faktor Urgensi & Durasi Kerja -->
                 <div class="card-box">
-                    <h3 class="card-title">
-                        <i class="fa-solid fa-clock-rotate-left" style="color:#007bff;"></i>
-                        Faktor Pengali Urgensi &amp; Durasi
-                    </h3>
-                    <p class="card-desc">Pengali harga berdasarkan urgensi dan pengali estimasi durasi kerja berdasarkan tingkat kesulitan.</p>
+                    <div class="card-header-row">
+                        <div class="card-title-group">
+                            <div class="card-icon-bubble bubble-amber">
+                                <i class="fa-solid fa-clock-rotate-left"></i>
+                            </div>
+                            <div>
+                                <h3 class="card-title">Faktor Pengali Urgensi &amp; Durasi Pengerjaan</h3>
+                                <p class="card-desc">Pengali harga berdasarkan tingkat kedaruratan serta durasi estimasi teknisi.</p>
+                            </div>
+                        </div>
+                    </div>
 
                     <div class="form-grid">
                         <div class="field-group">
                             <label class="field-label" for="faktor_urgensi_rendah">Urgensi Normal (Pengali)</label>
-                            <input type="number" step="0.05" min="1" class="field-input" id="faktor_urgensi_rendah" name="faktor_urgensi_rendah" value="{{ $rules['faktor_urgensi_rendah']->value ?? '1.00' }}" required>
+                            <input type="number" step="0.05" min="1" class="field-input is-readonly" id="faktor_urgensi_rendah" name="faktor_urgensi_rendah" value="{{ $rules['faktor_urgensi_rendah']->value ?? '1.00' }}" readonly required>
                             <span class="field-hint">Tarif normal standar (1.00).</span>
                         </div>
 
                         <div class="field-group">
                             <label class="field-label" for="faktor_urgensi_sedang">Urgensi Mendesak (Pengali)</label>
-                            <input type="number" step="0.05" min="1" class="field-input" id="faktor_urgensi_sedang" name="faktor_urgensi_sedang" value="{{ $rules['faktor_urgensi_sedang']->value ?? '1.25' }}" required>
-                            <span class="field-hint">+25% tarif untuk permintaan mendesak (1.25).</span>
+                            <input type="number" step="0.05" min="1" class="field-input is-readonly" id="faktor_urgensi_sedang" name="faktor_urgensi_sedang" value="{{ $rules['faktor_urgensi_sedang']->value ?? '1.20' }}" readonly required>
+                            <span class="field-hint">+20% prioritas pengerjaan tukang cepat.</span>
                         </div>
 
                         <div class="field-group">
                             <label class="field-label" for="faktor_urgensi_tinggi">Urgensi Darurat (Pengali)</label>
-                            <input type="number" step="0.05" min="1" class="field-input" id="faktor_urgensi_tinggi" name="faktor_urgensi_tinggi" value="{{ $rules['faktor_urgensi_tinggi']->value ?? '1.50' }}" required>
-                            <span class="field-hint">+50% tarif untuk situasi darurat (1.50).</span>
+                            <input type="number" step="0.05" min="1" class="field-input is-readonly" id="faktor_urgensi_tinggi" name="faktor_urgensi_tinggi" value="{{ $rules['faktor_urgensi_tinggi']->value ?? '1.40' }}" readonly required>
+                            <span class="field-hint">+40% dispatch segera dalam antrian prioritas.</span>
+                        </div>
+
+                        <div class="field-group">
+                            <label class="field-label" for="faktor_kerusakan_ringan">Kerusakan Ringan (Pengali)</label>
+                            <input type="number" step="0.01" min="1" class="field-input is-readonly" id="faktor_kerusakan_ringan" name="faktor_kerusakan_ringan" value="{{ $rules['faktor_kerusakan_ringan']->value ?? '1.00' }}" readonly required>
+                            <span class="field-hint">Tarif dasar jasa standar (1.00).</span>
+                        </div>
+
+                        <div class="field-group">
+                            <label class="field-label" for="faktor_kerusakan_sedang">Kerusakan Sedang (Pengali)</label>
+                            <input type="number" step="0.01" min="1" class="field-input is-readonly" id="faktor_kerusakan_sedang" name="faktor_kerusakan_sedang" value="{{ $rules['faktor_kerusakan_sedang']->value ?? '1.05' }}" readonly required>
+                            <span class="field-hint">+5% penyesuaian dari tarif dasar.</span>
+                        </div>
+
+                        <div class="field-group">
+                            <label class="field-label" for="faktor_kerusakan_berat">Kerusakan Berat (Pengali)</label>
+                            <input type="number" step="0.01" min="1" class="field-input is-readonly" id="faktor_kerusakan_berat" name="faktor_kerusakan_berat" value="{{ $rules['faktor_kerusakan_berat']->value ?? '1.10' }}" readonly required>
+                            <span class="field-hint">+10% penyesuaian pekerjaan berat.</span>
                         </div>
 
                         <div class="field-group">
                             <label class="field-label" for="pengali_durasi_sedang">Pengali Durasi Sedang</label>
-                            <input type="number" step="0.1" min="1" class="field-input" id="pengali_durasi_sedang" name="pengali_durasi_sedang" value="{{ $rules['pengali_durasi_sedang']->value ?? '1.50' }}" required>
-                            <span class="field-hint">Pekerjaan sedang (60 menit x 1.5 = 90 menit).</span>
+                            <input type="number" step="0.1" min="1" class="field-input is-readonly" id="pengali_durasi_sedang" name="pengali_durasi_sedang" value="{{ $rules['pengali_durasi_sedang']->value ?? '1.50' }}" readonly required>
+                            <span class="field-hint">Pekerjaan sedang (60 mnt x 1.5 = 90 mnt).</span>
                         </div>
 
                         <div class="field-group">
                             <label class="field-label" for="pengali_durasi_tinggi">Pengali Durasi Berat</label>
-                            <input type="number" step="0.1" min="1" class="field-input" id="pengali_durasi_tinggi" name="pengali_durasi_tinggi" value="{{ $rules['pengali_durasi_tinggi']->value ?? '2.00' }}" required>
-                            <span class="field-hint">Pekerjaan berat (60 menit x 2.0 = 120 menit).</span>
+                            <input type="number" step="0.1" min="1" class="field-input is-readonly" id="pengali_durasi_tinggi" name="pengali_durasi_tinggi" value="{{ $rules['pengali_durasi_tinggi']->value ?? '2.00' }}" readonly required>
+                            <span class="field-hint">Pekerjaan kompleks (60 mnt x 2.0 = 120 mnt).</span>
                         </div>
                     </div>
                 </div>
 
-                <div style="display:flex; justify-content:flex-end; gap:12px; margin-bottom:40px;">
-                    <button type="submit" id="btnSubmitPricing" style="background:#007bff; color:#fff; border:none; padding:12px 28px; border-radius:10px; font-weight:700; font-size:1rem; cursor:pointer; display:inline-flex; align-items:center; gap:8px;">
-                        <i class="fa-solid fa-floppy-disk"></i> Simpan Perubahan Aturan
+                <!-- Banner Informasi Mode Terkunci (Tampil saat mode tetap) -->
+                <div id="lockedNoticeBox" class="pricing-locked-banner">
+                    <div style="display:flex; align-items:center; gap:16px;">
+                        <div class="locked-icon-bubble">
+                            <i class="fa-solid fa-shield-halved"></i>
+                        </div>
+                        <div>
+                            <div style="font-weight:800; font-size:1.05rem; color:#0f172a;">Pengaturan Parameter Tarif Sedang Terkunci</div>
+                            <div style="font-size:0.86rem; color:#64748b; margin-top:2px;">
+                                Nilai parameter aktif digunakan langsung oleh algoritma penawaran order. Klik tombol di samping untuk membuka pengeditan.
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-primary" onclick="enableEditMode()">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                        <span>Buka Mode Pengeditan</span>
+                    </button>
+                </div>
+
+                <!-- Tombol Aksi Bawah saat Mode Edit Aktif (Awalnya Sembunyi) -->
+                <div id="editingFooterActions" class="pricing-editing-bar" style="display:none;">
+                    <button type="button" class="btn-cancel" onclick="cancelEditMode()">
+                        <i class="fa-solid fa-xmark"></i> Batalkan Perubahan
+                    </button>
+                    <button type="submit" id="btnSubmitPricing" class="btn-primary">
+                        <i class="fa-solid fa-floppy-disk"></i> Simpan Seluruh Perubahan Aturan
                     </button>
                 </div>
 
@@ -218,8 +760,109 @@
         </div>
     </div>
 
+    <!-- Modal Profil Admin Standar (Tanpa Tombol Keluar Ganda) -->
+    @include('admin._profile_modal')
+
+    <!-- Modal Konfirmasi Keluar Tunggal -->
+    @include('admin._logout_modal')
+
     <script src="{{ asset('js/sidebar.js') }}"></script>
     <script>
+    // Modal Profil Admin
+    function openAdminProfileModal(){
+        var el = document.getElementById('adminProfileModal');
+        if(el){ el.style.display = 'flex'; }
+    }
+    function closeAdminProfileModal(){
+        var el = document.getElementById('adminProfileModal');
+        if(el){ el.style.display = 'none'; }
+    }
+
+    // Modal Logout Tunggal Admin
+    function openLogoutModal(){
+        var el = document.getElementById('logoutModal');
+        if(el){ el.style.display = 'flex'; }
+    }
+    function closeLogoutModal(){
+        var el = document.getElementById('logoutModal');
+        if(el){ el.style.display = 'none'; }
+    }
+    function confirmLogout(){
+        window.location.href = "{{ route('logout') }}";
+    }
+
+    // ==========================================
+    // MODE TETAP (TERKUNCI) VS MODE EDIT
+    // ==========================================
+    let isEditMode = false;
+
+    function enableEditMode() {
+        isEditMode = true;
+
+        // Buka atribut readonly pada semua input
+        document.querySelectorAll('#pricingForm .field-input').forEach(input => {
+            input.readOnly = false;
+            input.classList.remove('is-readonly');
+        });
+
+        // Update badge status
+        const lockBadge = document.getElementById('badgeLockStatus');
+        lockBadge.className = 'mode-status-badge badge-unlocked';
+        lockBadge.innerHTML = '<i class="fa-solid fa-lock-open"></i> Mode Pengeditan Terbuka';
+
+        // Ganti tombol header
+        document.getElementById('btnEditHeader').style.display = 'none';
+        document.getElementById('groupEditHeader').style.display = 'flex';
+
+        // Sembunyikan banner terkunci dan tampilkan footer aksi edit
+        document.getElementById('lockedNoticeBox').style.display = 'none';
+        document.getElementById('editingFooterActions').style.display = 'flex';
+
+        // Fokus ke input pertama
+        const firstInput = document.getElementById('jarak_gratis_km');
+        if (firstInput) {
+            firstInput.focus();
+        }
+    }
+
+    function cancelEditMode() {
+        if (!confirm('Batalkan seluruh perubahan parameter yang belum disimpan?')) {
+            return;
+        }
+
+        // Reset nilai form ke nilai awal
+        document.getElementById('pricingForm').reset();
+        updateTotalWeight();
+
+        // Kunci kembali semua input
+        document.querySelectorAll('#pricingForm .field-input').forEach(input => {
+            input.readOnly = true;
+            input.classList.add('is-readonly');
+        });
+
+        // Kembalikan badge status
+        const lockBadge = document.getElementById('badgeLockStatus');
+        lockBadge.className = 'mode-status-badge badge-locked';
+        lockBadge.innerHTML = '<i class="fa-solid fa-lock"></i> Parameter Terkunci (Mode Tetap)';
+
+        // Kembalikan tombol header
+        document.getElementById('btnEditHeader').style.display = 'inline-flex';
+        document.getElementById('groupEditHeader').style.display = 'none';
+
+        // Kembalikan banner notice
+        document.getElementById('lockedNoticeBox').style.display = 'flex';
+        document.getElementById('editingFooterActions').style.display = 'none';
+
+        isEditMode = false;
+    }
+
+    function submitPricingForm() {
+        document.getElementById('pricingForm').requestSubmit();
+    }
+
+    // ==========================================
+    // VALIDASI TOTAL BOBOT (HARUS 1.00)
+    // ==========================================
     function updateTotalWeight() {
         const j = parseFloat(document.getElementById('bobot_jarak').value) || 0;
         const r = parseFloat(document.getElementById('bobot_rating').value) || 0;
@@ -229,26 +872,28 @@
         const total = Math.round((j + r + p + b) * 100) / 100;
         const badge = document.getElementById('weightBadge');
         const text = document.getElementById('weightTotalText');
+        const summaryText = document.getElementById('summaryTotalBobot');
         const btn = document.getElementById('btnSubmitPricing');
 
-        text.innerText = total.toFixed(2);
+        if (text) text.innerText = total.toFixed(2);
+        if (summaryText) summaryText.innerText = total.toFixed(2);
 
         if (Math.abs(total - 1.00) < 0.001) {
-            badge.className = 'weight-badge valid';
-            badge.innerHTML = '<i class="fa-solid fa-check"></i> Total Bobot: ' + total.toFixed(2) + ' / 1.00 (Valid)';
-            btn.disabled = false;
-            btn.style.opacity = '1';
-            btn.style.cursor = 'pointer';
+            if (badge) {
+                badge.className = 'weight-badge valid';
+                badge.innerHTML = '<i class="fa-solid fa-check"></i> Total Bobot: ' + total.toFixed(2) + ' / 1.00 (Valid)';
+            }
+            if (btn) btn.disabled = false;
         } else {
-            badge.className = 'weight-badge invalid';
-            badge.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Total Bobot: ' + total.toFixed(2) + ' / 1.00 (Harus tepat 1.00)';
-            btn.disabled = true;
-            btn.style.opacity = '0.5';
-            btn.style.cursor = 'not-allowed';
+            if (badge) {
+                badge.className = 'weight-badge invalid';
+                badge.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Total Bobot: ' + total.toFixed(2) + ' / 1.00 (Harus tepat 1.00)';
+            }
+            if (btn) btn.disabled = true;
         }
     }
+
     document.addEventListener('DOMContentLoaded', updateTotalWeight);
     </script>
 </body>
 </html>
-

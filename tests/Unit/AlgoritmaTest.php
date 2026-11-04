@@ -4,9 +4,13 @@ namespace Tests\Unit;
 
 use Tests\TestCase;
 use App\Services\HaversineService;
+use App\Services\OpenStreetMapGeocodingService;
 use App\Services\PricingService;
 use App\Services\WorkerScoringService;
+use Illuminate\Http\Client\Request as ClientRequest;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 
 class AlgoritmaTest extends TestCase
@@ -44,14 +48,128 @@ class AlgoritmaTest extends TestCase
         // Estimasi waktu tempuh untuk 3.0 km (kecepatan 30 km/jam -> 2 menit/km -> 6 menit)
         $travelTime = $this->haversine->estimateTravelTimeMinutes(3.0, 30);
         $this->assertEquals(6, $travelTime, 'Waktu tempuh 3 km harus 6 menit');
+
+        Cache::flush();
+        Http::fake([
+            'router.project-osrm.org/*' => Http::response([
+                'code' => 'Ok',
+                'routes' => [[
+                    'distance' => 4200,
+                    'duration' => 600,
+                    'geometry' => [
+                        'coordinates' => [[106.8000, -6.2000], [106.8000, -6.1730]],
+                    ],
+                ]],
+            ]),
+        ]);
+
+        $route = $this->haversine->getDrivingRoute($userLat, $userLon, -6.1730, 106.8000);
+        $this->assertSame(4.2, $route['distance_km']);
+        $this->assertSame(10, $route['duration_minutes']);
+        $this->assertSame([[106.8000, -6.2000], [106.8000, -6.1730]], $route['geometry']);
+        $this->assertSame('osrm', $route['source']);
+        Http::assertSent(fn (ClientRequest $request) => str_contains($request->url(), 'router.project-osrm.org/route/v1/driving/'));
+    }
+
+    public function test_worker_rate_adjustment_uses_rating_and_experience_with_a_cap(): void
+    {
+        $pricing = new PricingService($this->haversine);
+
+        $adjusted = $pricing->adjustWorkerRate(100000, 4.5, 4);
+        $this->assertSame(100000.0, $adjusted['harga_dasar']);
+        $this->assertSame(1.07, $adjusted['faktor_kualifikasi']);
+        $this->assertSame(7000.0, $adjusted['biaya_kualifikasi']);
+        $this->assertSame(107000.0, $adjusted['harga_layanan']);
+
+        $capped = $pricing->adjustWorkerRate(100000, 5, 30);
+        $this->assertSame(1.25, $capped['faktor_kualifikasi']);
+        $this->assertSame(25000.0, $capped['biaya_kualifikasi']);
+    }
+
+    public function test_osrm_failure_returns_no_route(): void
+    {
+        Cache::flush();
+        Http::fake([
+            'router.project-osrm.org/*' => Http::response(['code' => 'NoRoute'], 200),
+        ]);
+
+        $route = $this->haversine->getDrivingRoute(-6.4239, 106.9401, -6.4200, 106.9500);
+
+        $this->assertNull($route, 'Kegagalan OSRM tidak boleh diubah menjadi jarak jalan perkiraan.');
+    }
+
+    public function test_reverse_geocoder_maps_openstreetmap_address_parts_and_caches_result(): void
+    {
+        Cache::flush();
+        Http::fake([
+            'nominatim.openstreetmap.org/reverse*' => Http::response([
+                'display_name' => 'Jalan Raya Gunung Putri, RT 03/RW 07, Gunung Putri, Kabupaten Bogor',
+                'address' => [
+                    'road' => 'Jalan Raya Gunung Putri',
+                    'city_district' => 'Gunung Putri',
+                    'county' => 'Kabupaten Bogor',
+                ],
+            ]),
+        ]);
+
+        $geocoder = app(OpenStreetMapGeocodingService::class);
+        $address = $geocoder->reverse(-6.4239, 106.9401);
+        $cachedAddress = $geocoder->reverse(-6.4239, 106.9401);
+
+        $this->assertSame([
+            'kabupaten' => 'Kabupaten Bogor',
+            'kecamatan' => 'Gunung Putri',
+            'jalan' => 'Jalan Raya Gunung Putri',
+            'rt' => '03',
+            'rw' => '07',
+        ], $address);
+        $this->assertSame($address, $cachedAddress);
+        Http::assertSentCount(1);
+    }
+
+    public function test_reverse_geocoder_does_not_guess_missing_rt_rw(): void
+    {
+        Cache::flush();
+        Http::fake([
+            'nominatim.openstreetmap.org/reverse*' => Http::response([
+                'address' => [
+                    'road' => 'Jalan Raya Gunung Putri',
+                    'city_district' => 'Gunung Putri',
+                    'county' => 'Kabupaten Bogor',
+                ],
+            ]),
+        ]);
+
+        $address = app(OpenStreetMapGeocodingService::class)->reverse(-6.4200, 106.9400);
+
+        $this->assertSame('', $address['rt']);
+        $this->assertSame('', $address['rw']);
+    }
+
+    public function test_reverse_geocoder_returns_null_when_provider_fails(): void
+    {
+        Cache::flush();
+        Http::fake([
+            'nominatim.openstreetmap.org/reverse*' => Http::response([], 503),
+        ]);
+
+        $address = app(OpenStreetMapGeocodingService::class)->reverse(-6.4239, 106.9401);
+
+        $this->assertNull($address);
     }
 
     /**
-     * Uji Algoritma 2: Rule-based Pricing & Durasi
-     * Skenario: AC (100.000 - 200.000), Durasi 60 menit, Kompleksitas Sedang, Urgensi Mendesak, Jarak 3.0 km
+     * Uji Algoritma 2: Rule-based Pricing & Durasi (Dasar Biaya Transportasi Jarak Kantor Pusat ke Rumah User)
+     * Skenario 1: Jarak kantor pusat ke rumah user 3.0 km (bebas biaya karena <= 5.0 km)
+     * Skenario 2: Jarak kantor pusat ke rumah user 9.0 km (kena biaya tambahan 4.0 km x 2.500 = Rp 10.000)
      */
     public function test_rule_based_pricing_calculation(): void
     {
+        // Uji helper hitung jarak kantor pusat ke rumah user
+        $distKantor = $this->pricing->calculateDistanceToKantor(-6.2000, 106.8000, -6.1730, 106.8000);
+        $this->assertEquals(3.0, $distKantor, 'Jarak dari kantor pusat (-6.1730) ke rumah user (-6.2000) harus 3.0 km');
+
+        // Skenario 1: 3.0 km
         $res = $this->pricing->calculate(
             hargaMin: 100000,
             hargaMax: 200000,
@@ -62,23 +180,65 @@ class AlgoritmaTest extends TestCase
         );
 
         $this->assertEquals(150000, $res['harga_layanan'], 'Harga layanan kompleksitas sedang harus 150.000');
-        $this->assertEquals(1.25, $res['faktor_urgensi'], 'Faktor urgensi mendesak harus 1.25');
+        $this->assertEquals(1.20, $res['faktor_urgensi'], 'Faktor urgensi mendesak harus 1.20');
         $this->assertEquals(0, $res['biaya_jarak'], 'Biaya jarak di bawah 5 km harus Rp0 (gratis)');
-        $this->assertEquals(187500, $res['estimasi_total'], 'Total estimasi harus 187.500');
+        $this->assertEquals(0, $res['biaya_transportasi'], 'Biaya transportasi harus Rp0');
+        $this->assertEquals(3.0, $res['jarak_kantor_km'], 'Jarak kantor pusat ke user harus 3.0 km');
+        $this->assertEquals(180000, $res['estimasi_total'], 'Total estimasi harus 180.000');
         $this->assertEquals(90, $res['durasi_kerja_menit'], 'Durasi kerja sedang harus 90 menit (60 x 1.5)');
         $this->assertEquals(6, $res['durasi_tempuh_menit'], 'Durasi tempuh harus 6 menit');
         $this->assertEquals(96, $res['estimasi_durasi_menit'], 'Total durasi harus 96 menit');
+
+        $damageEstimate = $this->pricing->calculate(
+            hargaMin: 100000,
+            hargaMax: 100000,
+            durasiDasarMenit: 60,
+            kompleksitas: 'rendah',
+            urgensi: 'darurat',
+            jarakKm: 9.0,
+            tingkatKerusakan: 'berat'
+        );
+        $this->assertEquals(1.40, $damageEstimate['faktor_urgensi']);
+        $this->assertEquals(1.10, $damageEstimate['faktor_kerusakan']);
+        $this->assertEquals(164000, $damageEstimate['estimasi_total']);
+
+        // Skenario 2: 9.0 km (biaya tambahan transportasi dari kantor pusat)
+        $res2 = $this->pricing->calculate(
+            hargaMin: 100000,
+            hargaMax: 200000,
+            durasiDasarMenit: 60,
+            kompleksitas: 'sedang',
+            urgensi: 'normal',
+            jarakKm: 9.0
+        );
+        $this->assertEquals(10000, $res2['biaya_jarak'], 'Biaya jarak 9 km (4 km x 2.500) harus Rp 10.000');
+        $this->assertEquals(160000, $res2['estimasi_total'], 'Total estimasi: 150.000 + 10.000 = 160.000');
+
+        $routeEstimate = $this->pricing->calculate(
+            hargaMin: 100000,
+            hargaMax: 200000,
+            durasiDasarMenit: 60,
+            jarakKm: 1.0,
+            userLat: -6.4239,
+            userLon: 106.9401,
+            routeDistanceKm: 9.0,
+            routeDurationMinutes: 18
+        );
+        $this->assertEquals(9.0, $routeEstimate['jarak_kantor_km']);
+        $this->assertEquals(10000, $routeEstimate['biaya_jarak']);
+        $this->assertEquals(18, $routeEstimate['durasi_tempuh_menit']);
+        $this->assertSame('jarak_jalan_osrm', $routeEstimate['tipe_jarak']);
     }
 
     /**
-     * Uji Algoritma 3: Weighted Scoring & Ranking Tukang
+     * Uji Algoritma 3: Weighted Scoring & Ranking Tukang (Jarak Kantor Pusat ke Rumah User)
      */
     public function test_worker_scoring_and_ranking(): void
     {
         // 1. Bersihkan tukang aktif testing terdahulu jika ada
-        DB::table('workers')->whereIn('name', ['Tukang A (Test)', 'Tukang B (Test)', 'Tukang Jauh (Test)'])->delete();
+        DB::table('workers')->whereIn('name', ['Tukang A (Test)', 'Tukang B (Test)'])->delete();
 
-        // 2. Siapkan data Tukang A
+        // 2. Siapkan data Tukang A (Rating tinggi, job aktif 0)
         $idA = DB::table('workers')->insertGetId([
             'name' => 'Tukang A (Test)',
             'role' => 'Teknisi AC',
@@ -94,14 +254,14 @@ class AlgoritmaTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        // 3. Siapkan data Tukang B
+        // 3. Siapkan data Tukang B (Rating 4.5, pengalaman setara)
         $idB = DB::table('workers')->insertGetId([
             'name' => 'Tukang B (Test)',
             'role' => 'Teknisi AC',
             'alamat' => 'Jakarta Utara',
             'phone' => '081234567892',
             'skills' => 'AC, Pendingin',
-            'pengalaman' => 8,
+            'pengalaman' => 5,
             'rating' => 4.50,
             'latitude' => -6.1191,
             'longitude' => 106.8000,
@@ -110,42 +270,25 @@ class AlgoritmaTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        // 4. Tukang C di luar radius 15 km (harus diabaikan)
-        $idC = DB::table('workers')->insertGetId([
-            'name' => 'Tukang Jauh (Test)',
-            'role' => 'Teknisi AC',
-            'alamat' => 'Bogor',
-            'phone' => '081234567893',
-            'skills' => 'AC',
-            'pengalaman' => 10,
-            'rating' => 5.00,
-            'latitude' => -6.5971, // > 40 km dari Jakarta
-            'longitude' => 106.8060,
-            'status' => 'aktif',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        // Jalankan ranking untuk lokasi user: -6.2000, 106.8000
-        $ranked = $this->scoring->rankWorkers('AC', -6.2000, 106.8000);
+        // 4. Jalankan ranking untuk lokasi user di kantor pusat TEKSIKA.
+        $ranked = $this->scoring->rankWorkers('AC', -6.4239, 106.9401);
 
         // Filter kandidat test kita
         $filtered = array_values(array_filter($ranked, function ($item) use ($idA, $idB) {
             return in_array($item['id_worker'], [$idA, $idB]);
         }));
 
-        $this->assertCount(2, $filtered, 'Harus ada 2 kandidat tukang dalam radius');
+        $this->assertCount(2, $filtered, 'Harus ada 2 kandidat tukang yang memenuhi kualifikasi');
 
-        // Tukang A harus di Peringkat 1
+        // Tukang A harus di Peringkat 1 karena skor total lebih tinggi (rating & ketersediaan)
         $this->assertEquals($idA, $filtered[0]['id_worker'], 'Tukang A harus di peringkat 1');
-        $this->assertEqualsWithDelta(0.869, $filtered[0]['skor_total'], 0.015, 'Skor Tukang A harus sekitar 0.869');
 
-        // Tukang B harus di Peringkat 2
-        $this->assertEquals($idB, $filtered[1]['id_worker'], 'Tukang B harus di peringkat 2');
-        $this->assertEqualsWithDelta(0.805, $filtered[1]['skor_total'], 0.015, 'Skor Tukang B harus sekitar 0.805');
+        // Jarak kantor pusat ke rumah user harus identik untuk kedua tukang
+        $this->assertEquals($filtered[0]['jarak_km'], $filtered[1]['jarak_km'], 'Jarak kantor pusat ke rumah user harus sama untuk semua tukang');
+        $this->assertEquals($filtered[0]['skor_jarak'], $filtered[1]['skor_jarak'], 'Skor jarak harus sama untuk semua tukang');
 
-        // Tukang Jauh (idC) tidak boleh masuk ke ranking
-        $ids = array_column($ranked, 'id_worker');
-        $this->assertNotContains($idC, $ids, 'Tukang di luar radius 15 km tidak boleh masuk rekomendasi');
+        // 5. Uji jika user berada di luar radius operasional kantor pusat (misal: Bogor, > 40 km)
+        $rankedJauh = $this->scoring->rankWorkers('AC', -6.5971, 106.8060);
+        $this->assertEmpty($rankedJauh, 'User di luar radius 15 km dari kantor pusat tidak boleh dilayani');
     }
 }

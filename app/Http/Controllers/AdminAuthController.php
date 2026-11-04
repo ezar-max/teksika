@@ -74,10 +74,12 @@ class AdminAuthController extends Controller
             $admin = Admin::where('email', $email)->first();
         }
 
+        Auth::guard('web')->logout();
         Auth::guard('admin')->login($admin);
         if ($user) {
             Auth::guard('web')->login($user);
         }
+        $request->session()->regenerate();
         session(['role' => 'admin']);
 
         return redirect()->route('dashboard_admin');

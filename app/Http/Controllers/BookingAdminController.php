@@ -12,17 +12,28 @@ class BookingAdminController extends Controller
     {
         $totalBooking = \App\Models\Request::count();
         $waitingBooking = \App\Models\Request::where('status_admin', 'belum_diterima')->count();
+        $approvalWaiting = \App\Models\Request::where('status', 'persetujuan_dikirim')->count();
         $requests = \App\Models\Request::with('user', 'worker')->get();
         $workers = \DB::table('workers')->where('status', 'aktif')->get(); // ambil dari tabel workers
 
-        return view('admin.booking', compact('totalBooking', 'waitingBooking', 'requests', 'workers'));
+        return view('admin.booking', compact('totalBooking', 'waitingBooking', 'approvalWaiting', 'requests', 'workers'));
     }
 
     // Update status booking (diterima / belum_diterima)
     public function updateStatus(Request $request, $id)
     {
         $booking = RequestModel::findOrFail($id);
-        $booking->status_admin = $request->input('status_admin');
+        $validated = $request->validate([
+            'status_admin' => 'required|in:ditolak',
+        ]);
+
+        if (!in_array($booking->status, ['menunggu', 'menunggu_persetujuan'], true)
+            || $booking->status_admin !== 'belum_diterima') {
+            return response()->json(['success' => false, 'message' => 'Status request tidak dapat diubah.'], 409);
+        }
+
+        $booking->status_admin = $validated['status_admin'];
+        $booking->status = 'ditolak';
         $booking->save();
 
         return response()->json(['success' => true]);
@@ -38,30 +49,7 @@ class BookingAdminController extends Controller
     // Konfirmasi booking
     public function konfirmasi(Request $request, $id)
     {
-        $req = \App\Models\Request::findOrFail($id);
-
-        // Validasi: worker wajib, jumlah_pembayaran wajib jika bukan COD
-        $rules = [
-            'id_worker' => 'required|exists:workers,id',
-        ];
-        if ($req->metode_pembayaran !== 'COD') {
-            $rules['jumlah_pembayaran'] = 'required|numeric|min:0';
-        } else {
-            $rules['jumlah_pembayaran'] = 'nullable|numeric|min:0';
-        }
-        $validated = $request->validate($rules);
-
-        $req->id_worker = $validated['id_worker'];
-        if ($req->metode_pembayaran !== 'COD') {
-            $req->jumlah_pembayaran = $validated['jumlah_pembayaran'];
-        }
-        $req->status_admin = 'diterima';
-        $req->save();
-
-        // Set status worker menjadi "lagi bekerja"
-        \DB::table('workers')->where('id', $validated['id_worker'])->update(['status' => 'lagi bekerja']);
-
-        return redirect()->route('booking')->with('success', 'Booking dikonfirmasi!');
+        return app(\App\Http\Controllers\Admin\BookingController::class)->tugaskan($request, $id);
     }
 
     // Tolak booking

@@ -3,336 +3,279 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Booking</title>
+    <title>Manajemen Booking — TEKSIKA Admin</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <!-- Google Fonts: Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- CSS & Icons -->
+    <link rel="stylesheet" href="{{ asset('css/dashboard_admin.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/profile-modal.css') }}">
     <link rel="stylesheet" href="{{ asset('css/booking.css') }}">
     <link rel="stylesheet" href="{{ asset('css/worker-dropdown.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body>
     <!-- Sidebar -->
-    <div class="sidebar" id="sidebar">
-        <img src="{{ asset('images/logo-putih.png') }}" alt="Logo" class="sidebar-logo">
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-logo-wrap">
+            <img src="{{ asset('images/logo-putih.png') }}" alt="Logo TEKSIKA" class="sidebar-logo">
+        </div>
 
-        <a href="{{ route('dashboard_admin') }}" class="menu-item">
-            <img src="{{ asset('images/home.png') }}" alt="logo" class="icon" weight="50" height="50">
+        <a href="{{ route('admin.home') }}" class="menu-item">
+            <img src="{{ asset('images/home.png') }}" alt="logo" class="icon">
             <span class="menu-text">Beranda</span>
         </a>
-        <a href="{{ route('booking') }}" class="menu-item">
-            <img src="{{ asset('images/booking.png') }}" alt="logo" class="icon" weight="50" height="50">
+        <a href="{{ route('booking') }}" class="menu-item active">
+            <img src="{{ asset('images/booking.png') }}" alt="logo" class="icon">
             <span class="menu-text">Booking</span>
         </a>
         <a href="{{ route('transaksi') }}" class="menu-item">
-            <img src="{{ asset('images/pembayaran.png') }}" alt="logo" class="icon" weight="50" height="50">
+            <img src="{{ asset('images/pembayaran.png') }}" alt="logo" class="icon">
             <span class="menu-text">Pembayaran</span>
         </a>
         <a href="{{ route('worker') }}" class="menu-item">
-            <img src="{{ asset('images/worker.png') }}" alt="logo" class="icon" weight="50" height="50">
+            <img src="{{ asset('images/worker.png') }}" alt="logo" class="icon">
             <span class="menu-text">Worker</span>
         </a>
         <a href="{{ route('admin.pricing.index') }}" class="menu-item">
-            <i class="fa-solid fa-sliders" style="font-size:20px; width:28px; text-align:center;"></i>
+            <i class="fa-solid fa-sliders"></i>
             <span class="menu-text">Aturan Tarif</span>
         </a>
         <a href="{{ route('chat') }}" class="menu-item">
-            <img src="{{ asset('images/chat.png') }}" alt="logo" class="icon" weight="50" height="50">
+            <img src="{{ asset('images/chat.png') }}" alt="logo" class="icon">
             <span class="menu-text">Chat</span>
         </a>
 
+        <!-- Logout Tunggal Admin -->
         <div class="logout">
-            <a href="{{ route('menu_login') }}" class="menu-item">
+            <a href="javascript:void(0)" onclick="openLogoutModal()" class="menu-item">
                 <i class="fa-solid fa-right-from-bracket"></i>
                 <span class="menu-text">Keluar</span>
             </a>
         </div>
-    </div>
+    </aside>
 
     <!-- Main Content -->
-    <div class="main">
+    <div class="main" id="main">
         <!-- Header -->
         <div class="header">
             <div class="menu-toggle" id="menuToggle">
                 <i class="fa-solid fa-bars"></i>
             </div>
-            <!-- Search dihapus sesuai permintaan, search booking tetap -->
+            
             <div class="user-info">
-                <i class="fa-solid fa-bell"></i>
+                @php
+                    $currentAdminUser = Auth::guard('admin')->user() ?? auth()->user();
+                @endphp
+                
+                <div class="header-profile-pill" onclick="openAdminProfileModal()" title="Profil Akun Administrator">
+                    <div class="admin-avatar-icon"><i class="fa-solid fa-user-shield"></i></div>
+                    <span>{{ $currentAdminUser->name ?? 'Admin' }}</span>
+                    <i class="fa-solid fa-chevron-down profile-chevron"></i>
+                </div>
             </div>
         </div>
 
-        <!-- Booking Management Title -->
+        @if(($approvalWaiting ?? 0) > 0)
+            <div style="margin:16px 32px 0; padding:12px 18px; border:1px solid #fde68a; background:#fffbeb; color:#92400e; border-radius:14px; font-weight:700; display:flex; align-items:center; gap:10px;">
+                <i class="fa-solid fa-bell" style="color:#d97706;"></i>
+                <span>{{ $approvalWaiting }} persetujuan penawaran dari pelanggan menunggu verifikasi admin.</span>
+            </div>
+        @endif
+
+        <!-- Booking Title -->
         <div class="booking-title-container">
-            <h2>Booking Management</h2>
-            <p>Kelola semua booking dan jadwal tukang</p>
-        </div>
-
-        <!-- Booking Summary Cards -->
-        <div class="summary-cards">
-            <div class="summary-card summary-blue">
-                <div>
-                    <div class="summary-title">Total booking</div>
-                    <div class="summary-value">{{ $totalBooking }}</div>
-                </div>
-                <div class="summary-icon">
-                    <i class="fa fa-calendar"></i>
-                </div>
+            <div>
+                <h2><i class="fa-solid fa-calendar-check" style="color:#007bff; margin-right:8px;"></i> Manajemen Booking</h2>
+                <p>Kelola semua permintaan layanan, penugasan teknisi, dan jadwal perbaikan.</p>
             </div>
-            <div class="summary-card summary-orange">
-                <div>
-                    <div class="summary-title">Menunggu konfirmasi</div>
-                    <div class="summary-value">{{ $waitingBooking }}</div>
-                </div>
-                <div class="summary-icon">
-                    <i class="fa fa-exclamation-circle"></i>
-                </div>
-            </div>
-        </div>
-
-        <!-- Booking Filter & Search -->
-        <div class="filter-search-container">
-            <div class="filter-search-row">
-                <input type="text" id="searchBookingAdmin" placeholder="Cari booking...">
-                <div class="filter-buttons">
-                    <button onclick="filterBooking('all')" id="btn-all" class="active">Semua</button>
-                    <button onclick="filterBooking('waiting')" id="btn-waiting" class="active">Menunggu</button>
-                    <button onclick="filterBooking('confirmed')" id="btn-confirmed" class="active">Dikonfirmasi</button>
-                    <button onclick="filterBooking('ongoing')" id="btn-ongoing" class="active">Berlangsung</button>
-                    <button onclick="filterBooking('done')" id="btn-done" class="active">Selesai</button>
-                </div>
-                <div>
-                    <i class="fa-solid fa-ellipsis-vertical"></i>
-                </div>
-            </div>
-            <!-- Tambahkan tombol export di sini -->
-            <div style="margin-top: 16px;">
-                <form action="{{ route('booking.export.pdf') }}" method="GET" target="_blank">
-                    <button type="submit" class="btn btn-danger">
-                        <i class="fa fa-file-pdf"></i> Export PDF
+            <div>
+                <form action="{{ route('booking.export.pdf') }}" method="GET" target="_blank" style="margin:0;">
+                    <button type="submit" class="btn-export-pdf">
+                        <i class="fa-solid fa-file-pdf"></i>
+                        <span>Export Laporan PDF</span>
                     </button>
                 </form>
             </div>
         </div>
 
+        <!-- Summary Cards -->
+        <div class="summary-cards">
+            <div class="summary-card summary-blue">
+                <div>
+                    <div class="summary-title">Total Permintaan</div>
+                    <div class="summary-value">{{ $totalBooking }}</div>
+                </div>
+                <div class="summary-icon">
+                    <i class="fa-solid fa-calendar-days"></i>
+                </div>
+            </div>
+            <div class="summary-card summary-orange">
+                <div>
+                    <div class="summary-title">Menunggu Konfirmasi</div>
+                    <div class="summary-value">{{ $waitingBooking }}</div>
+                </div>
+                <div class="summary-icon">
+                    <i class="fa-solid fa-clock"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter & Search -->
+        <div class="filter-search-container">
+            <div class="filter-search-row">
+                <input type="text" id="searchBookingAdmin" placeholder="Cari pemesan, kode booking, atau layanan...">
+                <div class="filter-buttons" role="group" aria-label="Filter status booking">
+                    <button onclick="filterBooking('all')" id="btn-all" class="active">Semua</button>
+                    <button onclick="filterBooking('waiting')" id="btn-waiting">Menunggu</button>
+                    <button onclick="filterBooking('confirmed')" id="btn-confirmed">Ditugaskan</button>
+                    <button onclick="filterBooking('ongoing')" id="btn-ongoing">Berlangsung</button>
+                    <button onclick="filterBooking('done')" id="btn-done">Selesai</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Booking List -->
         <div class="booking-list">
-            @foreach($requests as $req)
-            <div class="booking-card js-booking" id="booking-card-{{ $req->id_request }}">
+            @forelse($requests as $req)
+            @php
+                $workflowLabels = [
+                    'menunggu' => 'Menunggu Pemeriksaan',
+                    'menunggu_persetujuan' => 'Menunggu Persetujuan User',
+                    'persetujuan_dikirim' => 'Persetujuan User: Perlu Verifikasi',
+                    'dikonfirmasi' => 'Tukang Ditugaskan',
+                    'dikerjakan' => 'Sedang Dikerjakan',
+                    'selesai' => 'Selesai',
+                    'ditolak' => 'Ditolak',
+                    'dibatalkan' => 'Dibatalkan',
+                ];
+                $userAvatar = !empty($req->user?->avatar) ? asset('storage/'.$req->user->avatar) : asset('images/userabu.png');
+            @endphp
+            <div class="booking-card js-booking" id="booking-card-{{ $req->id_request }}" data-workflow-status="{{ $req->status }}">
                 <div class="booking-card-left">
-                    @php($userAvatar = !empty($req->user->avatar) ? asset('storage/'.$req->user->avatar) : asset('images/avatar.png'))
-                    <img src="{{ $userAvatar }}" class="booking-avatar" alt="avatar">
+                    <img src="{{ $userAvatar }}" class="booking-avatar" alt="avatar {{ $req->user?->name ?? 'User' }}" onerror="this.onerror=null;this.src='{{ asset('images/userabu.png') }}';">
                     <div>
                         <div class="booking-user">
-                            {{ $req->user->name ?? '-' }}
+                            {{ $req->user?->name ?? 'Pengguna' }}
                             @if($req->worker)
-                                <br><small>Tukang: {{ $req->worker->name }}</small>
+                                <br><small><i class="fa-solid fa-user-gear"></i> Mitra: {{ $req->worker->name }}</small>
                             @endif
                         </div>
                         <div class="booking-meta">
-                            <span class="booking-service">{{ $req->layanan }}</span> &nbsp;|&nbsp;
-                            <span class="booking-code">Kode: <b>{{ $req->kode_booking ?? '-' }}</b></span>
+                            <span class="booking-service">{{ $req->layanan }}</span> &bull;
+                            <span class="booking-code">{{ $req->kode_booking ?? '-' }}</span>
                         </div>
-                        <div class="booking-date">{{ \Carbon\Carbon::parse($req->created_at)->format('d-m-Y') }}</div>
+                        <div class="booking-date">
+                            <i class="fa-regular fa-clock"></i> {{ \Carbon\Carbon::parse($req->created_at)->format('d M Y, H:i') }} WIB
+                        </div>
                     </div>
                 </div>
+
                 <div class="booking-card-right">
-                    <div class="booking-price">Rp{{ number_format($req->jumlah_pembayaran,0,',','.') }}</div>
+                    @if($req->offers->count())
+                        <div class="booking-price">Mulai Rp {{ number_format($req->offers->min('total_estimasi'),0,',','.') }}</div>
+                    @elseif($req->status_admin === 'diterima')
+                        <div class="booking-price">Rp {{ number_format($req->estimasi_total ?? $req->jumlah_pembayaran ?? 0,0,',','.') }}</div>
+                    @else
+                        <div class="booking-price" style="color:#64748b; font-size:0.9rem;">Belum ada penawaran</div>
+                    @endif
+
                     <div class="booking-status {{
-                        $req->status_admin === 'diterima' ? 'status-confirmed' : (
-                            $req->status_admin === 'ditolak' ? 'status-rejected' : (
-                                $req->status_admin === 'dibatalkan' ? 'status-cancelled' : 'status-waiting'
-                            )
+                        in_array($req->status, ['dikonfirmasi', 'dikerjakan', 'selesai'], true) ? 'status-confirmed' : (
+                            in_array($req->status, ['ditolak', 'dibatalkan'], true) ? 'status-rejected' : 'status-waiting'
                         )
                     }}">
-                        {{
-                            $req->status_admin === 'diterima' ? 'Dikonfirmasi' : (
-                                $req->status_admin === 'ditolak' ? 'Ditolak' : (
-                                    $req->status_admin === 'dibatalkan' ? 'Dibatalkan' : 'Menunggu'
-                                )
-                            )
-                        }}
+                        {{ $workflowLabels[$req->status] ?? 'Menunggu Pemeriksaan' }}
                     </div>
+
                     <div class="action-btns">
-                        @if($req->status_admin == 'belum_diterima')
-                            <form action="{{ route('booking.konfirmasi', $req->id_request) }}" method="POST" style="display:inline;">
-                                @csrf
-                                <select name="id_worker" class="worker-dropdown" required>
-                                    <option value="">Pilih Worker</option>
-                                    @foreach($workers as $worker)
-                                        <option value="{{ $worker->id }}">{{ $worker->name }}</option>
-                                    @endforeach
-                                </select>
-                                @if(($req->metode_pembayaran ?? '') !== 'COD')
-                                    <input type="number" name="jumlah_pembayaran" min="0" step="1000" placeholder="Masukkan jumlah (Rp)" value="{{ old('jumlah_pembayaran', $req->jumlah_pembayaran) }}" style="margin-left:8px; padding:6px 10px; border:1px solid #ddd; border-radius:6px;" required>
-                                @else
-                                    <small style="margin:6px 8px; color:#777;">Metode: COD (tanpa input harga)</small>
-                                @endif
-                                <button type="submit" class="btn-accept">Konfirmasi</button>
-                            </form>
-                            <form action="{{ route('booking.tolak', $req->id_request) }}" method="POST" style="display:inline;">
+                        @if(in_array($req->status, ['menunggu', 'menunggu_persetujuan'], true) && $req->status_admin === 'belum_diterima')
+                            <form action="{{ route('booking.tolak', $req->id_request) }}" method="POST" style="display:inline;" onsubmit="return confirm('Yakin ingin menolak pesanan ini?');">
                                 @csrf
                                 <button type="submit" class="btn-reject">Tolak</button>
                             </form>
                         @endif
-                        <a href="{{ route('admin.booking.show', $req->id_request) }}" 
-                           class="btn-detail" 
-                           style="display:inline-flex; align-items:center; gap:5px; text-decoration:none;">
-                            <i class="fa fa-award"></i> Detail &amp; Rekomendasi
+                        
+                        <a href="{{ route('admin.booking.show', $req->id_request) }}" class="btn-detail">
+                            <i class="fa-solid fa-file-invoice-dollar"></i>
+                            <span>Penawaran & Detail</span>
                         </a>
                     </div>
                 </div>
             </div>
-            @endforeach
+            @empty
+                <div style="padding:48px 24px; background:#fff; border:1.5px dashed #cbd5e1; border-radius:18px; text-align:center; color:#64748b;">
+                    <i class="fa-solid fa-calendar-xmark" style="font-size:3rem; color:#94a3b8; margin-bottom:12px;"></i>
+                    <p style="font-weight:700; font-size:1.1rem; color:#0f172a; margin:0 0 6px 0;">Belum Ada Permintaan Booking</p>
+                    <p style="font-size:0.88rem; margin:0;">Permintaan layanan baru dari pelanggan akan muncul secara otomatis di halaman ini.</p>
+                </div>
+            @endforelse
         </div>
+    </div>
 
-        <!-- Modal Detail Booking -->
-        <!-- Modal Detail Booking -->
-<div id="bookingDetailModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.25); z-index:9999; align-items:center; justify-content:center;">
-  <div style="background:#fff; border-radius:16px; padding:32px 28px; box-shadow:0 8px 32px rgba(0,0,0,0.12); text-align:left; max-width:400px; margin:auto; position:relative; max-height:80vh; overflow-y:auto;">
-    <span style="position:absolute; top:12px; right:18px; font-size:1.5rem; cursor:pointer;" onclick="closeBookingDetailModal()">&times;</span>
-    <h2>Detail Booking</h2>
-    <div id="bookingDetailContent"></div>
-    <button onclick="closeBookingDetailModal()" style="margin-top: 16px; padding: 8px 16px; background-color: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer;">Tutup</button>
-  </div>
-</div>
+    <!-- Admin Profile Modal -->
+    @include('admin._profile_modal')
 
-<script>
-// Fungsi untuk menutup modal
-function closeBookingDetailModal() {
-    document.getElementById('bookingDetailModal').style.display = 'none';
-}
+    <!-- Modal Logout Tunggal Admin -->
+    @include('admin._logout_modal')
 
-// Fungsi untuk membuka modal detail booking
-function openBookingDetailModal(id) {
-    // Ambil data booking dari variabel JSON yang sudah di-set dari Blade
-    const bookings = @json($requests);
-    const booking = bookings.find(b => b.id_request === id);
-    const content = document.getElementById('bookingDetailContent');
-    
-    if (booking) {
-        // Format tanggal ke format Indonesia
-        const tanggal = new Date(booking.created_at).toLocaleDateString('id-ID', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
-        
-        // Format jumlah pembayaran dengan format Rupiah
-        const jumlahPembayaran = new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: 'IDR',
-            minimumFractionDigits: 0
-        }).format(booking.jumlah_pembayaran);
-        
-        // Siapkan foto kerusakan (tampilkan langsung sesuai yang dikirim user)
-        const storageBase = "{{ asset('storage') }}";
-        const fotos = ((booking.foto || '') + '').split(',').map(s => s.trim()).filter(Boolean);
-        let fotoHtml = '';
-        if (fotos.length) {
-            fotoHtml = fotos.map(raw => {
-                // Normalisasi path (gantikan backslash ke slash dan hapus leading slash)
-                let p = (raw || '').replace(/\\\\/g, '/').replace(/^\/+/, '');
-                // Jika sudah URL penuh, gunakan langsung; jika tidak, prefix dengan storage
-                const url = (/^https?:\/\//i).test(p) ? p : `${storageBase}/${p}`;
-                return `<div style="margin:10px 0;"><img src="${url}" alt="Foto kerusakan" style="width:100%;height:auto;border-radius:8px;border:1px solid #eee;"/></div>`;
-            }).join('');
-        } else {
-            fotoHtml = '<div style="color:#777;">Tidak ada foto</div>';
-        }
-        
-        // Buat HTML untuk detail booking
-        const detail = `
-            <div style="margin-bottom:16px;">
-                <p><strong>Nama Pemesan:</strong> ${booking.user ? booking.user.name : '-'}</p>
-                <p><strong>Tukang:</strong> ${booking.worker ? booking.worker.name : 'Belum ditentukan'}</p>
-                <p><strong>Layanan:</strong> ${booking.layanan}</p>
-                <p><strong>Kode Booking:</strong> ${booking.kode_booking}</p>
-                <p><strong>Tanggal:</strong> ${tanggal}</p>
-                <p><strong>Jumlah Pembayaran:</strong> ${jumlahPembayaran}</p>
-                <p><strong>Status:</strong> ${
-                    booking.status_admin === 'diterima' ? 'Dikonfirmasi' : (
-                        booking.status_admin === 'ditolak' ? 'Ditolak' : (
-                            booking.status_admin === 'dibatalkan' ? 'Dibatalkan' : 'Menunggu'
-                        )
-                    )
-                }</p>
-                <p><strong>Metode Pembayaran:</strong> ${booking.metode_pembayaran || '-'}</p>
-                <p><strong>Lokasi:</strong> ${booking.lokasi || '-'}</p>
-                <div><strong>Detail:</strong></div>
-                <div style="white-space:pre-wrap; word-break:break-word;">${booking.detail || '-'}</div>
-                <p><strong>Foto Kerusakan:</strong></p>
-                ${fotoHtml}
-            </div>
-        `;
-        content.innerHTML = detail;
-    } else {
-        content.innerHTML = '<p>Detail booking tidak ditemukan.</p>';
+    <!-- Scripts -->
+    <script src="{{ asset('js/sidebar.js') }}"></script>
+    <script>
+    function openAdminProfileModal(){
+        var el = document.getElementById('adminProfileModal');
+        if(el){ el.style.display = 'flex'; }
     }
-    
-    // Tampilkan modal
-    document.getElementById('bookingDetailModal').style.display = 'flex';
-}
+    function closeAdminProfileModal(){
+        var el = document.getElementById('adminProfileModal');
+        if(el){ el.style.display = 'none'; }
+    }
+    function openLogoutModal(){
+        var el = document.getElementById('logoutModal');
+        if(el){ el.style.display = 'flex'; }
+    }
+    function closeLogoutModal(){
+        var el = document.getElementById('logoutModal');
+        if(el){ el.style.display = 'none'; }
+    }
+    function confirmLogout(){
+        window.location.href = "{{ route('logout') }}";
+    }
 
-// Hapus fungsi showBookingDetail yang tidak digunakan
-// Hapus fungsi closeBookingDetailModal yang duplikat
+    // Booking Filters
+    let activeBookingFilter = 'all';
 
-// Event listener untuk search booking admin
-const searchBookingAdmin = document.getElementById('searchBookingAdmin');
-if (searchBookingAdmin) {
-    searchBookingAdmin.addEventListener('input', function() {
-        const keyword = this.value.toLowerCase();
-        document.querySelectorAll('.booking-card').forEach(function(card) {
-            const nama = card.querySelector('.booking-user')?.textContent.toLowerCase() || '';
-            const layanan = card.querySelector('.booking-service')?.textContent.toLowerCase() || '';
-            const tanggal = card.querySelector('.booking-date')?.textContent.toLowerCase() || '';
-            if (
-                nama.includes(keyword) ||
-                layanan.includes(keyword) ||
-                tanggal.includes(keyword)
-            ) {
-                card.style.display = '';
-            } else {
-                card.style.display = 'none';
-            }
+    function applyBookingFilters() {
+        const keyword = (document.getElementById('searchBookingAdmin')?.value || '').trim().toLowerCase();
+        document.querySelectorAll('.booking-card').forEach(card => {
+            const status = card.dataset.workflowStatus;
+            const matchesStatus = activeBookingFilter === 'all'
+                || (activeBookingFilter === 'waiting' && ['menunggu', 'menunggu_persetujuan', 'persetujuan_dikirim'].includes(status))
+                || (activeBookingFilter === 'confirmed' && status === 'dikonfirmasi')
+                || (activeBookingFilter === 'ongoing' && status === 'dikerjakan')
+                || (activeBookingFilter === 'done' && status === 'selesai');
+            const text = card.innerText.toLowerCase();
+            card.style.display = matchesStatus && text.includes(keyword) ? '' : 'none';
         });
-    });
-}
+    }
 
-// Fungsi filter booking
-function filterBooking(status) {
-    const cards = document.querySelectorAll('.booking-card');
-    cards.forEach(card => {
-        if (status === 'all') {
-            card.style.display = '';
-        } else {
-            // Cek status berdasarkan class yang ada di card
-            const statusClass = card.querySelector('.booking-status').classList.contains('status-confirmed') ? 'confirmed' : 'waiting';
-            if (statusClass === status || 
-                (status === 'waiting' && statusClass === 'waiting') ||
-                (status === 'confirmed' && statusClass === 'confirmed')) {
-                card.style.display = '';
-            } else {
-                card.style.display = 'none';
-            }
-        }
-    });
-    
-    // Highlight tombol aktif
-    document.querySelectorAll('.filter-buttons button').forEach(btn => btn.classList.remove('active'));
-    document.getElementById('btn-' + status).classList.add('active');
-}
+    const searchBookingAdmin = document.getElementById('searchBookingAdmin');
+    if (searchBookingAdmin) {
+        searchBookingAdmin.addEventListener('input', applyBookingFilters);
+    }
 
-// Event listener untuk menu toggle
-const menuToggle = document.getElementById('menuToggle');
-if (menuToggle) {
-    menuToggle.addEventListener('click', function() {
-        const sidebar = document.getElementById('sidebar');
-        if (sidebar.style.display === 'none' || sidebar.style.display === '') {
-            sidebar.style.display = 'block';
-        } else {
-            sidebar.style.display = 'none';
-        }
-    });
-}
-
-// Hapus event listener duplikat dan yang tidak diperlukan
-</script>
+    function filterBooking(status) {
+        activeBookingFilter = status;
+        applyBookingFilters();
+        
+        document.querySelectorAll('.filter-buttons button').forEach(btn => btn.classList.remove('active'));
+        const btn = document.getElementById('btn-' + status);
+        if (btn) btn.classList.add('active');
+    }
+    </script>
+</body>
+</html>

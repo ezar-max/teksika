@@ -16,9 +16,22 @@ class Worker extends Model
         'longitude',
         'phone',
         'skills',
+        'tarif',
         'pengalaman',
         'rating',
         'umur',
-        'status'
+        'status',
+        'foto',
+        'status_ketersediaan'
     ];
+
+    public function reviews()
+    {
+        return $this->hasMany(WorkerReview::class, 'id_worker')->latest();
+    }
+
+    public function offers()
+    {
+        return $this->hasMany(WorkerOffer::class, 'id_worker');
+    }
 }

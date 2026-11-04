@@ -33,22 +33,24 @@ function closeLogoutModal() {
     modal.style.display = "none";
 }
 
-// Event tombol ❌ dan Batal
-closeBtn.addEventListener("click", closeLogoutModal);
-cancelBtn.addEventListener("click", closeLogoutModal);
+// Bind modal controls only on pages that render the logout modal.
+if (closeBtn) closeBtn.addEventListener("click", closeLogoutModal);
+if (cancelBtn) cancelBtn.addEventListener("click", closeLogoutModal);
 
 // Event klik di luar modal → tutup modal
 window.addEventListener("click", (e) => {
-    if (e.target === modal) {
+    if (modal && e.target === modal) {
         closeLogoutModal();
     }
 });
 
 // Event klik tombol Logout → buka modal
-logoutLink.addEventListener("click", (e) => {
-    e.preventDefault();
-    openLogoutModal();
-});
+if (logoutLink && modal) {
+    logoutLink.addEventListener("click", (e) => {
+        e.preventDefault();
+        openLogoutModal();
+    });
+}
 
 // Fungsi konfirmasi logout
 function confirmLogout() {

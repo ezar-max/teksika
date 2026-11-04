@@ -38,8 +38,17 @@
                 <td>{{ $request->layanan }}</td>
                 <td>{{ $request->lokasi }}</td>
                 <td>{{ \Carbon\Carbon::parse($request->tanggal_booking)->format('d/m/Y') }}</td>
-                <td>{{ $request->status_admin }}</td>
-                <td>Rp{{ number_format($request->jumlah_pembayaran, 0, ',', '.') }}</td>
+                <td>{{ [
+                    'menunggu' => 'Menunggu Pemeriksaan',
+                    'menunggu_persetujuan' => 'Menunggu Persetujuan User',
+                    'persetujuan_dikirim' => 'Persetujuan User: Perlu Verifikasi',
+                    'dikonfirmasi' => 'Tukang Ditugaskan',
+                    'dikerjakan' => 'Sedang Dikerjakan',
+                    'selesai' => 'Selesai',
+                    'ditolak' => 'Ditolak',
+                    'dibatalkan' => 'Dibatalkan',
+                ][$request->status] ?? ucfirst($request->status) }}</td>
+                <td>{{ $request->penawaran_dikirim_at ? 'Rp' . number_format($request->estimasi_total, 0, ',', '.') : 'Belum ada penawaran' }}</td>
             </tr>
             @endforeach
         </tbody>
