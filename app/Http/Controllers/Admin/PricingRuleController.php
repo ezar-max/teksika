@@ -33,10 +33,10 @@ class PricingRuleController extends Controller
         $inputs = $request->except(['_token', '_method']);
 
         // 1. Validasi Total Bobot (Harus bernilai 1.00)
-        $bJarak = (float) ($inputs['bobot_jarak'] ?? 0);
-        $bRating = (float) ($inputs['bobot_rating'] ?? 0);
-        $bPengalaman = (float) ($inputs['bobot_pengalaman'] ?? 0);
-        $bBeban = (float) ($inputs['bobot_beban_kerja'] ?? 0);
+        $bJarak = (float) str_replace(',', '.', (string) ($inputs['bobot_jarak'] ?? 0));
+        $bRating = (float) str_replace(',', '.', (string) ($inputs['bobot_rating'] ?? 0));
+        $bPengalaman = (float) str_replace(',', '.', (string) ($inputs['bobot_pengalaman'] ?? 0));
+        $bBeban = (float) str_replace(',', '.', (string) ($inputs['bobot_beban_kerja'] ?? 0));
 
         $totalBobot = round($bJarak + $bRating + $bPengalaman + $bBeban, 4);
 
@@ -47,14 +47,16 @@ class PricingRuleController extends Controller
             );
         }
 
-        // 2. Simpan setiap aturan ke tabel pricing_rules
+        // 2. Simpan setiap aturan ke tabel pricing_rules (update atau insert jika belum ada)
         foreach ($inputs as $key => $value) {
-            DB::table('pricing_rules')
-                ->where('key', $key)
-                ->update([
-                    'value' => (string) $value,
+            $normalizedValue = str_replace(',', '.', trim((string) $value));
+            DB::table('pricing_rules')->updateOrInsert(
+                ['key' => $key],
+                [
+                    'value' => $normalizedValue,
                     'updated_at' => now(),
-                ]);
+                ]
+            );
         }
 
         // 3. Bersihkan cache aturan harga

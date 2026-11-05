@@ -430,7 +430,7 @@
                         <i class="fa-solid fa-route"></i>
                     </div>
                     <div class="stat-info">
-                        <div class="stat-value">{{ $rules['radius_maksimal_km']->value ?? '15.0' }} KM</div>
+                        <div class="stat-value"><span id="summaryRadius">{{ number_format((float)($rules['radius_maksimal_km']->value ?? 15.0), 1, '.', '') }}</span> KM</div>
                         <div class="stat-label">Radius Jangkauan Maksimal</div>
                     </div>
                 </div>
@@ -441,7 +441,7 @@
                         <i class="fa-solid fa-money-bill-wave"></i>
                     </div>
                     <div class="stat-info">
-                        <div class="stat-value">Rp {{ number_format((float)($rules['tarif_per_km']->value ?? 2500), 0, ',', '.') }}</div>
+                        <div class="stat-value">Rp <span id="summaryTarif">{{ number_format((float)($rules['tarif_per_km']->value ?? 2500), 0, ',', '.') }}</span></div>
                         <div class="stat-label">Tarif Tambahan Per KM</div>
                     </div>
                 </div>
@@ -463,7 +463,7 @@
                         <i class="fa-solid fa-clock-rotate-left"></i>
                     </div>
                     <div class="stat-info">
-                        <div class="stat-value">{{ $rules['faktor_urgensi_rendah']->value ?? '1.00' }}x - {{ $rules['faktor_urgensi_tinggi']->value ?? '1.40' }}x</div>
+                        <div class="stat-value"><span id="summaryUrgensiRendah">{{ number_format((float)($rules['faktor_urgensi_rendah']->value ?? 1.00), 2, '.', '') }}</span>x - <span id="summaryUrgensiTinggi">{{ number_format((float)($rules['faktor_urgensi_tinggi']->value ?? 1.40), 2, '.', '') }}</span>x</div>
                         <div class="stat-label">Rentang Pengali Urgensi</div>
                     </div>
                 </div>
@@ -516,7 +516,7 @@
                                 <i class="fa-solid fa-money-bill-wave" style="color:#10b981;"></i>
                                 Tarif Per KM Tambahan (Rp)
                             </label>
-                            <input type="number" min="0" step="100" class="field-input" id="tarif_per_km" name="tarif_per_km" value="{{ $rules['tarif_per_km']->value ?? '2500' }}" required>
+                            <input type="number" min="0" step="100" class="field-input" id="tarif_per_km" name="tarif_per_km" value="{{ $rules['tarif_per_km']->value ?? '2500' }}" oninput="updateSummaryCards()" required>
                             <span class="field-hint">Dikenakan untuk setiap km setelah melewati batas gratis.</span>
                         </div>
 
@@ -534,7 +534,7 @@
                                 <i class="fa-solid fa-circle-notch" style="color:#ef4444;"></i>
                                 Radius Maksimal Layanan (km)
                             </label>
-                            <input type="number" min="1" max="100" step="0.5" class="field-input" id="radius_maksimal_km" name="radius_maksimal_km" value="{{ $rules['radius_maksimal_km']->value ?? '15.0' }}" required>
+                            <input type="number" min="1" max="100" step="0.5" class="field-input" id="radius_maksimal_km" name="radius_maksimal_km" value="{{ $rules['radius_maksimal_km']->value ?? '15.0' }}" oninput="updateSummaryCards()" required>
                             <span class="field-hint">Lokasi di luar radius ini akan ditolak otomatis oleh sistem.</span>
                         </div>
                     </div>
@@ -613,7 +613,7 @@
                     <div class="form-grid">
                         <div class="field-group">
                             <label class="field-label" for="faktor_urgensi_rendah">Urgensi Normal (Pengali)</label>
-                            <input type="number" step="0.05" min="1" class="field-input" id="faktor_urgensi_rendah" name="faktor_urgensi_rendah" value="{{ $rules['faktor_urgensi_rendah']->value ?? '1.00' }}" required>
+                            <input type="number" step="0.05" min="1" class="field-input" id="faktor_urgensi_rendah" name="faktor_urgensi_rendah" value="{{ $rules['faktor_urgensi_rendah']->value ?? '1.00' }}" oninput="updateSummaryCards()" required>
                             <span class="field-hint">Tarif normal standar (1.00).</span>
                         </div>
 
@@ -625,7 +625,7 @@
 
                         <div class="field-group">
                             <label class="field-label" for="faktor_urgensi_tinggi">Urgensi Darurat (Pengali)</label>
-                            <input type="number" step="0.05" min="1" class="field-input" id="faktor_urgensi_tinggi" name="faktor_urgensi_tinggi" value="{{ $rules['faktor_urgensi_tinggi']->value ?? '1.40' }}" required>
+                            <input type="number" step="0.05" min="1" class="field-input" id="faktor_urgensi_tinggi" name="faktor_urgensi_tinggi" value="{{ $rules['faktor_urgensi_tinggi']->value ?? '1.40' }}" oninput="updateSummaryCards()" required>
                             <span class="field-hint">+40% dispatch segera dalam antrian prioritas.</span>
                         </div>
 
@@ -706,6 +706,45 @@
         document.getElementById('pricingForm').requestSubmit();
     }
 
+    function formatRupiah(number) {
+        return new Intl.NumberFormat('id-ID').format(number);
+    }
+
+    // ==========================================
+    // UPDATE REAL-TIME SUMMARY CARDS ATAS
+    // ==========================================
+    function updateSummaryCards() {
+        // 1. Radius Maksimal (KM)
+        const radiusEl = document.getElementById('radius_maksimal_km');
+        const summaryRadius = document.getElementById('summaryRadius');
+        if (radiusEl && summaryRadius) {
+            const val = parseFloat(radiusEl.value);
+            summaryRadius.innerText = !isNaN(val) ? val.toFixed(1) : '15.0';
+        }
+
+        // 2. Tarif Tambahan Per KM (Rp)
+        const tarifEl = document.getElementById('tarif_per_km');
+        const summaryTarif = document.getElementById('summaryTarif');
+        if (tarifEl && summaryTarif) {
+            const val = parseInt(tarifEl.value, 10);
+            summaryTarif.innerText = !isNaN(val) ? formatRupiah(val) : '2.500';
+        }
+
+        // 3. Rentang Pengali Urgensi (x - x)
+        const urgensiRendahEl = document.getElementById('faktor_urgensi_rendah');
+        const urgensiTinggiEl = document.getElementById('faktor_urgensi_tinggi');
+        const summaryUrgensiRendah = document.getElementById('summaryUrgensiRendah');
+        const summaryUrgensiTinggi = document.getElementById('summaryUrgensiTinggi');
+        if (urgensiRendahEl && summaryUrgensiRendah) {
+            const val = parseFloat(urgensiRendahEl.value);
+            summaryUrgensiRendah.innerText = !isNaN(val) ? val.toFixed(2) : '1.00';
+        }
+        if (urgensiTinggiEl && summaryUrgensiTinggi) {
+            const val = parseFloat(urgensiTinggiEl.value);
+            summaryUrgensiTinggi.innerText = !isNaN(val) ? val.toFixed(2) : '1.40';
+        }
+    }
+
     // ==========================================
     // VALIDASI TOTAL BOBOT (HARUS 1.00)
     // ==========================================
@@ -739,7 +778,10 @@
         }
     }
 
-    document.addEventListener('DOMContentLoaded', updateTotalWeight);
+    document.addEventListener('DOMContentLoaded', function() {
+        updateTotalWeight();
+        updateSummaryCards();
+    });
     </script>
 </body>
 </html>

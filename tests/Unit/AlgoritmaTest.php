@@ -27,6 +27,13 @@ class AlgoritmaTest extends TestCase
         $this->haversine = app(HaversineService::class);
         $this->pricing = app(PricingService::class);
         $this->scoring = app(WorkerScoringService::class);
+
+        // Pastikan parameter algoritma uji menggunakan nilai default standar
+        DB::table('pricing_rules')->updateOrInsert(['key' => 'tarif_per_km'], ['value' => '2500']);
+        DB::table('pricing_rules')->updateOrInsert(['key' => 'radius_maksimal_km'], ['value' => '15.0']);
+        DB::table('pricing_rules')->updateOrInsert(['key' => 'jarak_gratis_km'], ['value' => '5.0']);
+        DB::table('pricing_rules')->updateOrInsert(['key' => 'kecepatan_kmh'], ['value' => '30']);
+        $this->pricing->clearRulesCache();
     }
 
     /**

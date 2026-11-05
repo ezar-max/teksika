@@ -266,6 +266,8 @@
     display: flex;
     gap: 10px;
     margin-top: 5px;
+    align-items: center;
+    flex-wrap: wrap;
   }
   
   .btn-detail {
@@ -988,6 +990,425 @@
       max-width: 320px;
     }
   }
+
+  /* ========================================================
+     MODERN RATING & REVIEW SYSTEM (CLEAN MONOCHROME / UNCOLORED)
+     ======================================================== */
+  .btn-rating-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #ffffff;
+    color: #1e293b;
+    border: 1.5px solid #cbd5e1;
+    padding: 7px 16px;
+    border-radius: 10px;
+    font-size: 0.84rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .btn-rating-action i {
+    color: #f59e0b;
+    font-size: 0.95rem;
+    transition: transform 0.2s ease;
+  }
+
+  .btn-rating-action:hover {
+    background: #f8fafc;
+    color: #0f172a;
+    border-color: #94a3b8;
+    transform: translateY(-1.5px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  .btn-rating-action:hover i {
+    transform: scale(1.15);
+  }
+
+  /* Badge Ulasan Terkirim (Ketika Sudah Dinilai) */
+  .user-review-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    padding: 6px 14px;
+    border-radius: 12px;
+    font-size: 0.82rem;
+  }
+
+  .review-stars {
+    display: inline-flex;
+    gap: 2px;
+    font-size: 0.85rem;
+  }
+
+  .review-stars .star-active {
+    color: #f59e0b;
+  }
+
+  .review-stars .star-muted {
+    color: #cbd5e1;
+  }
+
+  .review-score {
+    font-weight: 800;
+    color: #b45309;
+    font-size: 0.85rem;
+  }
+
+  .review-status {
+    background: #f1f5f9;
+    color: #334155;
+    border: 1px solid #e2e8f0;
+    font-weight: 700;
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .review-snippet {
+    color: #64748b;
+    font-style: italic;
+    font-size: 0.8rem;
+    max-width: 220px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Dialog Modal Rating - Compact & Clean */
+  .dialog-rating {
+    max-width: 520px !important;
+    padding: 22px 24px !important;
+    border-radius: 20px !important;
+    box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  .rating-modal-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 14px;
+    position: relative;
+  }
+
+  .rating-header-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: #fffbeb;
+    border: 1.5px solid #fef3c7;
+    color: #f59e0b;
+    font-size: 1.15rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .rating-header-text {
+    flex: 1;
+    padding-right: 28px;
+  }
+
+  .rating-modal-title {
+    font-size: 1.18rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0 0 2px 0;
+    line-height: 1.2;
+  }
+
+  .rating-modal-subtitle {
+    font-size: 0.8rem;
+    color: #64748b;
+    line-height: 1.4;
+    margin: 0;
+  }
+
+  .rating-close-cross {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    background: #f1f5f9;
+    border: none;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    font-size: 1.25rem;
+    line-height: 1;
+    color: #64748b;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+  }
+
+  .rating-close-cross:hover {
+    background: #fee2e2;
+    color: #ef4444;
+  }
+
+  /* Kartu Teknisi dalam Modal */
+  .rating-worker-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+  }
+
+  .rating-worker-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #fffbeb;
+    border: 1px solid #fef3c7;
+    color: #f59e0b;
+    font-size: 1.05rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .rating-worker-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .rating-target-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+    color: #64748b;
+    display: block;
+  }
+
+  .rating-worker-name {
+    font-size: 0.96rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 1px 0 2px 0;
+  }
+
+  .rating-service-meta {
+    font-size: 0.78rem;
+    color: #0284c7;
+    font-weight: 600;
+  }
+
+  /* Box Bintang Interaktif - Tanpa Warna Kuning (Clean Neutral / Monochrome) */
+  .star-rating-box {
+    text-align: center;
+    margin-bottom: 14px;
+    padding: 14px 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+  }
+
+  .star-rating-label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 8px;
+  }
+
+  .interactive-stars {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .star-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 32px;
+    color: #cbd5e1;
+    padding: 3px;
+    transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), color 0.15s ease, filter 0.15s ease;
+    line-height: 1;
+  }
+
+  .star-btn:hover {
+    transform: scale(1.18);
+  }
+
+  /* Bintang saat dirating (active & hovered): langsung berwarna kuning/emas */
+  .star-btn.active {
+    color: #f59e0b;
+    filter: drop-shadow(0 2px 5px rgba(245, 158, 11, 0.3));
+  }
+
+  .star-btn.hovered {
+    color: #fbbf24 !important;
+    transform: scale(1.2);
+    filter: drop-shadow(0 3px 8px rgba(245, 158, 11, 0.4));
+  }
+
+  .star-feedback-text {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .feedback-badge {
+    background: #fef3c7;
+    border: 1px solid #fde68a;
+    color: #b45309;
+    font-size: 0.78rem;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 6px;
+  }
+
+  .feedback-desc {
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  /* Quick Praise Chips - Tanpa Icon Lain */
+  .rating-chips-box {
+    margin-bottom: 14px;
+  }
+
+  .rating-chips-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #475569;
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  .rating-chips-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .chip-item {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    color: #334155;
+    border-radius: 16px;
+    font-size: 0.76rem;
+    padding: 5px 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-family: inherit;
+  }
+
+  .chip-item:hover {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+    color: #0f172a;
+    transform: translateY(-1px);
+  }
+
+  /* Textarea */
+  .rating-textarea-box {
+    margin-bottom: 16px;
+  }
+
+  .rating-textarea-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #475569;
+    margin-bottom: 5px;
+    display: block;
+  }
+
+  .rating-textarea {
+    width: 100%;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-family: inherit;
+    font-size: 0.84rem;
+    resize: vertical;
+    min-height: 65px;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    background: #ffffff;
+    color: #1e293b;
+  }
+
+  .rating-textarea:focus {
+    outline: none;
+    border-color: #0284c7;
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12);
+  }
+
+  .textarea-counter {
+    font-size: 0.72rem;
+    color: #94a3b8;
+    text-align: right;
+    margin-top: 4px;
+  }
+
+  /* Actions */
+  .rating-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .btn-rating-cancel {
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    color: #475569;
+    padding: 8px 18px;
+    border-radius: 10px;
+    font-size: 0.84rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    font-family: inherit;
+  }
+
+  .btn-rating-cancel:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+  }
+
+  .btn-rating-submit {
+    background: #0284c7;
+    border: none;
+    color: #ffffff;
+    padding: 8px 22px;
+    border-radius: 10px;
+    font-size: 0.84rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+    font-family: inherit;
+  }
+
+  .btn-rating-submit:hover {
+    background: #0369a1;
+    transform: translateY(-1px);
+  }
 </style>
 </head>
 <body>
@@ -1260,14 +1681,23 @@
                                     </form>
                                 @endif
                                 @if($request->status === 'selesai' && !$request->review)
-                                  <form action="{{ route('bookinguser.ulasan', $request->id_request) }}" method="POST" style="display:flex;gap:6px;align-items:center;">
-                                    @csrf
-                                    <select name="rating" required aria-label="Rating worker"><option value="">Rating</option>@for($score = 5; $score >= 1; $score--)<option value="{{ $score }}">{{ $score }} bintang</option>@endfor</select>
-                                    <input type="text" name="ulasan" maxlength="2000" placeholder="Ulasan (opsional)" aria-label="Ulasan worker">
-                                    <button type="submit" class="btn-detail">Kirim Ulasan</button>
-                                  </form>
+                                    <button type="button" class="btn-rating-action" onclick="openRatingModal('{{ $request->id_request }}', '{{ addslashes($request->worker ? $request->worker->name : 'Teknisi TEKSIKA') }}', '{{ addslashes($request->layanan) }}', '{{ $request->kode_booking }}')">
+                                        <i class="fa-solid fa-star"></i>
+                                        <span>Beri Rating &amp; Ulasan</span>
+                                    </button>
                                 @elseif($request->review)
-                                  <span style="align-self:center;color:#166534;">Rating Anda: {{ $request->review->rating }}/5</span>
+                                    <div class="user-review-badge">
+                                        <div class="review-stars">
+                                            @for($s = 1; $s <= 5; $s++)
+                                                <i class="fa-solid fa-star {{ $s <= $request->review->rating ? 'star-active' : 'star-muted' }}"></i>
+                                            @endfor
+                                        </div>
+                                        <span class="review-score">{{ $request->review->rating }}.0</span>
+                                        <span class="review-status">Ulasan Terkirim</span>
+                                        @if($request->review->ulasan)
+                                            <span class="review-snippet" title="{{ $request->review->ulasan }}">“{{ \Illuminate\Support\Str::limit($request->review->ulasan, 40) }}”</span>
+                                        @endif
+                                    </div>
                                 @endif
                             </div>
                         </div>
@@ -1363,6 +1793,82 @@
             <div class="modal-actions">
                 <button class="btn" data-close="detail">Tutup</button>
             </div>
+        </div>
+    </div>
+    
+    <!-- ====== MODAL RATING & ULASAN TEKNISI ====== -->
+    <div class="modal" id="modalRating" aria-hidden="true">
+        <div class="backdrop" data-close="rating"></div>
+        <div class="dialog dialog-rating">
+            <div class="rating-modal-header">
+                <div class="rating-header-icon">
+                    <i class="fa-solid fa-star"></i>
+                </div>
+                <div class="rating-header-text">
+                    <h2 class="rating-modal-title">Beri Rating &amp; Ulasan</h2>
+                    <p class="rating-modal-subtitle">Bagikan penilaian performa kerja teknisi untuk menjaga kualitas layanan TEKSIKA.</p>
+                </div>
+                <button type="button" class="rating-close-cross" data-close="rating" aria-label="Tutup">&times;</button>
+            </div>
+
+            <form id="ratingForm" method="POST" action="">
+                @csrf
+                <!-- Kartu Ringkasan Teknisi -->
+                <div class="rating-worker-card">
+                    <div class="rating-worker-avatar">
+                        <i class="fa-solid fa-star"></i>
+                    </div>
+                    <div class="rating-worker-info">
+                        <span class="rating-target-label">Teknisi Bertugas</span>
+                        <h4 class="rating-worker-name" id="ratingWorkerName">Nama Teknisi</h4>
+                        <div class="rating-service-meta">
+                            <span id="ratingServiceTitle">Layanan</span> &bull; <span id="ratingBookingCode">BK-000</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bintang Interaktif (Tanpa Warna Kuning, Hanya Ikon Bintang) -->
+                <div class="star-rating-box">
+                    <label class="star-rating-label">Bagaimana kepuasan hasil pengerjaan?</label>
+                    <div class="interactive-stars" id="interactiveStars">
+                        <input type="hidden" name="rating" id="ratingValue" value="5" required>
+                        <button type="button" class="star-btn active" data-rating="1" title="1 Bintang"><i class="fa-solid fa-star"></i></button>
+                        <button type="button" class="star-btn active" data-rating="2" title="2 Bintang"><i class="fa-solid fa-star"></i></button>
+                        <button type="button" class="star-btn active" data-rating="3" title="3 Bintang"><i class="fa-solid fa-star"></i></button>
+                        <button type="button" class="star-btn active" data-rating="4" title="4 Bintang"><i class="fa-solid fa-star"></i></button>
+                        <button type="button" class="star-btn active" data-rating="5" title="5 Bintang"><i class="fa-solid fa-star"></i></button>
+                    </div>
+                    <div class="star-feedback-text">
+                        <span class="feedback-badge" id="feedbackBadge">5.0 / 5.0</span>
+                        <span class="feedback-desc" id="feedbackDesc">Sangat Puas</span>
+                    </div>
+                </div>
+
+                <!-- Pilihan Pujian Cepat (Tanpa Ikon Lain) -->
+                <div class="rating-chips-box">
+                    <label class="rating-chips-label">Pujian cepat (klik untuk menambahkan):</label>
+                    <div class="rating-chips-list">
+                        <button type="button" class="chip-item" onclick="appendReviewTag('Pekerjaan sangat rapi &amp; teliti')">Pekerjaan Rapi &amp; Teliti</button>
+                        <button type="button" class="chip-item" onclick="appendReviewTag('Datang tepat waktu')">Datang Tepat Waktu</button>
+                        <button type="button" class="chip-item" onclick="appendReviewTag('Teknisi ramah dan komunikatif')">Ramah &amp; Komunikatif</button>
+                        <button type="button" class="chip-item" onclick="appendReviewTag('Pengerjaan cepat &amp; solutif')">Pengerjaan Cepat</button>
+                        <button type="button" class="chip-item" onclick="appendReviewTag('Sangat profesional')">Sangat Profesional</button>
+                    </div>
+                </div>
+
+                <!-- Kolom Ulasan Teks -->
+                <div class="rating-textarea-box">
+                    <label class="rating-textarea-label" for="ratingComment">Ulasan Anda (Opsional):</label>
+                    <textarea name="ulasan" id="ratingComment" class="rating-textarea" rows="3" maxlength="2000" placeholder="Ceritakan pengalaman Anda mengenai hasil perbaikan, keahlian teknisi, atau saran lainnya..." oninput="updateReviewCharCount()"></textarea>
+                    <div class="textarea-counter"><span id="reviewCharCount">0</span>/2000 karakter</div>
+                </div>
+
+                <!-- Tombol Aksi (Tanpa Ikon Lain) -->
+                <div class="rating-modal-actions">
+                    <button type="button" class="btn-rating-cancel" data-close="rating">Batal</button>
+                    <button type="submit" class="btn-rating-submit">Kirim Ulasan</button>
+                </div>
+            </form>
         </div>
     </div>
     
@@ -1582,6 +2088,139 @@
             }
         } catch(e) { /* ignore */ }
     })();
+
+    // ==========================================
+    // LOGIKA MODAL RATING & ULASAN TEKNISI
+    // ==========================================
+    const starDescriptions = {
+        1: { badge: '1.0 / 5.0', desc: 'Sangat Kecewa' },
+        2: { badge: '2.0 / 5.0', desc: 'Kurang Puas' },
+        3: { badge: '3.0 / 5.0', desc: 'Cukup Baik' },
+        4: { badge: '4.0 / 5.0', desc: 'Puas' },
+        5: { badge: '5.0 / 5.0', desc: 'Sangat Puas' }
+    };
+
+    function setStarRating(rating) {
+        const r = Math.max(1, Math.min(5, parseInt(rating, 10) || 5));
+        const ratingInput = document.getElementById('ratingValue');
+        if (ratingInput) ratingInput.value = r;
+
+        const starBtns = document.querySelectorAll('#interactiveStars .star-btn');
+        starBtns.forEach(btn => {
+            const btnVal = parseInt(btn.dataset.rating, 10);
+            if (btnVal <= r) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+
+        const info = starDescriptions[r] || starDescriptions[5];
+        const badgeEl = document.getElementById('feedbackBadge');
+        const descEl = document.getElementById('feedbackDesc');
+        if (badgeEl) badgeEl.textContent = info.badge;
+        if (descEl) descEl.textContent = info.desc;
+    }
+
+    function openRatingModal(requestId, workerName, serviceTitle, bookingCode) {
+        const modal = document.getElementById('modalRating');
+        const form = document.getElementById('ratingForm');
+        if (!modal || !form) return;
+
+        form.action = `/booking-user/${requestId}/ulasan`;
+        document.getElementById('ratingWorkerName').textContent = workerName || 'Teknisi TEKSIKA';
+        document.getElementById('ratingServiceTitle').textContent = serviceTitle || 'Layanan';
+        document.getElementById('ratingBookingCode').textContent = bookingCode || '';
+
+        // Reset star to 5 by default
+        setStarRating(5);
+        const commentEl = document.getElementById('ratingComment');
+        if (commentEl) commentEl.value = '';
+        updateReviewCharCount();
+
+        modal.classList.add('open');
+    }
+
+    function closeRatingModal() {
+        const modal = document.getElementById('modalRating');
+        if (modal) modal.classList.remove('open');
+    }
+
+    document.querySelectorAll('[data-close="rating"]').forEach(el => {
+        el.addEventListener('click', closeRatingModal);
+    });
+
+    window.addEventListener('click', function(e) {
+        const modal = document.getElementById('modalRating');
+        if (modal && e.target === modal) {
+            modal.classList.remove('open');
+        }
+    });
+
+    window.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const modalRating = document.getElementById('modalRating');
+            if (modalRating && modalRating.classList.contains('open')) {
+                modalRating.classList.remove('open');
+            }
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const starBtns = document.querySelectorAll('#interactiveStars .star-btn');
+        starBtns.forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                setStarRating(this.dataset.rating);
+            });
+
+            btn.addEventListener('mouseenter', function() {
+                const hoverVal = parseInt(this.dataset.rating, 10);
+                starBtns.forEach(b => {
+                    if (parseInt(b.dataset.rating, 10) <= hoverVal) {
+                        b.classList.add('hovered');
+                    } else {
+                        b.classList.remove('hovered');
+                    }
+                });
+                const info = starDescriptions[hoverVal];
+                if (info) {
+                    const badgeEl = document.getElementById('feedbackBadge');
+                    const descEl = document.getElementById('feedbackDesc');
+                    if (badgeEl) badgeEl.textContent = info.badge;
+                    if (descEl) descEl.textContent = info.desc;
+                }
+            });
+
+            btn.addEventListener('mouseleave', function() {
+                starBtns.forEach(b => b.classList.remove('hovered'));
+                const currentRating = document.getElementById('ratingValue') ? document.getElementById('ratingValue').value : 5;
+                setStarRating(currentRating);
+            });
+        });
+    });
+
+    function appendReviewTag(tagText) {
+        const commentEl = document.getElementById('ratingComment');
+        if (!commentEl) return;
+        const currentText = commentEl.value.trim();
+        if (currentText.includes(tagText)) return;
+        if (currentText === '') {
+            commentEl.value = tagText + '. ';
+        } else {
+            commentEl.value = currentText + ', ' + tagText.toLowerCase() + '. ';
+        }
+        updateReviewCharCount();
+        commentEl.focus();
+    }
+
+    function updateReviewCharCount() {
+        const commentEl = document.getElementById('ratingComment');
+        const counterEl = document.getElementById('reviewCharCount');
+        if (commentEl && counterEl) {
+            counterEl.textContent = commentEl.value.length;
+        }
+    }
     </script>
     
     @if(session('success'))
