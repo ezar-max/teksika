@@ -521,15 +521,6 @@
                         </div>
 
                         <div class="field-group">
-                            <label class="field-label" for="kecepatan_kmh">
-                                <i class="fa-solid fa-gauge-high" style="color:#f59e0b;"></i>
-                                Estimasi Kecepatan Tempuh (km/jam)
-                            </label>
-                            <input type="number" min="10" max="100" class="field-input" id="kecepatan_kmh" name="kecepatan_kmh" value="{{ $rules['kecepatan_kmh']->value ?? '30' }}" required>
-                            <span class="field-hint">Standar lalu lintas dalam kota = 30 km/jam (~2 menit per km).</span>
-                        </div>
-
-                        <div class="field-group">
                             <label class="field-label" for="radius_maksimal_km">
                                 <i class="fa-solid fa-circle-notch" style="color:#ef4444;"></i>
                                 Radius Maksimal Layanan (km)
@@ -549,7 +540,7 @@
                             </div>
                             <div>
                                 <h3 class="card-title">Bobot Algoritma Rekomendasi (Weighted Scoring)</h3>
-                                <p class="card-desc">Total penjumlahan keempat bobot kriteria harus bernilai tepat <b>1.00 (100%)</b>.</p>
+                                <p class="card-desc">Total penjumlahan kedua bobot kriteria harus bernilai tepat <b>1.00 (100%)</b>.</p>
                             </div>
                         </div>
                         <div id="weightBadge" class="weight-badge valid">
@@ -559,20 +550,11 @@
 
                     <div class="form-grid">
                         <div class="field-group">
-                            <label class="field-label" for="bobot_jarak">
-                                <i class="fa-solid fa-location-dot" style="color:#007bff;"></i>
-                                Bobot Jarak Kantor (0 - 1)
-                            </label>
-                            <input type="number" step="0.01" min="0" max="1" class="field-input weight-input" id="bobot_jarak" name="bobot_jarak" value="{{ $rules['bobot_jarak']->value ?? '0.25' }}" oninput="updateTotalWeight()" required>
-                            <span class="field-hint">Tingkat pengaruh kedekatan lokasi terhadap prioritas penugasan.</span>
-                        </div>
-
-                        <div class="field-group">
                             <label class="field-label" for="bobot_rating">
                                 <i class="fa-solid fa-star" style="color:#f59e0b;"></i>
                                 Bobot Rating User (0 - 1)
                             </label>
-                            <input type="number" step="0.01" min="0" max="1" class="field-input weight-input" id="bobot_rating" name="bobot_rating" value="{{ $rules['bobot_rating']->value ?? '0.15' }}" oninput="updateTotalWeight()" required>
+                            <input type="number" step="0.01" min="0" max="1" class="field-input weight-input" id="bobot_rating" name="bobot_rating" value="{{ $rules['bobot_rating']->value ?? '0.50' }}" oninput="updateTotalWeight()" required>
                             <span class="field-hint">Prioritas kepuasan pelanggan dan skor ulasan tukang.</span>
                         </div>
 
@@ -581,17 +563,8 @@
                                 <i class="fa-solid fa-award" style="color:#10b981;"></i>
                                 Bobot Pengalaman Kerja (0 - 1)
                             </label>
-                            <input type="number" step="0.01" min="0" max="1" class="field-input weight-input" id="bobot_pengalaman" name="bobot_pengalaman" value="{{ $rules['bobot_pengalaman']->value ?? '0.15' }}" oninput="updateTotalWeight()" required>
+                            <input type="number" step="0.01" min="0" max="1" class="field-input weight-input" id="bobot_pengalaman" name="bobot_pengalaman" value="{{ $rules['bobot_pengalaman']->value ?? '0.50' }}" oninput="updateTotalWeight()" required>
                             <span class="field-hint">Prioritas jam terbang dan tahun kerja aktif teknisi.</span>
-                        </div>
-
-                        <div class="field-group">
-                            <label class="field-label" for="bobot_beban_kerja">
-                                <i class="fa-solid fa-briefcase" style="color:#6366f1;"></i>
-                                Bobot Beban Kerja (0 - 1)
-                            </label>
-                            <input type="number" step="0.01" min="0" max="1" class="field-input weight-input" id="bobot_beban_kerja" name="bobot_beban_kerja" value="{{ $rules['bobot_beban_kerja']->value ?? '0.45' }}" oninput="updateTotalWeight()" required>
-                            <span class="field-hint">Distribusi tugas adil ke tukang dengan beban kerja lebih sedikit.</span>
                         </div>
                     </div>
                 </div>
@@ -749,12 +722,10 @@
     // VALIDASI TOTAL BOBOT (HARUS 1.00)
     // ==========================================
     function updateTotalWeight() {
-        const j = parseFloat(document.getElementById('bobot_jarak').value) || 0;
-        const r = parseFloat(document.getElementById('bobot_rating').value) || 0;
-        const p = parseFloat(document.getElementById('bobot_pengalaman').value) || 0;
-        const b = parseFloat(document.getElementById('bobot_beban_kerja').value) || 0;
+        const r = parseFloat(document.getElementById('bobot_rating')?.value) || 0;
+        const p = parseFloat(document.getElementById('bobot_pengalaman')?.value) || 0;
 
-        const total = Math.round((j + r + p + b) * 100) / 100;
+        const total = Math.round((r + p) * 100) / 100;
         const badge = document.getElementById('weightBadge');
         const text = document.getElementById('weightTotalText');
         const summaryText = document.getElementById('summaryTotalBobot');

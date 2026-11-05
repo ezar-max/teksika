@@ -44,12 +44,9 @@ class PricingRuleAdminTest extends TestCase
         $payload = [
             'jarak_gratis_km' => '6.5',
             'tarif_per_km' => '3500',
-            'kecepatan_kmh' => '35',
             'radius_maksimal_km' => '20.0',
-            'bobot_jarak' => '0.30',
-            'bobot_rating' => '0.20',
-            'bobot_pengalaman' => '0.20',
-            'bobot_beban_kerja' => '0.30',
+            'bobot_rating' => '0.60',
+            'bobot_pengalaman' => '0.40',
             'faktor_urgensi_rendah' => '1.00',
             'faktor_urgensi_sedang' => '1.25',
             'faktor_urgensi_tinggi' => '1.50',
@@ -78,8 +75,13 @@ class PricingRuleAdminTest extends TestCase
         ]);
 
         $this->assertDatabaseHas('pricing_rules', [
-            'key' => 'bobot_jarak',
-            'value' => '0.30',
+            'key' => 'bobot_rating',
+            'value' => '0.60',
+        ]);
+
+        $this->assertDatabaseHas('pricing_rules', [
+            'key' => 'bobot_pengalaman',
+            'value' => '0.40',
         ]);
 
         // Verifikasi pada halaman index bahwa nilai yang baru tersimpan muncul di kartu atas
@@ -95,10 +97,8 @@ class PricingRuleAdminTest extends TestCase
     public function test_update_fails_if_total_weights_not_equal_one(): void
     {
         $payload = [
-            'bobot_jarak' => '0.50',
-            'bobot_rating' => '0.50',
-            'bobot_pengalaman' => '0.50',
-            'bobot_beban_kerja' => '0.50', // total 2.00 != 1.00
+            'bobot_rating' => '0.70',
+            'bobot_pengalaman' => '0.50', // total 1.20 != 1.00
         ];
 
         $response = $this->withSession(['role' => 'admin'])

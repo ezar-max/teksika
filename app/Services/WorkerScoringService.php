@@ -61,14 +61,10 @@ class WorkerScoringService
             return [];
         }
 
-        $wJarak = (float) ($rules['bobot_jarak'] ?? 0.25);
-        $wRating = (float) ($rules['bobot_rating'] ?? 0.15);
-        $wPengalaman = (float) ($rules['bobot_pengalaman'] ?? 0.15);
-        $wBeban = (float) ($rules['bobot_beban_kerja'] ?? 0.45);
+        $wRating = (float) ($rules['bobot_rating'] ?? 0.50);
+        $wPengalaman = (float) ($rules['bobot_pengalaman'] ?? 0.50);
 
-        // Normalisasi Skor Jarak (Cost Criterion):
-        // Makin dekat rumah user ke kantor pusat, nilai makin mendekati 1.
-        // Catatan: Karena dihitung dari kantor pusat, nilai ini sama untuk seluruh kandidat tukang.
+        // Normalisasi Skor Jarak (Cost Criterion) untuk informasi radius
         $skorJarak = max(0.0, 1.0 - ($jarakKantorKm / $radiusMax));
 
         $reviewStats = DB::table('worker_reviews')
@@ -135,11 +131,9 @@ class WorkerScoringService
             // c. Beban Kerja (Cost Criterion): Maksimal patokan 5 job aktif (makin sedikit makin tinggi nilainya)
             $skorBeban = max(0.0, 1.0 - min(1.0, $jobAktif / 5.0));
 
-            // 5. Hitung Skor Akhir (Weighted Sum)
-            $skorTotal = ($wJarak * $skorJarak) +
-                         ($wRating * $skorRating) +
-                         ($wPengalaman * $skorPengalaman) +
-                         ($wBeban * $skorBeban);
+            // 5. Hitung Skor Akhir (Weighted Sum berbasis Rating & Pengalaman)
+            $skorTotal = ($wRating * $skorRating) +
+                         ($wPengalaman * $skorPengalaman);
 
             $candidates[] = [
                 'worker' => $worker,

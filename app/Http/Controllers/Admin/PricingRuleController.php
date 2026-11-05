@@ -33,19 +33,21 @@ class PricingRuleController extends Controller
         $inputs = $request->except(['_token', '_method']);
 
         // 1. Validasi Total Bobot (Harus bernilai 1.00)
-        $bJarak = (float) str_replace(',', '.', (string) ($inputs['bobot_jarak'] ?? 0));
         $bRating = (float) str_replace(',', '.', (string) ($inputs['bobot_rating'] ?? 0));
         $bPengalaman = (float) str_replace(',', '.', (string) ($inputs['bobot_pengalaman'] ?? 0));
-        $bBeban = (float) str_replace(',', '.', (string) ($inputs['bobot_beban_kerja'] ?? 0));
 
-        $totalBobot = round($bJarak + $bRating + $bPengalaman + $bBeban, 4);
+        $totalBobot = round($bRating + $bPengalaman, 4);
 
         if (abs($totalBobot - 1.00) > 0.001) {
             return back()->withInput()->with(
                 'error',
-                "Total bobot rekomendasi tukang harus bernilai tepat 1,00 (100%). Saat ini total: {$totalBobot} (Jarak: {$bJarak}, Rating: {$bRating}, Pengalaman: {$bPengalaman}, Beban: {$bBeban})."
+                "Total bobot rekomendasi tukang harus bernilai tepat 1,00 (100%). Saat ini total: {$totalBobot} (Rating: {$bRating}, Pengalaman: {$bPengalaman})."
             );
         }
+
+        // Hapus parameter kecepatan_kmh, bobot_jarak, dan bobot_beban_kerja jika ada
+        unset($inputs['kecepatan_kmh'], $inputs['bobot_jarak'], $inputs['bobot_beban_kerja']);
+        DB::table('pricing_rules')->whereIn('key', ['kecepatan_kmh', 'bobot_jarak', 'bobot_beban_kerja'])->delete();
 
         // 2. Simpan setiap aturan ke tabel pricing_rules (update atau insert jika belum ada)
         foreach ($inputs as $key => $value) {

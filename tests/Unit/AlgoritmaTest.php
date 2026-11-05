@@ -32,7 +32,9 @@ class AlgoritmaTest extends TestCase
         DB::table('pricing_rules')->updateOrInsert(['key' => 'tarif_per_km'], ['value' => '2500']);
         DB::table('pricing_rules')->updateOrInsert(['key' => 'radius_maksimal_km'], ['value' => '15.0']);
         DB::table('pricing_rules')->updateOrInsert(['key' => 'jarak_gratis_km'], ['value' => '5.0']);
-        DB::table('pricing_rules')->updateOrInsert(['key' => 'kecepatan_kmh'], ['value' => '30']);
+        DB::table('pricing_rules')->updateOrInsert(['key' => 'bobot_rating'], ['value' => '0.50']);
+        DB::table('pricing_rules')->updateOrInsert(['key' => 'bobot_pengalaman'], ['value' => '0.50']);
+        DB::table('pricing_rules')->whereIn('key', ['bobot_jarak', 'bobot_beban_kerja', 'kecepatan_kmh'])->delete();
         $this->pricing->clearRulesCache();
     }
 
