@@ -679,7 +679,97 @@ textarea.form-control {
   font-size: 0.72rem;
 }
 
-/* Address Fields Sub-Grid */
+/* Address Fields Sub-Grid & Single Location Input */
+.location-search-box-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.location-search-box-wrapper .search-icon {
+  position: absolute;
+  left: 14px;
+  color: #1856a7;
+  font-size: 1rem;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.location-single-input {
+  padding-left: 40px !important;
+  padding-right: 38px !important;
+  font-size: 0.92rem !important;
+  font-weight: 500;
+  border-radius: var(--radius-inner) !important;
+  border: 1.5px solid var(--border-color) !important;
+  background: #ffffff !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.location-single-input:focus {
+  border-color: #007bff !important;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15) !important;
+}
+
+.btn-clear-location {
+  position: absolute;
+  right: 10px;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 1.15rem;
+  cursor: pointer;
+  padding: 4px 6px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: color 0.15s, background-color 0.15s;
+  z-index: 2;
+}
+
+.btn-clear-location:hover {
+  color: #ef4444;
+  background: #fee2e2;
+}
+
+.location-status-caption {
+  font-size: 0.78rem;
+  color: #64748b;
+  margin-top: 6px;
+  line-height: 1.45;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.location-status-caption i {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+/* Style Google Places Autocomplete dropdown */
+.pac-container {
+  z-index: 10000 !important;
+  border-radius: 12px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e2e8f0;
+  font-family: inherit;
+  margin-top: 4px;
+}
+
+.pac-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 0.88rem;
+}
+
+.pac-item:hover {
+  background-color: #f1f5f9;
+}
+
 .address-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

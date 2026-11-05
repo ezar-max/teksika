@@ -69,6 +69,136 @@ function calculateStraightLineKm(lat1, lon1, lat2, lon2) {
     return Math.round(6371 * c * 100) / 100;
 }
 
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text || '';
+    return div.innerHTML;
+}
+
+function handleLocationQueryInput(val) {
+    const q = (val || '').trim();
+    const clearBtn = document.getElementById('btnClearLocation');
+    if (clearBtn) clearBtn.style.display = q ? 'inline-flex' : 'none';
+
+    if (!q) {
+        clearTimeout(addressGeocodeDebounce);
+        addressGeocodeSequence++;
+        lastAddressGeocodeKey = '';
+        const status = document.getElementById('addressStatus');
+        if (status) {
+            status.innerHTML = '<i class="fa-solid fa-circle-info" style="color:#64748b;"></i> Ketik alamat atau nama lokasi untuk mengarahkan titik di peta secara otomatis.';
+        }
+        return;
+    }
+
+    clearTimeout(addressGeocodeDebounce);
+    addressGeocodeDebounce = setTimeout(function () {
+        lookupCoordinatesFromQuery(q);
+    }, 450);
+}
+
+function clearLocationInput() {
+    const input = document.getElementById('lokasiInput');
+    if (input) {
+        input.value = '';
+        input.focus();
+    }
+    handleLocationQueryInput('');
+}
+
+function lookupCoordinatesFromQuery(query) {
+    const q = (query || '').trim();
+    if (q.length < 3) return;
+
+    const addressKey = q.toLowerCase();
+    if (addressKey === lastAddressGeocodeKey) return;
+
+    clearTimeout(addressGeocodeDebounce);
+    const sequence = ++addressGeocodeSequence;
+    lastAddressGeocodeKey = addressKey;
+
+    const status = document.getElementById('addressStatus');
+    if (status) {
+        status.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="color:#007bff;"></i> Mencari titik lokasi di peta...';
+    }
+
+    // 1. Client-side Google Geocoder jika engine Google Maps aktif
+    if (activeMapEngine === 'google' && window.google && window.google.maps && window.google.maps.Geocoder) {
+        try {
+            const gGeocoder = new google.maps.Geocoder();
+            gGeocoder.geocode({
+                address: q,
+                componentRestrictions: { country: 'ID' }
+            }, function (results, gStatus) {
+                if (sequence !== addressGeocodeSequence) return;
+                if (gStatus === 'OK' && results && results[0] && results[0].geometry && results[0].geometry.location) {
+                    const loc = results[0].geometry.location;
+                    setHomeLocation({
+                        lat: loc.lat(),
+                        lng: loc.lng()
+                    }, { clearAddress: false, lookupAddress: false, zoom: 16 });
+                    if (status) {
+                        const matchedAddress = results[0].formatted_address || q;
+                        status.innerHTML = `<i class="fa-solid fa-circle-check" style="color:#10b981;"></i> Titik peta diarahkan ke: <strong>${escapeHtml(matchedAddress)}</strong>. Lokasi ini digunakan sebagai alamat lengkap.`;
+                    }
+                    return;
+                }
+                fetchServerGeocode(q, sequence, status);
+            });
+            return;
+        } catch (e) {
+            // Lanjut ke server
+        }
+    }
+
+    fetchServerGeocode(q, sequence, status);
+}
+
+function fetchServerGeocode(query, sequence, status) {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')
+        ? document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        : (document.querySelector('input[name="_token"]') ? document.querySelector('input[name="_token"]').value : '');
+
+    fetch("{{ route('user.request.lokasi-alamat') }}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': csrfToken
+        },
+        body: JSON.stringify({ query: query })
+    })
+    .then(function (response) {
+        if (!response.ok) throw new Error('Titik alamat belum ditemukan.');
+        return response.json();
+    })
+    .then(function (data) {
+        if (sequence !== addressGeocodeSequence || !data.success) return;
+        setHomeLocation({
+            lat: data.location.latitude,
+            lng: data.location.longitude
+        }, { clearAddress: false, lookupAddress: false, zoom: 16 });
+        if (status) {
+            const placeName = data.location.display_name || query;
+            const provider = data.location.provider === 'google_maps'
+                ? 'Google Maps'
+                : (data.location.provider === 'photon' ? 'Photon OpenStreetMap' : 'OpenStreetMap');
+            status.innerHTML = `<i class="fa-solid fa-circle-check" style="color:#10b981;"></i> Titik peta diarahkan ke: <strong>${escapeHtml(placeName)}</strong> (${provider}). Lokasi ini digunakan sebagai alamat lengkap.`;
+        }
+    })
+    .catch(function () {
+        if (sequence === addressGeocodeSequence && status) {
+            lastAddressGeocodeKey = '';
+            status.innerHTML = '<i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b;"></i> Titik lokasi belum terdeteksi. Silakan ketik lebih detail atau geser pin merah pada peta.';
+        }
+    });
+}
+
+function lookupCoordinatesFromAddress(jalan, kecamatan, kabupaten) {
+    const full = [jalan, kecamatan, kabupaten].filter(Boolean).join(', ');
+    if (full) lookupCoordinatesFromQuery(full);
+}
+
 function syncLocationAddress(options = {}) {
     clearTimeout(addressLookupDebounce);
     addressLookupSequence++;
@@ -85,110 +215,22 @@ function syncLocationAddress(options = {}) {
     if (kabupaten) parts.push(kabupaten);
 
     const lokasiInput = document.getElementById('lokasiInput');
-    if (lokasiInput) lokasiInput.value = parts.join(', ');
-
-    if (options.lookupMap !== false) lookupCoordinatesFromAddress(jalan, kecamatan, kabupaten);
-}
-
-function lookupCoordinatesFromAddress(jalan, kecamatan, kabupaten) {
-    const status = document.getElementById('addressStatus');
-
-    if (!jalan && !kabupaten && !kecamatan) {
-        clearTimeout(addressGeocodeDebounce);
-        addressGeocodeSequence++;
-        lastAddressGeocodeKey = '';
-        if (status) status.innerHTML = '<i class="fa-solid fa-circle-info" style="color:#64748b;"></i> Masukkan nama jalan, kecamatan, atau kota untuk mengarahkan titik di peta secara otomatis.';
-        return;
+    if (lokasiInput && parts.length > 0) {
+        lokasiInput.value = parts.join(', ');
+        const clearBtn = document.getElementById('btnClearLocation');
+        if (clearBtn) clearBtn.style.display = 'inline-flex';
     }
 
-    const addressKey = [jalan || '', kecamatan || '', kabupaten || ''].join('|').toLowerCase();
-    if (addressKey === lastAddressGeocodeKey) return;
-    clearTimeout(addressGeocodeDebounce);
-    const sequence = ++addressGeocodeSequence;
-    lastAddressGeocodeKey = addressKey;
-    if (status) status.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="color:#007bff;"></i> Mencari titik lokasi di peta...';
-
-    addressGeocodeDebounce = setTimeout(function () {
-        const fullQuery = [jalan, kecamatan ? `Kecamatan ${kecamatan}` : '', kabupaten, 'Indonesia'].filter(Boolean).join(', ');
-
-        // 1. Coba pencarian langsung di client-side Google Maps jika Google Maps aktif dan Geocoder tersedia
-        if (activeMapEngine === 'google' && window.google && window.google.maps && window.google.maps.Geocoder) {
-            try {
-                const gGeocoder = new google.maps.Geocoder();
-                gGeocoder.geocode({
-                    address: fullQuery,
-                    componentRestrictions: { country: 'ID' }
-                }, function (results, gStatus) {
-                    if (sequence !== addressGeocodeSequence) return;
-                    if (gStatus === 'OK' && results && results[0] && results[0].geometry && results[0].geometry.location) {
-                        const loc = results[0].geometry.location;
-                        setHomeLocation({
-                            lat: loc.lat(),
-                            lng: loc.lng()
-                        }, { clearAddress: false, lookupAddress: false, zoom: 16 });
-                        if (status) {
-                            status.innerHTML = `<i class="fa-solid fa-circle-check" style="color:#10b981;"></i> Titik peta berhasil diarahkan otomatis ke alamat (Google Maps). Geser pin bila perlu menyesuaikan.`;
-                        }
-                        return;
-                    }
-                    // Jika client-side tidak menemukan, fallback ke backend server
-                    fetchServerGeocode(jalan, kecamatan, kabupaten, sequence, status);
-                });
-                return;
-            } catch (e) {
-                // Lewati ke fetch server
-            }
-        }
-
-        // 2. Gunakan backend endpoint (cascading Google -> Photon -> OpenStreetMap)
-        fetchServerGeocode(jalan, kecamatan, kabupaten, sequence, status);
-    }, 600);
-}
-
-function fetchServerGeocode(jalan, kecamatan, kabupaten, sequence, status) {
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')
-        ? document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-        : (document.querySelector('input[name="_token"]') ? document.querySelector('input[name="_token"]').value : '');
-
-    fetch("{{ route('user.request.lokasi-alamat') }}", {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'X-CSRF-TOKEN': csrfToken
-        },
-        body: JSON.stringify({ jalan: jalan, kecamatan: kecamatan, kabupaten: kabupaten })
-    })
-    .then(function (response) {
-        if (!response.ok) throw new Error('Titik alamat belum ditemukan.');
-        return response.json();
-    })
-    .then(function (data) {
-        if (sequence !== addressGeocodeSequence || !data.success) return;
-        setHomeLocation({
-            lat: data.location.latitude,
-            lng: data.location.longitude
-        }, { clearAddress: false, lookupAddress: false, zoom: 16 });
-        if (status) {
-            const provider = data.location.provider === 'google_maps'
-                ? 'Google Maps'
-                : (data.location.provider === 'photon' ? 'Photon OpenStreetMap' : 'OpenStreetMap');
-            status.innerHTML = `<i class="fa-solid fa-circle-check" style="color:#10b981;"></i> Titik peta berhasil diarahkan ke lokasi alamat (${provider}). Geser pin bila perlu menyesuaikan.`;
-        }
-    })
-    .catch(function () {
-        if (sequence === addressGeocodeSequence && status) {
-            lastAddressGeocodeKey = '';
-            status.innerHTML = '<i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b;"></i> Titik spesifik belum terdeteksi. Silakan lengkapi nama jalan/patokan atau geser pin merah pada peta.';
-        }
-    });
+    if (options.lookupMap !== false && parts.length > 0) {
+        lookupCoordinatesFromQuery(parts.join(', '));
+    }
 }
 
 function lookupAddressFromCoordinates(latitude, longitude) {
     clearTimeout(addressLookupDebounce);
     const sequence = ++addressLookupSequence;
     const status = document.getElementById('addressStatus');
-    if (status) status.innerText = 'Mencari jalan, kecamatan, dan kabupaten/kota dari titik peta...';
+    if (status) status.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="color:#007bff;"></i> Mencari alamat dari titik peta...';
 
     addressLookupDebounce = setTimeout(function () {
         const csrfToken = document.querySelector('meta[name="csrf-token"]') 
@@ -216,20 +258,33 @@ function lookupAddressFromCoordinates(latitude, longitude) {
             if (document.getElementById('alamatJalan')) document.getElementById('alamatJalan').value = address.jalan || '';
             if (document.getElementById('alamatRt')) document.getElementById('alamatRt').value = address.rt || '';
             if (document.getElementById('alamatRw')) document.getElementById('alamatRw').value = address.rw || '';
-            syncLocationAddress({ lookupMap: false });
+
+            const fullFormatted = address.formatted_address || [
+                address.jalan,
+                (address.rt || address.rw) ? [address.rt ? 'RT ' + address.rt : '', address.rw ? 'RW ' + address.rw : ''].filter(Boolean).join('/') : '',
+                address.kecamatan ? 'Kecamatan ' + address.kecamatan : '',
+                address.kabupaten
+            ].filter(Boolean).join(', ');
+
+            const lokasiInput = document.getElementById('lokasiInput');
+            if (lokasiInput && fullFormatted) {
+                lokasiInput.value = fullFormatted;
+                lastAddressGeocodeKey = fullFormatted.toLowerCase();
+                const clearBtn = document.getElementById('btnClearLocation');
+                if (clearBtn) clearBtn.style.display = 'inline-flex';
+            }
+
             if (status) {
                 const providerName = address.provider === 'google_maps' ? 'Google Maps' : 'OpenStreetMap';
-                status.innerText = address.rt && address.rw
-                    ? `Alamat lengkap termasuk RT/RW ditemukan dari ${providerName}.`
-                    : `Alamat wilayah ditemukan dari ${providerName}. RT/RW dapat dilengkapi manual.`;
+                status.innerHTML = `<i class="fa-solid fa-circle-check" style="color:#10b981;"></i> Alamat lengkap ditemukan dari ${providerName}. Lokasi ini digunakan untuk booking.`;
             }
         })
         .catch(function () {
             if (sequence === addressLookupSequence && status) {
-                status.innerText = 'Alamat otomatis tidak tersedia. Isi rincian alamat pada kolom di bawah.';
+                status.innerHTML = '<i class="fa-solid fa-circle-info" style="color:#64748b;"></i> Alamat otomatis tidak tersedia. Silakan ketik nama jalan / lokasi pada kolom alamat.';
             }
         });
-    }, 1200);
+    }, 1000);
 }
 
 function clearCurrentRouteLine() {
@@ -330,6 +385,44 @@ function initializeGoogleMap(homePoint) {
             setHomeLocation({ lat: event.latLng.lat(), lng: event.latLng.lng() });
         }
     });
+
+    if (window.google && window.google.maps && window.google.maps.places && window.google.maps.places.Autocomplete) {
+        try {
+            const inputEl = document.getElementById('lokasiInput');
+            if (inputEl && !inputEl._autocompleteInitialized) {
+                inputEl._autocompleteInitialized = true;
+                const autocomplete = new google.maps.places.Autocomplete(inputEl, {
+                    componentRestrictions: { country: 'id' },
+                    fields: ['geometry', 'name', 'formatted_address']
+                });
+                autocomplete.addListener('place_changed', function () {
+                    const place = autocomplete.getPlace();
+                    if (!place.geometry || !place.geometry.location) {
+                        lookupCoordinatesFromQuery(inputEl.value);
+                        return;
+                    }
+                    const loc = place.geometry.location;
+                    setHomeLocation({
+                        lat: loc.lat(),
+                        lng: loc.lng()
+                    }, { clearAddress: false, lookupAddress: false, zoom: 17 });
+
+                    const fullText = place.formatted_address || place.name || inputEl.value;
+                    inputEl.value = fullText;
+                    lastAddressGeocodeKey = fullText.toLowerCase();
+                    const clearBtn = document.getElementById('btnClearLocation');
+                    if (clearBtn) clearBtn.style.display = 'inline-flex';
+
+                    const status = document.getElementById('addressStatus');
+                    if (status) {
+                        status.innerHTML = `<i class="fa-solid fa-circle-check" style="color:#10b981;"></i> Titik peta diarahkan ke: <strong>${escapeHtml(fullText)}</strong>. Lokasi ini digunakan sebagai alamat lengkap.`;
+                    }
+                });
+            }
+        } catch (e) {
+            console.warn('Google Places Autocomplete init skipped:', e);
+        }
+    }
 }
 
 function initializeLeafletFallbackMap() {
@@ -732,11 +825,26 @@ document.addEventListener('DOMContentLoaded', function () {
     triggerEstimasi();
     const initLat = document.getElementById('latInput') ? document.getElementById('latInput').value : '';
     const initLon = document.getElementById('lonInput') ? document.getElementById('lonInput').value : '';
-    const initKecamatan = document.getElementById('alamatKecamatan') ? document.getElementById('alamatKecamatan').value.trim() : '';
-    const initJalan = document.getElementById('alamatJalan') ? document.getElementById('alamatJalan').value.trim() : '';
-    if (initLat && initLon && (!initKecamatan || !initJalan)) {
+    const lokasiInput = document.getElementById('lokasiInput');
+    const initVal = lokasiInput ? lokasiInput.value.trim() : '';
+
+    if (lokasiInput) {
+        if (initVal) {
+            const clearBtn = document.getElementById('btnClearLocation');
+            if (clearBtn) clearBtn.style.display = 'inline-flex';
+        }
+        lokasiInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                lookupCoordinatesFromQuery(this.value);
+            }
+        });
+    }
+
+    if (initLat && initLon && !initVal) {
         lookupAddressFromCoordinates(initLat, initLon);
     }
+
     window.addEventListener('resize', function() {
         if (activeMapEngine === 'leaflet' && requestMap && typeof requestMap.invalidateSize === 'function') {
             requestMap.invalidateSize();

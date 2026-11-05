@@ -82,24 +82,33 @@ class ServiceRequestController extends Controller
     public function locateAddress(Request $request, OpenStreetMapGeocodingService $geocoder)
     {
         $validated = $request->validate([
+            'query' => 'nullable|string|max:255',
             'kabupaten' => 'nullable|string|max:100',
             'kecamatan' => 'nullable|string|max:100',
             'jalan' => 'nullable|string|max:120',
         ]);
 
+        $query = trim($validated['query'] ?? '');
         $jalan = trim($validated['jalan'] ?? '');
         $kecamatan = trim($validated['kecamatan'] ?? '');
         $kabupaten = trim($validated['kabupaten'] ?? '');
 
-        if ($jalan === '' && $kecamatan === '' && $kabupaten === '') {
+        if ($query === '' && $jalan === '' && $kecamatan === '' && $kabupaten === '') {
             return response()->json([
                 'success' => false,
-                'message' => 'Lengkapi rincian alamat (nama jalan, kecamatan, atau kota/kabupaten).',
+                'message' => 'Lengkapi rincian alamat atau ketik lokasi yang dicari.',
             ], 422);
         }
 
         // Susun variasi query bertingkat (dari spesifik ke umum) agar peluang menemukan koordinat sangat tinggi
         $candidateQueries = [];
+
+        if ($query !== '') {
+            $candidateQueries[] = $query;
+            if (!preg_match('/\bindonesia\b/i', $query)) {
+                $candidateQueries[] = "{$query}, Indonesia";
+            }
+        }
 
         if ($jalan !== '') {
             if ($kecamatan !== '' && $kabupaten !== '') {
@@ -138,7 +147,7 @@ class ServiceRequestController extends Controller
         if ($location === null) {
             return response()->json([
                 'success' => false,
-                'message' => 'Titik alamat belum ditemukan. Coba lengkapi nama jalan atau geser pin peta secara manual.',
+                'message' => 'Titik alamat belum ditemukan. Coba ketik nama lokasi lebih spesifik atau geser pin peta.',
             ], 404);
         }
 

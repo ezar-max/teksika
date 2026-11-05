@@ -146,4 +146,41 @@ class PricingTransparencyTest extends TestCase
             ->assertSee('data-biaya-kerusakan="35000.00"', false)
             ->assertSee('Transparansi harga');
     }
+
+    public function test_locate_address_accepts_single_query_and_returns_location(): void
+    {
+        $user = User::create([
+            'name' => 'Locate Test User',
+            'email' => uniqid('locate-user-', true) . '@example.test',
+            'password' => Hash::make('password'),
+            'role' => 'customer',
+        ]);
+
+        \Illuminate\Support\Facades\Http::fake([
+            'nominatim.openstreetmap.org/search*' => \Illuminate\Support\Facades\Http::response([
+                [
+                    'lat' => '-6.365432',
+                    'lon' => '107.123456',
+                    'display_name' => 'GIIC Blok BB, Cikarang Pusat, Kabupaten Bekasi, Indonesia',
+                ],
+            ]),
+        ]);
+
+        \Illuminate\Support\Facades\Cache::flush();
+
+        $response = $this->actingAs($user, 'web')
+            ->postJson(route('user.request.lokasi-alamat'), [
+                'query' => 'GIIC Blok BB, Cikarang Pusat',
+            ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'success' => true,
+                'location' => [
+                    'latitude' => -6.365432,
+                    'longitude' => 107.123456,
+                    'display_name' => 'GIIC Blok BB, Cikarang Pusat, Kabupaten Bekasi, Indonesia',
+                ],
+            ]);
+    }
 }

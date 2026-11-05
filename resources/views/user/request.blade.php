@@ -25,7 +25,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     @if(config('services.google_maps.api_key'))
-    <script src="https://maps.googleapis.com/maps/api/js?key={{ urlencode(config('services.google_maps.api_key')) }}&libraries=geometry"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key={{ urlencode(config('services.google_maps.api_key')) }}&libraries=geometry,places"></script>
     @endif
 </head>
 <body>
@@ -392,41 +392,45 @@
                                 </div>
                                 <div class="request-card-title-group">
                                     <h2>Lokasi & Alamat Lengkap</h2>
-                                    <p>Isi kecamatan, kota, dan jalan untuk menampilkan titik lokasi di peta</p>
+                                    <p>Ketik alamat atau cari lokasi untuk mengarahkan peta otomatis</p>
                                 </div>
                             </div>
 
                             <!-- Partial Estimasi Algoritma Cerdas dan Google Maps -->
-                            <input type="hidden" id="lokasiInput" name="lokasi" value="{{ old('lokasi') }}">
                             @include('user.request._estimasi')
 
-                            <!-- Input Alamat Rinci -->
+                            <!-- 1 Kolom Alamat Lengkap & Pencarian Lokasi (Google Maps) -->
                             <div class="form-group" style="margin-top: 14px;">
-                                <label class="form-label">Rincian Wilayah & Alamat</label>
-                                <div class="address-grid">
-                                    <div>
-                                        <input type="text" id="alamatKabupaten" name="alamat_kabupaten" value="{{ old('alamat_kabupaten') }}" oninput="syncLocationAddress()" onchange="syncLocationAddress()" onblur="syncLocationAddress()" placeholder="Kabupaten / Kota" maxlength="100" class="form-control">
-                                    </div>
-                                    <div>
-                                        <input type="text" id="alamatKecamatan" name="alamat_kecamatan" value="{{ old('alamat_kecamatan') }}" oninput="syncLocationAddress()" onchange="syncLocationAddress()" onblur="syncLocationAddress()" placeholder="Kecamatan" maxlength="100" class="form-control">
-                                    </div>
+                                <label class="form-label" for="lokasiInput" style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span><i class="fa-solid fa-map-location-dot" style="color:#007bff; margin-right:5px;"></i> Alamat Lengkap</span>
+                                    <span style="font-size:0.75rem; font-weight:normal; color:#64748b;">(Otomatis cari di peta)</span>
+                                </label>
+                                <div class="location-search-box-wrapper">
+                                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                                    <input type="text" 
+                                           id="lokasiInput" 
+                                           name="lokasi" 
+                                           value="{{ old('lokasi', $user->alamat ?? '') }}" 
+                                           oninput="handleLocationQueryInput(this.value)" 
+                                           onchange="handleLocationQueryInput(this.value)" 
+                                           placeholder="Ketik alamat lengkap atau cari lokasi (contoh: GIIC Blok BB, Cikarang Pusat)..." 
+                                           class="form-control location-single-input" 
+                                           autocomplete="off" 
+                                           required>
+                                    <button type="button" id="btnClearLocation" class="btn-clear-location" title="Hapus teks" onclick="clearLocationInput()" style="{{ old('lokasi', $user->alamat ?? '') ? 'display:inline-flex;' : 'display:none;' }}">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
                                 </div>
-                                <div class="address-grid">
-                                    <div>
-                                        <input type="text" id="alamatJalan" name="alamat_jalan" value="{{ old('alamat_jalan') }}" oninput="syncLocationAddress()" onchange="syncLocationAddress()" onblur="syncLocationAddress()" placeholder="Nama Jalan / Gang / Patokan" maxlength="120" class="form-control">
-                                    </div>
-                                    <div class="address-rtrw-grid">
-                                        <div>
-                                            <input type="text" id="alamatRt" name="alamat_rt" value="{{ old('alamat_rt') }}" oninput="syncLocationAddress()" onchange="syncLocationAddress()" placeholder="RT" maxlength="5" class="form-control">
-                                        </div>
-                                        <div>
-                                            <input type="text" id="alamatRw" name="alamat_rw" value="{{ old('alamat_rw') }}" oninput="syncLocationAddress()" onchange="syncLocationAddress()" placeholder="RW" maxlength="5" class="form-control">
-                                        </div>
-                                    </div>
+                                <div id="addressStatus" class="location-status-caption">
+                                    <i class="fa-solid fa-circle-check" style="color:#10b981;"></i> Titik peta otomatis mengarah saat alamat diketik. Alamat yang dicari langsung menjadi alamat lengkap.
                                 </div>
-                                <div id="addressStatus" style="font-size:0.78rem; color:#64748b; margin-top:5px;">
-                                    <i class="fa-solid fa-circle-check" style="color:#10b981;"></i> Titik peta dicari otomatis setelah nama jalan dan kabupaten/kota diisi. Geser pin untuk menyesuaikan posisi.
-                                </div>
+
+                                <!-- Hidden compatibility fields -->
+                                <input type="hidden" id="alamatKabupaten" name="alamat_kabupaten" value="{{ old('alamat_kabupaten') }}">
+                                <input type="hidden" id="alamatKecamatan" name="alamat_kecamatan" value="{{ old('alamat_kecamatan') }}">
+                                <input type="hidden" id="alamatJalan" name="alamat_jalan" value="{{ old('alamat_jalan') }}">
+                                <input type="hidden" id="alamatRt" name="alamat_rt" value="{{ old('alamat_rt') }}">
+                                <input type="hidden" id="alamatRw" name="alamat_rw" value="{{ old('alamat_rw') }}">
                             </div>
 
                             <!-- Submit CTA Button -->
