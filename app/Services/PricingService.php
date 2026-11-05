@@ -183,10 +183,9 @@ class PricingService
         }
 
         $durasiKerjaMenit = (int) round($durasiDasarMenit * $pengaliDurasi);
-        $kecepatanKmh = $rules['kecepatan_kmh'] ?? 30;
         // Waktu tempuh perjalanan dari kantor pusat ke rumah user
         $durasiTempuhMenit = $routeDurationMinutes
-            ?? $this->haversine->estimateTravelTimeMinutes($jarakKm, $kecepatanKmh);
+            ?? $this->haversine->estimateTravelTimeMinutes($jarakKm);
         $estimasiDurasiMenit = $durasiKerjaMenit + $durasiTempuhMenit;
 
         return [

@@ -29,13 +29,6 @@ class PricingRuleSeeder extends Seeder
                 'keterangan' => 'Biaya tambahan per kilometer setelah batas jarak gratis.',
             ],
             [
-                'key' => 'kecepatan_kmh',
-                'value' => '30',
-                'label' => 'Estimasi Kecepatan Tempuh (km/jam)',
-                'tipe' => 'number',
-                'keterangan' => 'Dipakai untuk estimasi waktu tempuh tukang menuju lokasi user (2 menit/km pada 30 km/jam).',
-            ],
-            [
                 'key' => 'radius_maksimal_km',
                 'value' => '15.0',
                 'label' => 'Radius Maksimal Layanan (km)',

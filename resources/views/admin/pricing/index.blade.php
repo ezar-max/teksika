@@ -521,15 +521,6 @@
                         </div>
 
                         <div class="field-group">
-                            <label class="field-label" for="kecepatan_kmh">
-                                <i class="fa-solid fa-gauge-high" style="color:#f59e0b;"></i>
-                                Estimasi Kecepatan Tempuh (km/jam)
-                            </label>
-                            <input type="number" min="10" max="100" class="field-input" id="kecepatan_kmh" name="kecepatan_kmh" value="{{ $rules['kecepatan_kmh']->value ?? '30' }}" required>
-                            <span class="field-hint">Standar lalu lintas dalam kota = 30 km/jam (~2 menit per km).</span>
-                        </div>
-
-                        <div class="field-group">
                             <label class="field-label" for="radius_maksimal_km">
                                 <i class="fa-solid fa-circle-notch" style="color:#ef4444;"></i>
                                 Radius Maksimal Layanan (km)

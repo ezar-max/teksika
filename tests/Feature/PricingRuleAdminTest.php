@@ -36,15 +36,17 @@ class PricingRuleAdminTest extends TestCase
             ->assertSee('Aturan Tarif &amp; Parameter Algoritma', false)
             ->assertSee('Radius Jangkauan Maksimal')
             ->assertSee('Tarif Tambahan Per KM')
+            ->assertDontSee('Estimasi Kecepatan Tempuh')
             ->assertSee('Status Bobot Rekomendasi');
     }
 
     public function test_admin_can_update_pricing_rules_and_persists_in_database(): void
     {
+        DB::table('pricing_rules')->where('key', 'jarak_gratis_km')->delete();
+
         $payload = [
             'jarak_gratis_km' => '6.5',
             'tarif_per_km' => '3500',
-            'kecepatan_kmh' => '35',
             'radius_maksimal_km' => '20.0',
             'bobot_jarak' => '0.30',
             'bobot_rating' => '0.20',
@@ -80,6 +82,12 @@ class PricingRuleAdminTest extends TestCase
         $this->assertDatabaseHas('pricing_rules', [
             'key' => 'bobot_jarak',
             'value' => '0.30',
+        ]);
+
+        $this->assertDatabaseHas('pricing_rules', [
+            'key' => 'jarak_gratis_km',
+            'value' => '6.5',
+            'label' => 'Batas Jarak Gratis (km)',
         ]);
 
         // Verifikasi pada halaman index bahwa nilai yang baru tersimpan muncul di kartu atas
