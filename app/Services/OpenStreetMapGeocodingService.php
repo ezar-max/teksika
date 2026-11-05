@@ -203,7 +203,7 @@ class OpenStreetMapGeocodingService
     {
         $query = trim($query);
         $apiKey = trim((string) config('services.google_maps.api_key', ''));
-        $cachePrefix = $apiKey !== '' ? 'gmaps_nominatim_search_' : 'nominatim_search_';
+        $cachePrefix = $apiKey !== '' ? 'gmaps_geocode_search_v2_' : 'nominatim_search_';
         $cacheKey = $cachePrefix . sha1(mb_strtolower($query));
         $cachedLocation = Cache::get($cacheKey);
         if ($cachedLocation !== null) {
@@ -214,7 +214,8 @@ class OpenStreetMapGeocodingService
 
         // 1. Provider Utama: Google Maps Places Text Search
         if ($apiKey !== '') {
-            $location = $this->searchGooglePlaces($query, $apiKey);
+            $location = $this->geocodeGoogleAddress($query, $apiKey)
+                ?? $this->searchGooglePlaces($query, $apiKey);
         }
 
         // 2. Fallback: Nominatim OpenStreetMap
@@ -233,6 +234,41 @@ class OpenStreetMapGeocodingService
         }
 
         return null;
+    }
+
+    private function geocodeGoogleAddress(string $query, string $apiKey): ?array
+    {
+        try {
+            $response = Http::timeout(5)->get('https://maps.googleapis.com/maps/api/geocode/json', [
+                'address' => $query,
+                'key' => $apiKey,
+                'region' => 'id',
+                'language' => 'id',
+            ]);
+
+            if (!$response->successful() || $response->json('status') !== 'OK') {
+                return null;
+            }
+
+            $result = $response->json('results.0');
+            $lat = $result['geometry']['location']['lat'] ?? null;
+            $lng = $result['geometry']['location']['lng'] ?? null;
+
+            if (!is_numeric($lat) || !is_numeric($lng)) {
+                return null;
+            }
+
+            return [
+                'latitude' => (float) $lat,
+                'longitude' => (float) $lng,
+                'display_name' => (string) ($result['formatted_address'] ?? ''),
+                'provider' => 'google_maps',
+            ];
+        } catch (\Throwable $exception) {
+            Log::info('Google Maps address geocoding failed, trying other providers.');
+
+            return null;
+        }
     }
 
     private function searchGooglePlaces(string $query, string $apiKey): ?array

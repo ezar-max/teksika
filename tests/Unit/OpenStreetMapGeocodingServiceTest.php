@@ -10,6 +10,41 @@ use Tests\TestCase;
 
 class OpenStreetMapGeocodingServiceTest extends TestCase
 {
+    public function test_it_uses_google_geocoding_to_find_coordinates_from_an_address(): void
+    {
+        Cache::flush();
+        config(['services.google_maps.api_key' => 'test-google-key']);
+        Http::fake([
+            'maps.googleapis.com/maps/api/geocode/json*' => Http::response([
+                'status' => 'OK',
+                'results' => [[
+                    'formatted_address' => 'Jalan Melati, Kabupaten Bogor, Indonesia',
+                    'geometry' => [
+                        'location' => [
+                            'lat' => -6.345678,
+                            'lng' => 106.987654,
+                        ],
+                    ],
+                ]],
+            ]),
+        ]);
+
+        $query = 'Jalan Melati, Kecamatan Gunung Putri, Kabupaten Bogor, Indonesia';
+        $location = (new OpenStreetMapGeocodingService())->forward($query);
+
+        $this->assertSame([
+            'latitude' => -6.345678,
+            'longitude' => 106.987654,
+            'display_name' => 'Jalan Melati, Kabupaten Bogor, Indonesia',
+            'provider' => 'google_maps',
+        ], $location);
+        Http::assertSent(fn (ClientRequest $request) => str_contains($request->url(), 'maps.googleapis.com/maps/api/geocode/json')
+            && $request['address'] === $query
+            && $request['key'] === 'test-google-key'
+            && $request['region'] === 'id');
+        Http::assertSentCount(1);
+    }
+
     public function test_it_finds_coordinates_from_an_address_and_caches_the_result(): void
     {
         Cache::flush();

@@ -49,6 +49,9 @@
       box-shadow: 0 4px 18px -4px rgba(15, 23, 42, 0.05) !important;
       transition: all 0.25s ease !important;
     }
+    .content-transaksi .transaction::before {
+      display: none;
+    }
     .transaction:hover {
       transform: translateY(-3px) !important;
       border-color: #bde0ff !important;

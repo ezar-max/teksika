@@ -1241,6 +1241,15 @@
                             @endif
                             <div class="booking-card-footer">
                                 <button class="btn-detail" title="Lihat Detail"><i class="fa fa-eye"></i> Detail</button>
+                                @if($request->status_admin === 'diterima' && $request->status === 'dikonfirmasi' && (int) $request->bayar_sekarang !== 1 && (float) $request->jumlah_pembayaran > 0)
+                                    <a href="{{ route('pembayaran.create', ['booking' => $request->kode_booking]) }}" class="btn-detail" style="text-decoration:none; background:#0a84ff; color:#fff; border-color:#0a84ff;">
+                                        <i class="fa-solid fa-credit-card"></i> Bayar Rp {{ number_format($request->jumlah_pembayaran, 0, ',', '.') }}
+                                    </a>
+                                @elseif($request->status_admin === 'diterima' && (int) $request->bayar_sekarang === 1)
+                                    <span style="align-self:center; color:#15803d; font-size:0.88rem; font-weight:700;">
+                                        <i class="fa-solid fa-circle-check"></i> Pembayaran lunas
+                                    </span>
+                                @endif
                                 @if($request->status === 'persetujuan_dikirim')
                                   <span style="align-self:center; color:#166534; font-size:0.88rem;">Pilihan Anda menunggu verifikasi admin.</span>
                                 @endif
@@ -1402,26 +1411,15 @@
         function fmtRupiah(num){ try{ return new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',minimumFractionDigits:0}).format(Number(num||0)); }catch(e){ return 'Rp0'; } }
         const rows = [];
         bookings.forEach(b => {
-            // Konfirmasi pembayaran (non-COD)
-            if (b.status_admin === 'diterima' && b.metode_pembayaran !== 'COD' && b.jumlah_pembayaran && Number(b.jumlah_pembayaran) > 0 && Number(b.bayar_sekarang) !== 1) {
+            // Semua metode pembayaran, termasuk COD, harus lunas sebelum pekerjaan dimulai.
+            if (b.status_admin === 'diterima' && b.status === 'dikonfirmasi' && b.jumlah_pembayaran && Number(b.jumlah_pembayaran) > 0 && Number(b.bayar_sekarang) !== 1) {
                 rows.push(`
                 <div class="notif-item">
                   <span class="notif-icon"><i class="fa-solid fa-credit-card"></i></span>
                   <div>
-                    <div>Konfirmasi pembayaran untuk <b>${b.layanan}</b>. Total: <b>${fmtRupiah(b.jumlah_pembayaran)}</b></div>
+                    <div>Booking <b>${b.layanan}</b> dikonfirmasi. Selesaikan pembayaran${b.metode_pembayaran === 'COD' ? ' tunai' : ''} sebelum admin memulai pekerjaan. Total: <b>${fmtRupiah(b.jumlah_pembayaran)}</b></div>
                     <div class="notif-time">${fmtTanggal(b.updated_at || b.created_at)}</div>
                     <div style="margin-top:8px;"><a href="{{ url('/pembayaran') }}?booking=${encodeURIComponent(b.kode_booking)}" class="btn-detail" style="text-decoration:none; font-size:13px; padding:4px 10px;">Bayar Sekarang</a></div>
-                  </div>
-                </div>`);
-            }
-            // Diterima (COD)
-            if (b.status_admin === 'diterima' && b.metode_pembayaran === 'COD') {
-                rows.push(`
-                <div class="notif-item">
-                  <span class="notif-icon"><i class="fa-solid fa-circle-check"></i></span>
-                  <div>
-                    <div>Booking <b>${b.layanan}</b> dikonfirmasi (COD). Siapkan pembayaran tunai.</div>
-                    <div class="notif-time">${fmtTanggal(b.updated_at || b.created_at)}</div>
                   </div>
                 </div>`);
             }
@@ -1564,14 +1562,15 @@
         }
     });
     
-    // Notifikasi bayar jika ada booking dikonfirmasi & metode non-COD
+    // Notifikasi pembayaran untuk semua booking yang sudah dikonfirmasi admin.
     (function(){
         try {
             const bookings = @json($requests);
-            const b = bookings.find(x => x.status_admin === 'diterima' && x.metode_pembayaran !== 'COD' && x.jumlah_pembayaran && Number(x.jumlah_pembayaran) > 0 && Number(x.bayar_sekarang) !== 1);
+            const b = bookings.find(x => x.status_admin === 'diterima' && x.status === 'dikonfirmasi' && x.jumlah_pembayaran && Number(x.jumlah_pembayaran) > 0 && Number(x.bayar_sekarang) !== 1);
             if (b) {
                 const rupiah = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(b.jumlah_pembayaran);
-                const text = `Request Anda (${b.layanan}) telah dikonfirmasi admin. Total yang harus dibayar: ${rupiah}.`;
+                const paymentMethodNote = b.metode_pembayaran === 'COD' ? ' Pembayaran tunai juga harus diselesaikan sebelum pekerjaan dimulai.' : '';
+                const text = `Request Anda (${b.layanan}) telah dikonfirmasi admin. Total yang harus dibayar: ${rupiah}.${paymentMethodNote}`;
                 document.getElementById('payNotifyText').textContent = text;
                 // arahkan ke halaman pembayaran detail atau form create dengan kode booking
                 const link = document.getElementById('payNotifyLink');

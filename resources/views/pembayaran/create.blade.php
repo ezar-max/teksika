@@ -64,6 +64,12 @@
         </div>
     </header>
 
+    @if(session('error'))
+        <div style="max-width:1180px; margin:16px auto; padding:12px 16px; border:1px solid #fecaca; background:#fef2f2; color:#991b1b; border-radius:10px;">
+            {{ session('error') }}
+        </div>
+    @endif
+
     <form action="{{ route('pembayaran.store') }}" method="POST" id="paymentForm">
         @csrf
 
@@ -260,7 +266,7 @@
                             <div>
                                 <span class="method-banner-badge">Metode Dipilih Saat Pemesanan</span>
                                 <h3 class="method-banner-title">Bayar Tunai di Tempat (COD)</h3>
-                                <p class="method-banner-sub">Pembayaran dilakukan secara langsung kepada teknisi mitra TEKSIKA di lokasi</p>
+                                <p class="method-banner-sub">Pembayaran tunai wajib diselesaikan sebelum admin memulai pengerjaan.</p>
                             </div>
                         </div>
                     </div>
@@ -268,11 +274,11 @@
                     <div class="cash-container">
                         <div class="cash-info-title">
                             <i class="fa-solid fa-shield-heart"></i>
-                            <span>Petunjuk Pembayaran Tunai</span>
+                            <span>Konfirmasi Pembayaran Tunai</span>
                         </div>
                         <div class="cash-info-desc">
-                            Pembayaran diserahkan langsung kepada teknisi mitra TEKSIKA setelah pekerjaan perbaikan selesai diperiksa dan berfungsi dengan baik.<br>
-                            <em>Mohon siapkan uang pas sesuai nominal tagihan atau informasikan kembalian kepada teknisi saat tiba di lokasi perbaikan.</em>
+                            Serahkan pembayaran tunai sesuai tagihan kepada teknisi/admin sebelum pekerjaan dimulai. Konfirmasi pembayaran pada halaman ini agar admin dapat melanjutkan proses pengerjaan.<br>
+                            <em>Pekerjaan tidak akan dimulai sebelum pembayaran dikonfirmasi.</em>
                         </div>
                     </div>
                 @endif

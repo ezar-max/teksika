@@ -21,13 +21,14 @@
     </div>
     <div id="locationNotice" style="display:none; font-size:0.8rem; color:#0284c7; background:#e0f2fe; padding:6px 12px; border-radius:8px; margin-bottom:10px;"></div>
 
-    <!-- Peta Interaktif (Google Maps Utama / Leaflet Fallback) -->
+    <!-- Peta Interaktif Google Maps -->
+    <div id="mapError" role="alert" style="display:none; color:#991b1b; background:#fef2f2; border:1px solid #fecaca; padding:10px 12px; border-radius:8px; margin-bottom:10px;"></div>
     <div id="requestMap"></div>
 
     <!-- Info Rute & Jarak -->
     <div class="route-status-pill" id="routeStatus">
         <i class="fa-solid fa-route"></i>
-        <span>Isi alamat di bawah atau pilih titik rumah pada peta (Titik awal: Kantor Pusat TEKSIKA).</span>
+        <span>Isi alamat di bawah atau pilih titik rumah pada peta.</span>
     </div>
 </div>
 
@@ -35,10 +36,8 @@
 const officePoint = [-6.4239, 106.9401];
 let requestMap;
 let homeMarker;
-let officeMarker;
 let routeLine;
 let accuracyCircle = null;
-let activeMapEngine = null; // 'google' | 'leaflet'
 let lastRenderedRoute = null;
 window.currentRouteDistanceKm = null;
 window.currentRouteUnavailable = false;
@@ -49,10 +48,8 @@ let addressGeocodeSequence = 0;
 let lastAddressGeocodeKey = '';
 
 function clearAccuracyCircle() {
-    if (activeMapEngine === 'google' && accuracyCircle && typeof accuracyCircle.setMap === 'function') {
+    if (accuracyCircle && typeof accuracyCircle.setMap === 'function') {
         accuracyCircle.setMap(null);
-    } else if (activeMapEngine === 'leaflet' && accuracyCircle && requestMap) {
-        requestMap.removeLayer(accuracyCircle);
     }
     accuracyCircle = null;
 }
@@ -92,11 +89,11 @@ function syncLocationAddress(options = {}) {
 function lookupCoordinatesFromAddress(jalan, kecamatan, kabupaten) {
     const status = document.getElementById('addressStatus');
 
-    if (!jalan && !kabupaten) {
+    if (!jalan || !kabupaten) {
         clearTimeout(addressGeocodeDebounce);
         addressGeocodeSequence++;
         lastAddressGeocodeKey = '';
-        if (status) status.innerText = 'Lengkapi kota/kabupaten atau jalan untuk mencari titik pada peta.';
+        if (status) status.innerText = 'Isi nama jalan dan kabupaten/kota untuk mencari titik pada peta.';
         return;
     }
 
@@ -132,10 +129,9 @@ function lookupCoordinatesFromAddress(jalan, kecamatan, kabupaten) {
                 lng: data.location.longitude
             }, { clearAddress: false, lookupAddress: false, zoom: 16 });
             if (status) {
-                const provider = data.location.provider === 'google_maps'
-                    ? 'Google Maps'
-                    : (data.location.provider === 'photon' ? 'Photon OpenStreetMap' : 'OpenStreetMap');
-                status.innerText = `Titik ditemukan lewat ${provider}. Geser pin pada peta bila perlu menyesuaikan posisi rumah.`;
+                const provider = data.location.provider === 'google_maps' ? 'Google Maps' : 'provider alternatif';
+                const matchedAddress = data.location.display_name ? ` (${data.location.display_name})` : '';
+                status.innerText = `Titik alamat ditemukan lewat ${provider}${matchedAddress}. Peta dan pin telah diperbarui; geser pin bila perlu.`;
             }
         })
         .catch(function () {
@@ -197,17 +193,23 @@ function lookupAddressFromCoordinates(latitude, longitude) {
 
 function clearCurrentRouteLine() {
     if (!routeLine) return;
-    if (activeMapEngine === 'google' && typeof routeLine.setMap === 'function') {
+    if (typeof routeLine.setMap === 'function') {
         routeLine.setMap(null);
-    } else if (activeMapEngine === 'leaflet' && requestMap && typeof requestMap.removeLayer === 'function') {
-        requestMap.removeLayer(routeLine);
     }
     routeLine = null;
 }
 
+function showMapError(message) {
+    const error = document.getElementById('mapError');
+    if (error) {
+        error.textContent = message;
+        error.style.display = 'block';
+    }
+}
+
 window.gm_authFailure = function () {
-    console.warn('Google Maps JavaScript API authentication/billing limitation on Demo Key detected. Switching to Leaflet OpenStreetMap fallback.');
-    initializeLeafletFallbackMap();
+    console.error('Google Maps JavaScript API authentication failed.');
+    showMapError('Google Maps tidak dapat dimuat. Periksa API key, billing, dan izin Maps JavaScript API di Google Cloud.');
 };
 
 function initializeRequestMap() {
@@ -215,27 +217,20 @@ function initializeRequestMap() {
     const lon = Number(document.getElementById('lonInput').value);
     const homePoint = Number.isFinite(lat) && Number.isFinite(lon) ? [lat, lon] : officePoint;
 
-    if (window.google && window.google.maps && typeof window.google.maps.Map === 'function') {
-        try {
-            initializeGoogleMap(homePoint);
-            // Monitor if Google Maps replaces container with .gm-err-container due to Demo Key restriction
-            window.setTimeout(function () {
-                const container = document.getElementById('requestMap');
-                if (container && container.querySelector('.gm-err-container')) {
-                    initializeLeafletFallbackMap();
-                }
-            }, 1500);
-            return;
-        } catch (err) {
-            console.warn('Google Maps initialization error, falling back to Leaflet:', err);
-        }
+    if (!window.google || !window.google.maps || typeof window.google.maps.Map !== 'function') {
+        showMapError('Google Maps tidak dapat dimuat. Pastikan API key tersedia dan Maps JavaScript API diaktifkan.');
+        return;
     }
 
-    initializeLeafletFallbackMap();
+    try {
+        initializeGoogleMap(homePoint);
+    } catch (err) {
+        console.error('Google Maps initialization error:', err);
+        showMapError('Peta Google Maps gagal diinisialisasi. Periksa konfigurasi API key dan coba muat ulang halaman.');
+    }
 }
 
 function initializeGoogleMap(homePoint) {
-    activeMapEngine = 'google';
     const mapEl = document.getElementById('requestMap');
     requestMap = new google.maps.Map(mapEl, {
         center: { lat: homePoint[0], lng: homePoint[1] },
@@ -245,14 +240,9 @@ function initializeGoogleMap(homePoint) {
         fullscreenControl: true
     });
 
-    const officeInfo = new google.maps.InfoWindow({
-        content: '<strong>Kantor Pusat TEKSIKA - SMKN 1 Gunung Putri</strong>'
-    });
-
-    officeMarker = new google.maps.Marker({
+    new google.maps.Marker({
         position: { lat: officePoint[0], lng: officePoint[1] },
         map: requestMap,
-        title: 'Kantor Pusat TEKSIKA - SMKN 1 Gunung Putri',
         icon: {
             path: google.maps.SymbolPath.CIRCLE,
             scale: 8,
@@ -261,9 +251,6 @@ function initializeGoogleMap(homePoint) {
             strokeColor: '#166534',
             strokeWeight: 2
         }
-    });
-    officeMarker.addListener('click', function () {
-        officeInfo.open(requestMap, officeMarker);
     });
 
     const homeInfo = new google.maps.InfoWindow({
@@ -293,59 +280,6 @@ function initializeGoogleMap(homePoint) {
     });
 }
 
-function initializeLeafletFallbackMap() {
-    if (activeMapEngine === 'leaflet' && requestMap) return;
-    activeMapEngine = 'leaflet';
-
-    const lat = Number(document.getElementById('latInput').value);
-    const lon = Number(document.getElementById('lonInput').value);
-    const homePoint = Number.isFinite(lat) && Number.isFinite(lon) ? [lat, lon] : officePoint;
-
-    const mapEl = document.getElementById('requestMap');
-    if (mapEl) {
-        mapEl.innerHTML = '';
-        if (mapEl._leaflet_id) {
-            mapEl._leaflet_id = null;
-        }
-    }
-
-    requestMap = L.map('requestMap').setView(homePoint, 14);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        updateWhenZooming: false,
-        updateWhenIdle: true,
-        keepBuffer: 1,
-        attribution: '&copy; OpenStreetMap'
-    }).addTo(requestMap);
-
-    L.circleMarker(officePoint, {
-        radius: 8,
-        color: '#166534',
-        fillColor: '#22c55e',
-        fillOpacity: 1
-    }).bindPopup('Kantor Pusat TEKSIKA - SMKN 1 Gunung Putri').addTo(requestMap);
-
-    homeMarker = L.marker(homePoint, { draggable: true })
-        .bindPopup('Lokasi rumah Anda')
-        .addTo(requestMap);
-
-    requestMap.on('click', function (event) {
-        setHomeLocation(event.latlng);
-    });
-    homeMarker.on('dragend', function (event) {
-        setHomeLocation(event.target.getLatLng());
-    });
-
-    window.setTimeout(function () {
-        if (requestMap && typeof requestMap.invalidateSize === 'function') {
-            requestMap.invalidateSize();
-        }
-        if (lastRenderedRoute) {
-            renderOsrmRoute(lastRenderedRoute);
-        }
-    }, 300);
-}
-
 function setHomeLocation(point, options = {}) {
     const lat = Number(point.lat).toFixed(7);
     const lon = Number(point.lng).toFixed(7);
@@ -353,10 +287,8 @@ function setHomeLocation(point, options = {}) {
     window.currentRouteDistanceKm = null;
     window.currentRouteUnavailable = false;
 
-    if (activeMapEngine === 'google' && homeMarker && typeof homeMarker.setPosition === 'function') {
+    if (homeMarker && typeof homeMarker.setPosition === 'function') {
         homeMarker.setPosition({ lat: Number(lat), lng: Number(lon) });
-    } else if (activeMapEngine === 'leaflet' && homeMarker && typeof homeMarker.setLatLng === 'function') {
-        homeMarker.setLatLng([Number(lat), Number(lon)]);
     }
 
     document.getElementById('latInput').value = lat;
@@ -366,7 +298,7 @@ function setHomeLocation(point, options = {}) {
     if (options.accuracy && options.accuracy > 0) {
         clearAccuracyCircle();
         const displayRadius = Math.min(Number(options.accuracy), 5000);
-        if (activeMapEngine === 'google' && requestMap && window.google && window.google.maps) {
+        if (requestMap && window.google && window.google.maps) {
             accuracyCircle = new google.maps.Circle({
                 map: requestMap,
                 center: { lat: Number(lat), lng: Number(lon) },
@@ -377,14 +309,6 @@ function setHomeLocation(point, options = {}) {
                 strokeOpacity: 0.45,
                 strokeWeight: 1
             });
-        } else if (activeMapEngine === 'leaflet' && requestMap && window.L) {
-            accuracyCircle = L.circle([Number(lat), Number(lon)], {
-                radius: displayRadius,
-                color: '#2563eb',
-                fillColor: '#3b82f6',
-                fillOpacity: 0.15,
-                weight: 1
-            }).addTo(requestMap);
         }
     } else if (options.clearAccuracy !== false) {
         clearAccuracyCircle();
@@ -400,13 +324,9 @@ function setHomeLocation(point, options = {}) {
         });
         syncLocationAddress({ lookupMap: false });
     }
-    if (requestMap && options.zoom) {
-        if (activeMapEngine === 'google' && typeof requestMap.setCenter === 'function') {
-            requestMap.setCenter({ lat: Number(lat), lng: Number(lon) });
-            requestMap.setZoom(options.zoom);
-        } else if (activeMapEngine === 'leaflet' && typeof requestMap.setView === 'function') {
-            requestMap.setView([Number(lat), Number(lon)], options.zoom);
-        }
+    if (requestMap && options.zoom && typeof requestMap.setCenter === 'function') {
+        requestMap.setCenter({ lat: Number(lat), lng: Number(lon) });
+        requestMap.setZoom(options.zoom);
     }
     if (options.lookupAddress !== false) lookupAddressFromCoordinates(lat, lon);
     if (typeof updatePricingBreakdown === 'function') updatePricingBreakdown();
@@ -421,7 +341,7 @@ function renderOsrmRoute(route) {
     lastRenderedRoute = route;
     clearCurrentRouteLine();
 
-    if (activeMapEngine === 'google' && requestMap && window.google && window.google.maps) {
+    if (requestMap && window.google && window.google.maps) {
         const googlePath = route.geometry.map(function (coordinate) {
             return { lat: Number(coordinate[1]), lng: Number(coordinate[0]) };
         });
@@ -440,12 +360,6 @@ function renderOsrmRoute(route) {
             });
             requestMap.fitBounds(bounds, 24);
         }
-    } else if (activeMapEngine === 'leaflet' && requestMap) {
-        const routePoints = route.geometry.map(function (coordinate) {
-            return [coordinate[1], coordinate[0]];
-        });
-        routeLine = L.polyline(routePoints, { color: '#007bff', weight: 5, opacity: 0.85 }).addTo(requestMap);
-        requestMap.fitBounds(routeLine.getBounds(), { padding: [24, 24] });
     }
 
     const userLat = Number(document.getElementById('latInput').value);
@@ -455,7 +369,7 @@ function renderOsrmRoute(route) {
 
     const routeStatus = document.getElementById('routeStatus');
     if (routeStatus) {
-        routeStatus.innerHTML = `<i class="fa-solid fa-route"></i> <span>Rute Jalan (${sourceLabel}): <strong>${route.distance_km} km</strong> (~${route.duration_minutes} menit) &bull; Garis Lurus: <strong>${straightKm} km</strong>. Titik awal: ${route.office.name}</span>`;
+        routeStatus.innerHTML = `<i class="fa-solid fa-route"></i> <span>Rute Jalan (${sourceLabel}): <strong>${route.distance_km} km</strong> (~${route.duration_minutes} menit) &bull; Garis Lurus: <strong>${straightKm} km</strong>. Titik awal: Kantor Pusat TEKSIKA</span>`;
     }
 }
 
@@ -686,10 +600,5 @@ document.addEventListener('DOMContentLoaded', function () {
     if (initLat && initLon && (!initKecamatan || !initJalan)) {
         lookupAddressFromCoordinates(initLat, initLon);
     }
-    window.addEventListener('resize', function() {
-        if (activeMapEngine === 'leaflet' && requestMap && typeof requestMap.invalidateSize === 'function') {
-            requestMap.invalidateSize();
-        }
-    });
 });
 </script>

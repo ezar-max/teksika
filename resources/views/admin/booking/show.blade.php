@@ -22,6 +22,16 @@
             margin: 0 auto;
         }
 
+        @media (max-width: 640px) {
+            .detail-container {
+                padding: 18px 14px 40px;
+            }
+
+            .detail-container .info-card {
+                padding: 20px 16px;
+            }
+        }
+
         .header-back-pill {
             display: inline-flex;
             align-items: center;
@@ -135,6 +145,87 @@
             transform: scale(1.05);
             border-color: #007bff;
             box-shadow: 0 6px 16px rgba(0, 123, 255, 0.18);
+        }
+
+        .photo-link {
+            display: block;
+            border: 0;
+            padding: 0;
+            background: transparent;
+            cursor: zoom-in;
+        }
+
+        .photo-viewer {
+            position: fixed;
+            inset: 0;
+            z-index: 12000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background: rgba(15, 23, 42, 0.88);
+        }
+
+        .photo-viewer.open {
+            display: flex;
+        }
+
+        .photo-viewer-content {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+            max-width: min(100%, 1100px);
+            max-height: 100%;
+        }
+
+        .photo-viewer-image {
+            display: block;
+            max-width: 100%;
+            max-height: calc(100vh - 110px);
+            object-fit: contain;
+            border-radius: 12px;
+            background: #fff;
+        }
+
+        .photo-viewer-actions {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .photo-viewer-link,
+        .photo-viewer-close {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 40px;
+            padding: 9px 14px;
+            border: 1px solid rgba(255,255,255,.35);
+            border-radius: 10px;
+            color: #fff;
+            background: rgba(255,255,255,.12);
+            font: inherit;
+            font-weight: 700;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .map-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 9px;
+            padding: 7px 11px;
+            border-radius: 9px;
+            background: #eff6ff;
+            color: #1d4ed8;
+            font-size: .82rem;
+            font-weight: 700;
+            text-decoration: none;
         }
 
         .form-control-modern {
@@ -348,6 +439,10 @@
                             <span>Kode: <strong style="color:#0f172a;">{{ $booking->kode_booking ?? 'BK-' . str_pad($booking->id_request, 3, '0', STR_PAD_LEFT) }}</strong></span>
                             <span>&bull;</span>
                             <span>Diajukan: {{ \Carbon\Carbon::parse($booking->created_at)->translatedFormat('d F Y, H:i') }}</span>
+                            @if(!empty($booking->tanggal))
+                                <span>&bull;</span>
+                                <span>Tanggal request: {{ \Carbon\Carbon::parse($booking->tanggal)->translatedFormat('d F Y, H:i') }}</span>
+                            @endif
                         </div>
                     </div>
 
@@ -388,6 +483,9 @@
                                         <i class="fa-solid fa-location-crosshairs"></i> GPS: {{ $booking->latitude }}, {{ $booking->longitude }}
                                     </small>
                                 </div>
+                                <a class="map-link" href="https://www.google.com/maps/search/?api=1&query={{ urlencode($booking->latitude . ',' . $booking->longitude) }}" target="_blank" rel="noopener noreferrer">
+                                    <i class="fa-solid fa-map-location-dot"></i> Buka titik di Google Maps
+                                </a>
                             @endif
                         </div>
 
@@ -397,10 +495,25 @@
                                 Kriteria Pengerjaan
                             </div>
                             <div class="meta-value">
-                                @if($booking->penawaran_dikirim_at)
-                                    Kerusakan <b>{{ ucfirst($booking->tingkat_kerusakan ?? '-') }}</b> &bull; Kompleksitas <b>{{ ucfirst($booking->kompleksitas ?? 'Sedang') }}</b> &bull; Urgensi <b>{{ ucfirst($booking->urgensi ?? 'Normal') }}</b>
+                                Kerusakan <b>{{ ucfirst($booking->tingkat_kerusakan ?? '-') }}</b>
+                                &bull; Kompleksitas <b>{{ ucfirst($booking->kompleksitas ?? 'Sedang') }}</b>
+                                &bull; Urgensi <b>{{ ucfirst($booking->urgensi ?? 'Normal') }}</b>
+                            </div>
+                        </div>
+
+                        <div class="meta-item">
+                            <div class="meta-label">
+                                <i class="fa-solid fa-credit-card" style="color:#10b981;"></i>
+                                Status Pembayaran
+                            </div>
+                            <div class="meta-value">
+                                @if((int) ($booking->bayar_sekarang ?? 0) === 1)
+                                    <span style="color:#15803d;">Pembayaran sudah dilakukan</span>
+                                @elseif(!empty($booking->jumlah_pembayaran))
+                                    <span style="color:#b45309;">Menunggu pembayaran</span>
+                                    <span style="color:#64748b; font-weight:500;"> — Rp {{ number_format($booking->jumlah_pembayaran, 0, ',', '.') }}</span>
                                 @else
-                                    <span style="color:#94a3b8;">Belum ditetapkan. Lengkapi analisis pada formulir di bawah.</span>
+                                    <span style="color:#64748b;">Belum ada pembayaran</span>
                                 @endif
                             </div>
                         </div>
@@ -428,6 +541,14 @@
                             <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:12px; padding:14px 18px; font-size:0.88rem;">
                                 @if($booking->penawaran_dikirim_at)
                                     <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                                        <span style="color:#64748b;">Estimasi awal jasa:</span>
+                                        <b style="color:#0f172a;">Rp {{ number_format($booking->harga_layanan ?? 0, 0, ',', '.') }}</b>
+                                    </div>
+                                    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                                        <span style="color:#64748b;">Estimasi transportasi:</span>
+                                        <b style="color:#0f172a;">Rp {{ number_format($booking->biaya_jarak ?? 0, 0, ',', '.') }}</b>
+                                    </div>
+                                    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
                                         <span style="color:#64748b;">Material dihitung per kandidat:</span>
                                         <b style="color:#0f172a;">Rp {{ number_format($booking->biaya_material ?? 0, 0, ',', '.') }}</b>
                                     </div>
@@ -439,6 +560,12 @@
                                         <span style="color:#64748b;">Urgensi / Kompleksitas:</span>
                                         <b style="color:#0f172a;">{{ ucfirst($booking->urgensi) }} / {{ ucfirst($booking->kompleksitas) }}</b>
                                     </div>
+                                    @if(!empty($booking->durasi_perjalanan_menit) || !empty($booking->estimasi_durasi_menit))
+                                        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                                            <span style="color:#64748b;">Estimasi durasi perjalanan / pekerjaan:</span>
+                                            <b style="color:#0f172a;">{{ $booking->durasi_perjalanan_menit ? $booking->durasi_perjalanan_menit . ' menit' : '-' }} / {{ $booking->estimasi_durasi_menit ? $booking->estimasi_durasi_menit . ' menit' : '-' }}</b>
+                                        </div>
+                                    @endif
                                     <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
                                         <span style="color:#64748b;">Keahlian:</span>
                                         <b style="color:#0f172a;">{{ $booking->penawaran_keahlian ?? $booking->layanan }}</b>
@@ -448,7 +575,28 @@
                                     </div>
                                 @else
                                     <div style="color:#64748b; font-size:0.88rem;">
-                                        Belum ada rincian penawaran. Analisis kerusakan dan kirim penawaran melalui form di bawah.
+                                        Belum ada penawaran final. Berikut estimasi awal dari data request:
+                                    </div>
+                                    <div style="display:flex; justify-content:space-between; margin-top:10px;">
+                                        <span style="color:#64748b;">Estimasi jasa:</span>
+                                        <b style="color:#0f172a;">Rp {{ number_format($booking->harga_layanan ?? 0, 0, ',', '.') }}</b>
+                                    </div>
+                                    <div style="display:flex; justify-content:space-between; margin-top:8px;">
+                                        <span style="color:#64748b;">Estimasi transportasi ({{ $booking->jarak_km ?? 0 }} km):</span>
+                                        <b style="color:#0f172a;">Rp {{ number_format($booking->biaya_jarak ?? 0, 0, ',', '.') }}</b>
+                                    </div>
+                                    <div style="display:flex; justify-content:space-between; margin-top:8px;">
+                                        <span style="color:#64748b;">Estimasi total:</span>
+                                        <b style="color:#0f172a;">Rp {{ number_format($booking->estimasi_total ?? 0, 0, ',', '.') }}</b>
+                                    </div>
+                                    @if(!empty($booking->estimasi_durasi_menit))
+                                        <div style="display:flex; justify-content:space-between; margin-top:8px;">
+                                            <span style="color:#64748b;">Estimasi durasi:</span>
+                                            <b style="color:#0f172a;">{{ $booking->estimasi_durasi_menit }} menit</b>
+                                        </div>
+                                    @endif
+                                    <div style="padding-top:10px; margin-top:10px; border-top:1px dashed #cbd5e1; color:#64748b; font-size:0.82rem;">
+                                        Analisis kerusakan dan penawaran final dapat dilengkapi melalui formulir di bawah.
                                     </div>
                                 @endif
                             </div>
@@ -492,8 +640,13 @@
                         <div style="display:flex; gap:14px; flex-wrap:wrap; margin-top:10px;">
                             @foreach(explode(',', $booking->foto) as $pic)
                                 @if(!empty(trim($pic)))
-                                    <a href="{{ asset('storage/' . trim($pic)) }}" target="_blank" title="Klik untuk perbesar">
-                                        <img src="{{ asset('storage/' . trim($pic)) }}" alt="Foto Kerusakan" class="photo-thumb">
+                                    @php
+                                        $photoPath = str_replace('\\', '/', trim($pic));
+                                        $photoPath = preg_replace('#^(?:public/|storage/)#', '', $photoPath);
+                                        $photoUrl = asset('storage/' . $photoPath);
+                                    @endphp
+                                    <a class="photo-link" href="{{ $photoUrl }}" data-photo-url="{{ $photoUrl }}" title="Klik untuk melihat foto ukuran penuh">
+                                        <img src="{{ $photoUrl }}" alt="Foto kerusakan, klik untuk memperbesar" class="photo-thumb" loading="lazy">
                                     </a>
                                 @endif
                             @endforeach
@@ -711,14 +864,21 @@
                             </div>
                         </div>
 
-                        <form action="{{ route('booking.status', $booking->id_request) }}" method="POST">
-                            @csrf
-                            <input type="hidden" name="status" value="{{ $booking->status === 'dikonfirmasi' ? 'dikerjakan' : 'selesai' }}">
-                            <button type="submit" class="btn-modern-success">
-                                <i class="fa-solid {{ $booking->status === 'dikonfirmasi' ? 'fa-play' : 'fa-check-double' }}"></i>
-                                {{ $booking->status === 'dikonfirmasi' ? 'Mulai Pengerjaan' : 'Tandai Pekerjaan Selesai' }}
-                            </button>
-                        </form>
+                        @if($booking->status === 'dikonfirmasi' && (int) $booking->bayar_sekarang !== 1)
+                            <div style="padding:12px 16px; border:1px solid #fcd34d; background:#fffbeb; color:#92400e; border-radius:12px; font-size:.88rem; font-weight:700;">
+                                <i class="fa-solid fa-hourglass-half"></i>
+                                Menunggu pemesan menyelesaikan pembayaran. Pekerjaan belum dapat dimulai.
+                            </div>
+                        @else
+                            <form action="{{ route('booking.status', $booking->id_request) }}" method="POST">
+                                @csrf
+                                <input type="hidden" name="status" value="{{ $booking->status === 'dikonfirmasi' ? 'dikerjakan' : 'selesai' }}">
+                                <button type="submit" class="btn-modern-success">
+                                    <i class="fa-solid {{ $booking->status === 'dikonfirmasi' ? 'fa-play' : 'fa-check-double' }}"></i>
+                                    {{ $booking->status === 'dikonfirmasi' ? 'Mulai Pengerjaan' : 'Tandai Pekerjaan Selesai' }}
+                                </button>
+                            </form>
+                        @endif
                     </div>
                 </div>
             @endif
@@ -735,6 +895,54 @@
     <!-- Modal Konfirmasi Keluar Tunggal -->
     @include('admin._logout_modal')
 
+    <div class="photo-viewer" id="photoViewer" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Pratinjau foto kerusakan">
+        <div class="photo-viewer-content">
+            <img class="photo-viewer-image" id="photoViewerImage" src="" alt="Foto kerusakan ukuran penuh">
+            <div class="photo-viewer-actions">
+                <a class="photo-viewer-link" id="photoViewerOpen" href="" target="_blank" rel="noopener noreferrer">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i> Buka foto asli
+                </a>
+                <button class="photo-viewer-close" id="photoViewerClose" type="button">
+                    <i class="fa-solid fa-xmark"></i> Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="{{ asset('js/sidebar.js') }}"></script>
+    <script>
+        (function () {
+            const viewer = document.getElementById('photoViewer');
+            const image = document.getElementById('photoViewerImage');
+            const openLink = document.getElementById('photoViewerOpen');
+            const closeButton = document.getElementById('photoViewerClose');
+
+            function closeViewer() {
+                viewer.classList.remove('open');
+                viewer.setAttribute('aria-hidden', 'true');
+                image.src = '';
+            }
+
+            document.querySelectorAll('.photo-link').forEach(function (link) {
+                link.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    const photoUrl = link.dataset.photoUrl;
+                    image.src = photoUrl;
+                    openLink.href = photoUrl;
+                    viewer.classList.add('open');
+                    viewer.setAttribute('aria-hidden', 'false');
+                    closeButton.focus();
+                });
+            });
+
+            closeButton.addEventListener('click', closeViewer);
+            viewer.addEventListener('click', function (event) {
+                if (event.target === viewer) closeViewer();
+            });
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape' && viewer.classList.contains('open')) closeViewer();
+            });
+        })();
+    </script>
 </body>
 </html>

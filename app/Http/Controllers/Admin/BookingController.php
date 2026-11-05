@@ -376,7 +376,8 @@ class BookingController extends Controller
             return back()->with('error', 'Penawaran terpilih tidak tersedia lagi. Periksa ketersediaan worker sebelum verifikasi.');
         }
 
-        return redirect()->route('admin.booking.show', $id)->with('success', 'Persetujuan diverifikasi. Tukang berhasil ditugaskan.');
+        return redirect()->route('admin.booking.show', $id)
+            ->with('success', 'Persetujuan diverifikasi dan tukang ditugaskan. Pemesan harus menyelesaikan pembayaran sebelum pengerjaan dimulai.');
     }
 
     public function ubahStatus(Request $request, $id)
@@ -388,13 +389,16 @@ class BookingController extends Controller
         $changed = DB::transaction(function () use ($id, $validated) {
             $booking = DB::table('request')->where('id_request', $id)->lockForUpdate()->first();
             if (!$booking || $booking->status_admin !== 'diterima' || $booking->id_worker === null) {
-                return false;
+                return 'invalid_booking';
             }
 
             $allowedTransition = ($booking->status === 'dikonfirmasi' && $validated['status'] === 'dikerjakan')
                 || ($booking->status === 'dikerjakan' && $validated['status'] === 'selesai');
             if (!$allowedTransition) {
-                return false;
+                return 'invalid_transition';
+            }
+            if ($validated['status'] === 'dikerjakan' && (int) $booking->bayar_sekarang !== 1) {
+                return 'payment_required';
             }
 
             DB::table('request')->where('id_request', $id)->update([
@@ -417,10 +421,13 @@ class BookingController extends Controller
                 }
             }
 
-            return true;
+            return 'changed';
         });
 
-        if (!$changed) {
+        if ($changed === 'payment_required') {
+            return back()->with('error', 'Pekerjaan belum dapat dimulai. Pemesan harus menyelesaikan pembayaran terlebih dahulu.');
+        }
+        if ($changed !== 'changed') {
             return back()->with('error', 'Perubahan status tidak sesuai tahap pengerjaan atau tukang belum ditugaskan.');
         }
 

@@ -189,9 +189,43 @@ class QuoteApprovalWorkflowTest extends TestCase
         $this->actingAs($user, 'web')->post(route('bookinguser.ulasan', $requestId), ['rating' => 5])
             ->assertRedirect(route('bookinguser'));
         $this->assertDatabaseMissing('worker_reviews', ['id_request' => $requestId]);
+        $this->get(route('bookinguser'))->assertOk()->assertSee('Bayar Rp 185.000');
         Auth::guard('web')->logout();
         $this->actingAs($admin, 'admin');
+        $this->get(route('admin.booking.show', $requestId))
+            ->assertOk()
+            ->assertSee('Menunggu pemesan menyelesaikan pembayaran');
 
+        $this->post(route('booking.status', $requestId), ['status' => 'dikerjakan'])
+            ->assertRedirect(route('admin.booking.show', $requestId));
+        $this->assertDatabaseHas('request', [
+            'id_request' => $requestId,
+            'status' => 'dikonfirmasi',
+            'bayar_sekarang' => 0,
+        ]);
+
+        Auth::guard('admin')->logout();
+        $this->actingAs($user, 'web')
+            ->post(route('pembayaran.store'), [
+                'booking_kode' => 'BK-' . str_pad($requestId, 3, '0', STR_PAD_LEFT),
+                'jumlah' => 185000,
+                'metode_pembayaran' => 'Tunai',
+                'nama_pembayar' => $user->name,
+            ])
+            ->assertRedirect(route('bookinguser'));
+        $this->assertDatabaseHas('request', [
+            'id_request' => $requestId,
+            'bayar_sekarang' => 1,
+        ]);
+        $this->assertDatabaseHas('pembayarans', [
+            'user_id' => $user->id,
+            'jumlah' => 185000,
+            'status' => 'success',
+        ]);
+        $this->get(route('bookinguser'))->assertOk()->assertSee('Pembayaran lunas');
+
+        Auth::guard('web')->logout();
+        $this->actingAs($admin, 'admin');
         $this->post(route('booking.status', $requestId), ['status' => 'dikerjakan'])
             ->assertRedirect(route('admin.booking.show', $requestId));
         $this->assertDatabaseHas('request', ['id_request' => $requestId, 'status' => 'dikerjakan']);
@@ -360,6 +394,46 @@ class QuoteApprovalWorkflowTest extends TestCase
         $this->assertSame('libur', DB::table('workers')->where('id', $workerId)->value('status_ketersediaan'));
     }
 
+    public function test_booking_payment_must_match_approved_total_before_work_can_start(): void
+    {
+        $user = $this->createCustomer();
+        $admin = $this->createAdmin();
+        $workerId = $this->createWorker('Prepayment Gate Worker', 'Listrik', 5, 4.5);
+        $requestId = $this->createRequest($user, [
+            'id_worker' => $workerId,
+            'status' => 'dikonfirmasi',
+            'status_admin' => 'diterima',
+            'jumlah_pembayaran' => 125000,
+            'estimasi_total' => 125000,
+        ]);
+
+        $this->actingAs($admin, 'admin')
+            ->from(route('admin.booking.show', $requestId))
+            ->post(route('booking.status', $requestId), ['status' => 'dikerjakan'])
+            ->assertRedirect(route('admin.booking.show', $requestId));
+        $this->assertDatabaseHas('request', ['id_request' => $requestId, 'status' => 'dikonfirmasi']);
+
+        Auth::guard('admin')->logout();
+        $this->actingAs($user, 'web')
+            ->post(route('pembayaran.store'), [
+                'booking_kode' => 'BK-' . str_pad($requestId, 3, '0', STR_PAD_LEFT),
+                'jumlah' => 124999,
+                'metode_pembayaran' => 'Tunai',
+                'nama_pembayar' => $user->name,
+            ])
+            ->assertRedirect();
+        $this->assertDatabaseHas('request', ['id_request' => $requestId, 'bayar_sekarang' => 0]);
+        $this->assertDatabaseMissing('pembayarans', ['user_id' => $user->id]);
+
+        $this->post(route('pembayaran.store'), [
+            'booking_kode' => 'BK-' . str_pad($requestId, 3, '0', STR_PAD_LEFT),
+            'jumlah' => 125000,
+            'metode_pembayaran' => 'Tunai',
+            'nama_pembayar' => $user->name,
+        ])->assertRedirect(route('bookinguser'));
+        $this->assertDatabaseHas('request', ['id_request' => $requestId, 'bayar_sekarang' => 1]);
+    }
+
     public function test_customer_login_replaces_existing_admin_guard_in_same_session(): void
     {
         $admin = $this->createAdmin();
@@ -400,7 +474,7 @@ class QuoteApprovalWorkflowTest extends TestCase
 
     private function createRequest(User $user, array $attributes = []): int
     {
-        return DB::table('request')->insertGetId(array_merge([
+        $requestId = DB::table('request')->insertGetId(array_merge([
             'id_user' => $user->id,
             'layanan' => 'Listrik',
             'lokasi' => 'Jalan Test, Kecamatan Gunung Putri, Kabupaten Bogor',
@@ -416,6 +490,12 @@ class QuoteApprovalWorkflowTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ], $attributes));
+
+        DB::table('request')->where('id_request', $requestId)->update([
+            'kode_booking' => 'BK-' . str_pad($requestId, 3, '0', STR_PAD_LEFT),
+        ]);
+
+        return $requestId;
     }
 
     private function createWorker(string $name, string $skills, int $experience, float $rating, ?float $tarif = null): int

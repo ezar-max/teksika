@@ -21,8 +21,6 @@
         }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     @if(config('services.google_maps.api_key'))
     <script src="https://maps.googleapis.com/maps/api/js?key={{ urlencode(config('services.google_maps.api_key')) }}&libraries=geometry"></script>
     @endif
@@ -395,7 +393,7 @@
                                 </div>
                             </div>
 
-                            <!-- Partial Estimasi Algoritma Cerdas (Leaflet & Geocoder) -->
+                            <!-- Partial Estimasi Algoritma Cerdas dan Google Maps -->
                             <input type="hidden" id="lokasiInput" name="lokasi" value="{{ old('lokasi') }}">
                             @include('user.request._estimasi')
 
@@ -424,7 +422,7 @@
                                     </div>
                                 </div>
                                 <div id="addressStatus" style="font-size:0.78rem; color:#64748b; margin-top:5px;">
-                                    <i class="fa-solid fa-circle-check" style="color:#10b981;"></i> Titik peta akan dicari otomatis setelah kecamatan, kota, dan jalan diisi. Geser pin untuk menyesuaikan posisi.
+                                    <i class="fa-solid fa-circle-check" style="color:#10b981;"></i> Titik peta dicari otomatis setelah nama jalan dan kabupaten/kota diisi. Geser pin untuk menyesuaikan posisi.
                                 </div>
                             </div>
 

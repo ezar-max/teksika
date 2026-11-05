@@ -244,32 +244,14 @@
             transition: all 0.2s ease;
         }
 
-        /* State: Read-Only (Tetap / Terkunci) */
-        .field-input.is-readonly {
-            background: #f8fafc !important;
-            border-color: #e2e8f0 !important;
-            color: #1e293b !important;
-            font-weight: 700 !important;
-            cursor: default !important;
-            user-select: text !important;
-            box-shadow: inset 0 1px 2px rgba(0,0,0,0.02) !important;
-        }
-
-        .field-input.is-readonly:focus {
-            outline: none !important;
-            border-color: #e2e8f0 !important;
-            box-shadow: none !important;
-        }
-
-        /* State: Edit Mode Active */
-        .field-input:not(.is-readonly) {
+        .field-input {
             background: #ffffff;
             border-color: #93c5fd;
             font-weight: 600;
             cursor: text;
         }
 
-        .field-input:not(.is-readonly):focus {
+        .field-input:focus {
             outline: none;
             background: #ffffff;
             border-color: #007bff;
@@ -331,37 +313,6 @@
             color: #991b1b;
         }
 
-        /* Locked Notice Banner at bottom */
-        .pricing-locked-banner {
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-            border: 1.5px dashed #cbd5e1;
-            border-radius: 18px;
-            padding: 22px 28px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 20px;
-            margin-top: 10px;
-            margin-bottom: 40px;
-            flex-wrap: wrap;
-        }
-
-        .locked-icon-bubble {
-            width: 48px;
-            height: 48px;
-            border-radius: 14px;
-            background: #ffffff;
-            color: #64748b;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.35rem;
-            border: 1px solid #cbd5e1;
-            flex-shrink: 0;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-        }
-
-        /* Editing Action Bar at bottom */
         .pricing-editing-bar {
             display: flex;
             justify-content: flex-end;
@@ -465,26 +416,9 @@
                 </div>
 
                 <div class="pricing-header-actions">
-                    <!-- Status Terkunci / Edit -->
-                    <span id="badgeLockStatus" class="mode-status-badge badge-locked">
-                        <i class="fa-solid fa-lock"></i> Parameter Terkunci (Mode Tetap)
-                    </span>
-
-                    <!-- Tombol Edit Utama (Saat Mode Tetap) -->
-                    <button type="button" id="btnEditHeader" class="btn-primary" onclick="enableEditMode()">
-                        <i class="fa-solid fa-pen-to-square"></i>
-                        <span>Edit Parameter Tarif</span>
+                    <button type="button" class="btn-primary" onclick="submitPricingForm()">
+                        <i class="fa-solid fa-floppy-disk"></i> Simpan Perubahan
                     </button>
-
-                    <!-- Tombol Aksi saat Mode Edit Aktif (Awalnya Sembunyi) -->
-                    <div id="groupEditHeader" style="display:none; align-items:center; gap:10px;">
-                        <button type="button" class="btn-cancel" onclick="cancelEditMode()">
-                            <i class="fa-solid fa-xmark"></i> Batal
-                        </button>
-                        <button type="button" class="btn-primary" onclick="submitPricingForm()">
-                            <i class="fa-solid fa-floppy-disk"></i> Simpan Perubahan
-                        </button>
-                    </div>
                 </div>
             </div>
 
@@ -573,7 +507,7 @@
                                 <i class="fa-solid fa-gift" style="color:#007bff;"></i>
                                 Batas Jarak Gratis (km)
                             </label>
-                            <input type="number" step="0.1" min="0" class="field-input is-readonly" id="jarak_gratis_km" name="jarak_gratis_km" value="{{ $rules['jarak_gratis_km']->value ?? '5.0' }}" readonly required>
+                            <input type="number" step="0.1" min="0" class="field-input" id="jarak_gratis_km" name="jarak_gratis_km" value="{{ $rules['jarak_gratis_km']->value ?? '5.0' }}" required>
                             <span class="field-hint">Jarak di bawah batas ini dibebaskan dari biaya transportasi tukang.</span>
                         </div>
 
@@ -582,7 +516,7 @@
                                 <i class="fa-solid fa-money-bill-wave" style="color:#10b981;"></i>
                                 Tarif Per KM Tambahan (Rp)
                             </label>
-                            <input type="number" min="0" step="100" class="field-input is-readonly" id="tarif_per_km" name="tarif_per_km" value="{{ $rules['tarif_per_km']->value ?? '2500' }}" readonly required>
+                            <input type="number" min="0" step="100" class="field-input" id="tarif_per_km" name="tarif_per_km" value="{{ $rules['tarif_per_km']->value ?? '2500' }}" required>
                             <span class="field-hint">Dikenakan untuk setiap km setelah melewati batas gratis.</span>
                         </div>
 
@@ -591,7 +525,7 @@
                                 <i class="fa-solid fa-gauge-high" style="color:#f59e0b;"></i>
                                 Estimasi Kecepatan Tempuh (km/jam)
                             </label>
-                            <input type="number" min="10" max="100" class="field-input is-readonly" id="kecepatan_kmh" name="kecepatan_kmh" value="{{ $rules['kecepatan_kmh']->value ?? '30' }}" readonly required>
+                            <input type="number" min="10" max="100" class="field-input" id="kecepatan_kmh" name="kecepatan_kmh" value="{{ $rules['kecepatan_kmh']->value ?? '30' }}" required>
                             <span class="field-hint">Standar lalu lintas dalam kota = 30 km/jam (~2 menit per km).</span>
                         </div>
 
@@ -600,7 +534,7 @@
                                 <i class="fa-solid fa-circle-notch" style="color:#ef4444;"></i>
                                 Radius Maksimal Layanan (km)
                             </label>
-                            <input type="number" min="1" max="100" step="0.5" class="field-input is-readonly" id="radius_maksimal_km" name="radius_maksimal_km" value="{{ $rules['radius_maksimal_km']->value ?? '15.0' }}" readonly required>
+                            <input type="number" min="1" max="100" step="0.5" class="field-input" id="radius_maksimal_km" name="radius_maksimal_km" value="{{ $rules['radius_maksimal_km']->value ?? '15.0' }}" required>
                             <span class="field-hint">Lokasi di luar radius ini akan ditolak otomatis oleh sistem.</span>
                         </div>
                     </div>
@@ -629,7 +563,7 @@
                                 <i class="fa-solid fa-location-dot" style="color:#007bff;"></i>
                                 Bobot Jarak Kantor (0 - 1)
                             </label>
-                            <input type="number" step="0.01" min="0" max="1" class="field-input weight-input is-readonly" id="bobot_jarak" name="bobot_jarak" value="{{ $rules['bobot_jarak']->value ?? '0.25' }}" oninput="updateTotalWeight()" readonly required>
+                            <input type="number" step="0.01" min="0" max="1" class="field-input weight-input" id="bobot_jarak" name="bobot_jarak" value="{{ $rules['bobot_jarak']->value ?? '0.25' }}" oninput="updateTotalWeight()" required>
                             <span class="field-hint">Tingkat pengaruh kedekatan lokasi terhadap prioritas penugasan.</span>
                         </div>
 
@@ -638,7 +572,7 @@
                                 <i class="fa-solid fa-star" style="color:#f59e0b;"></i>
                                 Bobot Rating User (0 - 1)
                             </label>
-                            <input type="number" step="0.01" min="0" max="1" class="field-input weight-input is-readonly" id="bobot_rating" name="bobot_rating" value="{{ $rules['bobot_rating']->value ?? '0.15' }}" oninput="updateTotalWeight()" readonly required>
+                            <input type="number" step="0.01" min="0" max="1" class="field-input weight-input" id="bobot_rating" name="bobot_rating" value="{{ $rules['bobot_rating']->value ?? '0.15' }}" oninput="updateTotalWeight()" required>
                             <span class="field-hint">Prioritas kepuasan pelanggan dan skor ulasan tukang.</span>
                         </div>
 
@@ -647,7 +581,7 @@
                                 <i class="fa-solid fa-award" style="color:#10b981;"></i>
                                 Bobot Pengalaman Kerja (0 - 1)
                             </label>
-                            <input type="number" step="0.01" min="0" max="1" class="field-input weight-input is-readonly" id="bobot_pengalaman" name="bobot_pengalaman" value="{{ $rules['bobot_pengalaman']->value ?? '0.15' }}" oninput="updateTotalWeight()" readonly required>
+                            <input type="number" step="0.01" min="0" max="1" class="field-input weight-input" id="bobot_pengalaman" name="bobot_pengalaman" value="{{ $rules['bobot_pengalaman']->value ?? '0.15' }}" oninput="updateTotalWeight()" required>
                             <span class="field-hint">Prioritas jam terbang dan tahun kerja aktif teknisi.</span>
                         </div>
 
@@ -656,7 +590,7 @@
                                 <i class="fa-solid fa-briefcase" style="color:#6366f1;"></i>
                                 Bobot Beban Kerja (0 - 1)
                             </label>
-                            <input type="number" step="0.01" min="0" max="1" class="field-input weight-input is-readonly" id="bobot_beban_kerja" name="bobot_beban_kerja" value="{{ $rules['bobot_beban_kerja']->value ?? '0.45' }}" oninput="updateTotalWeight()" readonly required>
+                            <input type="number" step="0.01" min="0" max="1" class="field-input weight-input" id="bobot_beban_kerja" name="bobot_beban_kerja" value="{{ $rules['bobot_beban_kerja']->value ?? '0.45' }}" oninput="updateTotalWeight()" required>
                             <span class="field-hint">Distribusi tugas adil ke tukang dengan beban kerja lebih sedikit.</span>
                         </div>
                     </div>
@@ -679,78 +613,55 @@
                     <div class="form-grid">
                         <div class="field-group">
                             <label class="field-label" for="faktor_urgensi_rendah">Urgensi Normal (Pengali)</label>
-                            <input type="number" step="0.05" min="1" class="field-input is-readonly" id="faktor_urgensi_rendah" name="faktor_urgensi_rendah" value="{{ $rules['faktor_urgensi_rendah']->value ?? '1.00' }}" readonly required>
+                            <input type="number" step="0.05" min="1" class="field-input" id="faktor_urgensi_rendah" name="faktor_urgensi_rendah" value="{{ $rules['faktor_urgensi_rendah']->value ?? '1.00' }}" required>
                             <span class="field-hint">Tarif normal standar (1.00).</span>
                         </div>
 
                         <div class="field-group">
                             <label class="field-label" for="faktor_urgensi_sedang">Urgensi Mendesak (Pengali)</label>
-                            <input type="number" step="0.05" min="1" class="field-input is-readonly" id="faktor_urgensi_sedang" name="faktor_urgensi_sedang" value="{{ $rules['faktor_urgensi_sedang']->value ?? '1.20' }}" readonly required>
+                            <input type="number" step="0.05" min="1" class="field-input" id="faktor_urgensi_sedang" name="faktor_urgensi_sedang" value="{{ $rules['faktor_urgensi_sedang']->value ?? '1.20' }}" required>
                             <span class="field-hint">+20% prioritas pengerjaan tukang cepat.</span>
                         </div>
 
                         <div class="field-group">
                             <label class="field-label" for="faktor_urgensi_tinggi">Urgensi Darurat (Pengali)</label>
-                            <input type="number" step="0.05" min="1" class="field-input is-readonly" id="faktor_urgensi_tinggi" name="faktor_urgensi_tinggi" value="{{ $rules['faktor_urgensi_tinggi']->value ?? '1.40' }}" readonly required>
+                            <input type="number" step="0.05" min="1" class="field-input" id="faktor_urgensi_tinggi" name="faktor_urgensi_tinggi" value="{{ $rules['faktor_urgensi_tinggi']->value ?? '1.40' }}" required>
                             <span class="field-hint">+40% dispatch segera dalam antrian prioritas.</span>
                         </div>
 
                         <div class="field-group">
                             <label class="field-label" for="faktor_kerusakan_ringan">Kerusakan Ringan (Pengali)</label>
-                            <input type="number" step="0.01" min="1" class="field-input is-readonly" id="faktor_kerusakan_ringan" name="faktor_kerusakan_ringan" value="{{ $rules['faktor_kerusakan_ringan']->value ?? '1.00' }}" readonly required>
+                            <input type="number" step="0.01" min="1" class="field-input" id="faktor_kerusakan_ringan" name="faktor_kerusakan_ringan" value="{{ $rules['faktor_kerusakan_ringan']->value ?? '1.00' }}" required>
                             <span class="field-hint">Tarif dasar jasa standar (1.00).</span>
                         </div>
 
                         <div class="field-group">
                             <label class="field-label" for="faktor_kerusakan_sedang">Kerusakan Sedang (Pengali)</label>
-                            <input type="number" step="0.01" min="1" class="field-input is-readonly" id="faktor_kerusakan_sedang" name="faktor_kerusakan_sedang" value="{{ $rules['faktor_kerusakan_sedang']->value ?? '1.05' }}" readonly required>
+                            <input type="number" step="0.01" min="1" class="field-input" id="faktor_kerusakan_sedang" name="faktor_kerusakan_sedang" value="{{ $rules['faktor_kerusakan_sedang']->value ?? '1.05' }}" required>
                             <span class="field-hint">+5% penyesuaian dari tarif dasar.</span>
                         </div>
 
                         <div class="field-group">
                             <label class="field-label" for="faktor_kerusakan_berat">Kerusakan Berat (Pengali)</label>
-                            <input type="number" step="0.01" min="1" class="field-input is-readonly" id="faktor_kerusakan_berat" name="faktor_kerusakan_berat" value="{{ $rules['faktor_kerusakan_berat']->value ?? '1.10' }}" readonly required>
+                            <input type="number" step="0.01" min="1" class="field-input" id="faktor_kerusakan_berat" name="faktor_kerusakan_berat" value="{{ $rules['faktor_kerusakan_berat']->value ?? '1.10' }}" required>
                             <span class="field-hint">+10% penyesuaian pekerjaan berat.</span>
                         </div>
 
                         <div class="field-group">
                             <label class="field-label" for="pengali_durasi_sedang">Pengali Durasi Sedang</label>
-                            <input type="number" step="0.1" min="1" class="field-input is-readonly" id="pengali_durasi_sedang" name="pengali_durasi_sedang" value="{{ $rules['pengali_durasi_sedang']->value ?? '1.50' }}" readonly required>
+                            <input type="number" step="0.1" min="1" class="field-input" id="pengali_durasi_sedang" name="pengali_durasi_sedang" value="{{ $rules['pengali_durasi_sedang']->value ?? '1.50' }}" required>
                             <span class="field-hint">Pekerjaan sedang (60 mnt x 1.5 = 90 mnt).</span>
                         </div>
 
                         <div class="field-group">
                             <label class="field-label" for="pengali_durasi_tinggi">Pengali Durasi Berat</label>
-                            <input type="number" step="0.1" min="1" class="field-input is-readonly" id="pengali_durasi_tinggi" name="pengali_durasi_tinggi" value="{{ $rules['pengali_durasi_tinggi']->value ?? '2.00' }}" readonly required>
+                            <input type="number" step="0.1" min="1" class="field-input" id="pengali_durasi_tinggi" name="pengali_durasi_tinggi" value="{{ $rules['pengali_durasi_tinggi']->value ?? '2.00' }}" required>
                             <span class="field-hint">Pekerjaan kompleks (60 mnt x 2.0 = 120 mnt).</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Banner Informasi Mode Terkunci (Tampil saat mode tetap) -->
-                <div id="lockedNoticeBox" class="pricing-locked-banner">
-                    <div style="display:flex; align-items:center; gap:16px;">
-                        <div class="locked-icon-bubble">
-                            <i class="fa-solid fa-shield-halved"></i>
-                        </div>
-                        <div>
-                            <div style="font-weight:800; font-size:1.05rem; color:#0f172a;">Pengaturan Parameter Tarif Sedang Terkunci</div>
-                            <div style="font-size:0.86rem; color:#64748b; margin-top:2px;">
-                                Nilai parameter aktif digunakan langsung oleh algoritma penawaran order. Klik tombol di samping untuk membuka pengeditan.
-                            </div>
-                        </div>
-                    </div>
-                    <button type="button" class="btn-primary" onclick="enableEditMode()">
-                        <i class="fa-solid fa-pen-to-square"></i>
-                        <span>Buka Mode Pengeditan</span>
-                    </button>
-                </div>
-
-                <!-- Tombol Aksi Bawah saat Mode Edit Aktif (Awalnya Sembunyi) -->
-                <div id="editingFooterActions" class="pricing-editing-bar" style="display:none;">
-                    <button type="button" class="btn-cancel" onclick="cancelEditMode()">
-                        <i class="fa-solid fa-xmark"></i> Batalkan Perubahan
-                    </button>
+                <div class="pricing-editing-bar">
                     <button type="submit" id="btnSubmitPricing" class="btn-primary">
                         <i class="fa-solid fa-floppy-disk"></i> Simpan Seluruh Perubahan Aturan
                     </button>
@@ -789,71 +700,6 @@
     }
     function confirmLogout(){
         window.location.href = "{{ route('logout') }}";
-    }
-
-    // ==========================================
-    // MODE TETAP (TERKUNCI) VS MODE EDIT
-    // ==========================================
-    let isEditMode = false;
-
-    function enableEditMode() {
-        isEditMode = true;
-
-        // Buka atribut readonly pada semua input
-        document.querySelectorAll('#pricingForm .field-input').forEach(input => {
-            input.readOnly = false;
-            input.classList.remove('is-readonly');
-        });
-
-        // Update badge status
-        const lockBadge = document.getElementById('badgeLockStatus');
-        lockBadge.className = 'mode-status-badge badge-unlocked';
-        lockBadge.innerHTML = '<i class="fa-solid fa-lock-open"></i> Mode Pengeditan Terbuka';
-
-        // Ganti tombol header
-        document.getElementById('btnEditHeader').style.display = 'none';
-        document.getElementById('groupEditHeader').style.display = 'flex';
-
-        // Sembunyikan banner terkunci dan tampilkan footer aksi edit
-        document.getElementById('lockedNoticeBox').style.display = 'none';
-        document.getElementById('editingFooterActions').style.display = 'flex';
-
-        // Fokus ke input pertama
-        const firstInput = document.getElementById('jarak_gratis_km');
-        if (firstInput) {
-            firstInput.focus();
-        }
-    }
-
-    function cancelEditMode() {
-        if (!confirm('Batalkan seluruh perubahan parameter yang belum disimpan?')) {
-            return;
-        }
-
-        // Reset nilai form ke nilai awal
-        document.getElementById('pricingForm').reset();
-        updateTotalWeight();
-
-        // Kunci kembali semua input
-        document.querySelectorAll('#pricingForm .field-input').forEach(input => {
-            input.readOnly = true;
-            input.classList.add('is-readonly');
-        });
-
-        // Kembalikan badge status
-        const lockBadge = document.getElementById('badgeLockStatus');
-        lockBadge.className = 'mode-status-badge badge-locked';
-        lockBadge.innerHTML = '<i class="fa-solid fa-lock"></i> Parameter Terkunci (Mode Tetap)';
-
-        // Kembalikan tombol header
-        document.getElementById('btnEditHeader').style.display = 'inline-flex';
-        document.getElementById('groupEditHeader').style.display = 'none';
-
-        // Kembalikan banner notice
-        document.getElementById('lockedNoticeBox').style.display = 'flex';
-        document.getElementById('editingFooterActions').style.display = 'none';
-
-        isEditMode = false;
     }
 
     function submitPricingForm() {
