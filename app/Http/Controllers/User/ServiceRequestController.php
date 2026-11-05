@@ -82,24 +82,64 @@ class ServiceRequestController extends Controller
     public function locateAddress(Request $request, OpenStreetMapGeocodingService $geocoder)
     {
         $validated = $request->validate([
-            'kabupaten' => 'required|string|max:100',
+            'kabupaten' => 'nullable|string|max:100',
             'kecamatan' => 'nullable|string|max:100',
-            'jalan' => 'required|string|max:120',
+            'jalan' => 'nullable|string|max:120',
         ]);
 
-        $queryParts = array_filter([
-            $validated['jalan'],
-            !empty($validated['kecamatan']) ? ('Kecamatan ' . $validated['kecamatan']) : null,
-            $validated['kabupaten'],
-            'Indonesia',
-        ]);
-        $query = implode(', ', $queryParts);
-        $location = $geocoder->forward($query);
+        $jalan = trim($validated['jalan'] ?? '');
+        $kecamatan = trim($validated['kecamatan'] ?? '');
+        $kabupaten = trim($validated['kabupaten'] ?? '');
+
+        if ($jalan === '' && $kecamatan === '' && $kabupaten === '') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lengkapi rincian alamat (nama jalan, kecamatan, atau kota/kabupaten).',
+            ], 422);
+        }
+
+        // Susun variasi query bertingkat (dari spesifik ke umum) agar peluang menemukan koordinat sangat tinggi
+        $candidateQueries = [];
+
+        if ($jalan !== '') {
+            if ($kecamatan !== '' && $kabupaten !== '') {
+                $candidateQueries[] = "{$jalan}, Kecamatan {$kecamatan}, {$kabupaten}, Indonesia";
+                $candidateQueries[] = "{$jalan}, {$kecamatan}, {$kabupaten}, Indonesia";
+                $candidateQueries[] = "{$jalan}, {$kabupaten}, Indonesia";
+            } elseif ($kabupaten !== '') {
+                $candidateQueries[] = "{$jalan}, {$kabupaten}, Indonesia";
+            } elseif ($kecamatan !== '') {
+                $candidateQueries[] = "{$jalan}, {$kecamatan}, Indonesia";
+            }
+            $candidateQueries[] = "{$jalan}, Indonesia";
+        }
+
+        if ($kecamatan !== '' && $kabupaten !== '') {
+            $candidateQueries[] = "Kecamatan {$kecamatan}, {$kabupaten}, Indonesia";
+            $candidateQueries[] = "{$kecamatan}, {$kabupaten}, Indonesia";
+        } elseif ($kecamatan !== '') {
+            $candidateQueries[] = "Kecamatan {$kecamatan}, Indonesia";
+        }
+
+        if ($kabupaten !== '') {
+            $candidateQueries[] = "{$kabupaten}, Indonesia";
+        }
+
+        $candidateQueries = array_unique(array_filter($candidateQueries));
+
+        $location = null;
+        foreach ($candidateQueries as $candidate) {
+            $location = $geocoder->forward($candidate);
+            if ($location !== null) {
+                break;
+            }
+        }
+
         if ($location === null) {
             return response()->json([
                 'success' => false,
                 'message' => 'Titik alamat belum ditemukan. Coba lengkapi nama jalan atau geser pin peta secara manual.',
-            ], 503);
+            ], 404);
         }
 
         return response()->json([

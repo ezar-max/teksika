@@ -402,22 +402,22 @@
                                 <label class="form-label">Rincian Wilayah & Alamat</label>
                                 <div class="address-grid">
                                     <div>
-                                        <input type="text" id="alamatKabupaten" name="alamat_kabupaten" value="{{ old('alamat_kabupaten') }}" oninput="syncLocationAddress()" placeholder="Kabupaten / Kota" maxlength="100" class="form-control">
+                                        <input type="text" id="alamatKabupaten" name="alamat_kabupaten" value="{{ old('alamat_kabupaten') }}" oninput="syncLocationAddress()" onchange="syncLocationAddress()" onblur="syncLocationAddress()" placeholder="Kabupaten / Kota" maxlength="100" class="form-control">
                                     </div>
                                     <div>
-                                        <input type="text" id="alamatKecamatan" name="alamat_kecamatan" value="{{ old('alamat_kecamatan') }}" oninput="syncLocationAddress()" placeholder="Kecamatan" maxlength="100" class="form-control">
+                                        <input type="text" id="alamatKecamatan" name="alamat_kecamatan" value="{{ old('alamat_kecamatan') }}" oninput="syncLocationAddress()" onchange="syncLocationAddress()" onblur="syncLocationAddress()" placeholder="Kecamatan" maxlength="100" class="form-control">
                                     </div>
                                 </div>
                                 <div class="address-grid">
                                     <div>
-                                        <input type="text" id="alamatJalan" name="alamat_jalan" value="{{ old('alamat_jalan') }}" oninput="syncLocationAddress()" placeholder="Nama Jalan / Gang / Patokan" maxlength="120" class="form-control">
+                                        <input type="text" id="alamatJalan" name="alamat_jalan" value="{{ old('alamat_jalan') }}" oninput="syncLocationAddress()" onchange="syncLocationAddress()" onblur="syncLocationAddress()" placeholder="Nama Jalan / Gang / Patokan" maxlength="120" class="form-control">
                                     </div>
                                     <div class="address-rtrw-grid">
                                         <div>
-                                            <input type="text" id="alamatRt" name="alamat_rt" value="{{ old('alamat_rt') }}" oninput="syncLocationAddress()" placeholder="RT" maxlength="5" class="form-control">
+                                            <input type="text" id="alamatRt" name="alamat_rt" value="{{ old('alamat_rt') }}" oninput="syncLocationAddress()" onchange="syncLocationAddress()" placeholder="RT" maxlength="5" class="form-control">
                                         </div>
                                         <div>
-                                            <input type="text" id="alamatRw" name="alamat_rw" value="{{ old('alamat_rw') }}" oninput="syncLocationAddress()" placeholder="RW" maxlength="5" class="form-control">
+                                            <input type="text" id="alamatRw" name="alamat_rw" value="{{ old('alamat_rw') }}" oninput="syncLocationAddress()" onchange="syncLocationAddress()" placeholder="RW" maxlength="5" class="form-control">
                                         </div>
                                     </div>
                                 </div>
