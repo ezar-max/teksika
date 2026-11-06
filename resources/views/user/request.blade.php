@@ -19,6 +19,93 @@
         .worker-choice-card[hidden] {
             display: none !important;
         }
+        .location-search-row {
+            display: flex;
+            align-items: stretch;
+            gap: 10px;
+        }
+        .location-search-row textarea {
+            flex: 1;
+            min-width: 0;
+        }
+        .btn-search-location {
+            display: inline-flex;
+            flex: 0 0 auto;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-width: 112px;
+            padding: 12px 16px;
+            border: 0;
+            border-radius: 10px;
+            background: #087cf0;
+            color: #fff;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .btn-search-location:disabled {
+            cursor: wait;
+            opacity: .75;
+        }
+        .location-details {
+            margin-top: 12px;
+            padding: 14px;
+            border: 1px solid #dbeafe;
+            border-radius: 12px;
+            background: #f8fbff;
+            color: #334155;
+        }
+        .location-details-heading {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        .location-details-heading > i {
+            margin-top: 3px;
+            color: #087cf0;
+        }
+        .location-details-name {
+            color: #0f172a;
+            font-weight: 700;
+        }
+        .location-details-address {
+            margin-top: 4px;
+            line-height: 1.5;
+        }
+        .location-details-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px 14px;
+            margin-top: 12px;
+        }
+        .location-detail-item {
+            min-width: 0;
+            overflow-wrap: anywhere;
+            font-size: .82rem;
+        }
+        .location-detail-item strong {
+            display: block;
+            color: #64748b;
+            font-size: .72rem;
+            font-weight: 600;
+        }
+        .location-details-coordinates {
+            margin-top: 10px;
+            color: #64748b;
+            font-size: .75rem;
+        }
+        @media (max-width: 520px) {
+            .location-search-row {
+                flex-direction: column;
+            }
+            .btn-search-location {
+                min-height: 44px;
+            }
+            .location-details-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <!-- Leaflet OpenStreetMap Fallback -->
@@ -194,7 +281,6 @@
                                       <article class="worker-choice-card {{ old('id_worker_pilihan') == $worker->id ? 'is-selected' : '' }}" 
                                                data-skills="{{ json_encode(array_map('trim', explode(',', $worker->skills ?? ''))) }}" 
                                                data-available="{{ $worker->display_availability === 'Siap Bekerja' ? '1' : '0' }}" 
-                                               data-tarif="{{ $worker->tarif ?? '' }}"
                                                data-rating="{{ $worker->display_rating }}"
                                                data-experience="{{ $worker->pengalaman ?? 0 }}"
                                                data-worker-name="{{ $worker->name }}"
@@ -330,9 +416,9 @@
 
                             <div class="price-breakdown" id="priceBreakdown" aria-live="polite">
                                 <h3><i class="fa-solid fa-receipt"></i> Transparansi Estimasi Biaya</h3>
-                                <p class="price-breakdown-worker" id="priceBreakdownWorker">Pilih layanan untuk melihat estimasi dari tarif teknisi.</p>
+                                <p class="price-breakdown-worker" id="priceBreakdownWorker">Pilih layanan untuk melihat estimasi tarif layanan dan skor teknisi.</p>
                                 <div class="price-breakdown-row">
-                                    <span id="priceBaseLabel">Tarif dasar perhitungan</span>
+                                    <span id="priceBaseLabel">Tarif layanan</span>
                                     <strong id="priceBase">-</strong>
                                 </div>
                                 <div class="price-breakdown-row">
@@ -342,6 +428,10 @@
                                 <div class="price-breakdown-row">
                                     <span id="priceExperienceLabel">Penyesuaian pengalaman</span>
                                     <strong id="priceExperience">-</strong>
+                                </div>
+                                <div class="price-breakdown-row">
+                                    <span id="priceWorkerFeeLabel">Biaya tukang</span>
+                                    <strong id="priceWorkerFee">-</strong>
                                 </div>
                                 <div class="price-breakdown-row">
                                     <span id="priceUrgencyLabel">Tambahan urgensi</span>
@@ -420,9 +510,26 @@
                             <!-- Input Alamat Lengkap -->
                             <div class="form-group" style="margin-top: 14px;">
                                 <label class="form-label" for="alamatLengkap">Alamat Lengkap</label>
-                                <textarea id="alamatLengkap" oninput="syncLocationAddress()" onchange="syncLocationAddress()" onblur="syncLocationAddress()" placeholder="Kabupaten Bogor, Kecamatan Gunung Putri, Jalan Pancasila, RT 004/RW 001" maxlength="255" rows="2" class="form-control">{{ old('lokasi') }}</textarea>
+                                <div class="location-search-row">
+                                    <textarea id="alamatLengkap" oninput="syncLocationAddress({lookupMap:false}); clearLocationDetails();" placeholder="Kabupaten Bogor, Kecamatan Gunung Putri, Jalan Pancasila, RT 004/RW 001" maxlength="255" rows="2" class="form-control">{{ old('lokasi') }}</textarea>
+                                    <button type="button" class="btn-search-location" id="btnSearchLocation" onclick="searchAddressLocation()">
+                                        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                                        <span>Cari Lokasi</span>
+                                    </button>
+                                </div>
+                                <section id="locationDetails" class="location-details" aria-live="polite" hidden>
+                                    <div class="location-details-heading">
+                                        <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+                                        <div>
+                                            <div class="location-details-name" id="locationDetailsName"></div>
+                                            <div class="location-details-address" id="locationDetailsAddress"></div>
+                                        </div>
+                                    </div>
+                                    <div class="location-details-grid" id="locationDetailsGrid"></div>
+                                    <div class="location-details-coordinates" id="locationDetailsCoordinates"></div>
+                                </section>
                                 <div id="addressStatus" style="font-size:0.78rem; color:#64748b; margin-top:5px;">
-                                    <i class="fa-solid fa-circle-check" style="color:#10b981;"></i> Titik peta dicari otomatis dari alamat. Sertakan kabupaten, kecamatan, jalan, dan RT/RW bila tersedia.
+                                    <i class="fa-solid fa-circle-info" style="color:#64748b;"></i> Masukkan alamat lalu tekan Cari Lokasi. Sertakan kabupaten, kecamatan, jalan, dan RT/RW bila tersedia.
                                 </div>
                             </div>
 
@@ -561,9 +668,7 @@
     }
 
     function calculateWorkerEstimate(workerCard, serviceBasePrice) {
-        const workerBaseRate = Number(workerCard?.dataset?.tarif || 0) > 0
-            ? Number(workerCard.dataset.tarif)
-            : serviceBasePrice;
+        const workerBaseRate = serviceBasePrice;
         if (!(workerBaseRate > 0)) return null;
 
         const rating = workerCard?.dataset?.rating === ''
@@ -585,24 +690,25 @@
         const damageFee = Math.round(workerBaseRate * (damageFactor - 1));
         const laborTotal = adjustedRate + urgencyFee + damageFee;
 
-        // Gunakan jarak rute berkendara Google Maps (fallback garis lurus)
-        const distance = (typeof window.currentRouteDistanceKm === 'number' && !window.currentRouteUnavailable)
+        const distance = typeof window.currentRouteDistanceKm === 'number' && !window.currentRouteUnavailable
             ? window.currentRouteDistanceKm
-            : getEstimatedDistanceKm();
+            : null;
         const jarakGratisKm = Number(pricingRules.jarak_gratis_km || 5);
         const tarifPerKm = Number(pricingRules.tarif_per_km || 2500);
-        const transportFee = distance > jarakGratisKm
+        const transportFee = distance !== null && distance > jarakGratisKm
             ? Math.round((distance - jarakGratisKm) * tarifPerKm)
-            : 0;
+            : (distance === null ? null : 0);
 
         return {
             baseRate: Math.round(workerBaseRate),
             rating: rating,
+            ratingScore: rating === null ? null : rating * 0.25,
             experience: experience,
             ratingFee: ratingFee,
             experienceFee: experienceFee,
-            experiencePercent: experience * 25,
+            experienceScore: experience * 0.25,
             adjustedRate: adjustedRate,
+            workerScore: rating === null ? null : (rating * 0.25) + (experience * 0.25),
             urgency: urgency,
             urgencyFactor: urgencyFactor,
             urgencyFee: urgencyFee,
@@ -613,24 +719,8 @@
             distance: distance,
             jarakGratisKm: jarakGratisKm,
             transportFee: transportFee,
-            total: laborTotal + transportFee
+            total: transportFee === null ? null : laborTotal + transportFee
         };
-    }
-
-    function getEstimatedDistanceKm() {
-        const latitude = Number(document.getElementById('latInput')?.value);
-        const longitude = Number(document.getElementById('lonInput')?.value);
-        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return 0;
-
-        const officeLatitude = -6.4239;
-        const officeLongitude = 106.9401;
-        const toRadians = degree => degree * Math.PI / 180;
-        const latitudeDelta = toRadians(latitude - officeLatitude);
-        const longitudeDelta = toRadians(longitude - officeLongitude);
-        const haversine = Math.sin(latitudeDelta / 2) ** 2
-            + Math.cos(toRadians(officeLatitude)) * Math.cos(toRadians(latitude))
-            * Math.sin(longitudeDelta / 2) ** 2;
-        return Math.round(6371 * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine)) * 100) / 100;
     }
 
     function updatePricingBreakdown() {
@@ -660,7 +750,9 @@
         estimatedWorkers.forEach(function (item) {
             const priceEl = item.card.querySelector('.worker-choice-price');
             if (priceEl) {
-                priceEl.textContent = `Estimasi total ${formatRupiah(item.estimate.total)} · rating +${formatRupiah(item.estimate.ratingFee)} · pengalaman +${formatRupiah(item.estimate.experienceFee)}`;
+                priceEl.textContent = item.estimate.workerScore === null
+                    ? `Tarif layanan ${formatRupiah(item.estimate.baseRate)}`
+                    : `Biaya tukang (${item.estimate.workerScore.toFixed(2)} × ${formatRupiah(item.estimate.baseRate)}) ${formatRupiah(item.estimate.adjustedRate)}`;
             }
         });
 
@@ -668,7 +760,7 @@
         const estimate = estimateCard
             ? calculateWorkerEstimate(estimateCard, serviceBasePrice)
             : (serviceBasePrice > 0
-                ? calculateWorkerEstimate({ dataset: { tarif: String(serviceBasePrice), rating: '', experience: '0' } }, serviceBasePrice)
+                ? calculateWorkerEstimate({ dataset: { rating: '', experience: '0' } }, serviceBasePrice)
                 : null);
 
         let priceSource = '';
@@ -684,16 +776,13 @@
         const damage = document.querySelector('input[name="tingkat_kerusakan"]:checked')?.value || 'ringan';
         const urgencyFactor = Number(pricingRules[`faktor_urgensi_${urgency}`] || (urgency === 'tinggi' ? 1.40 : (urgency === 'sedang' ? 1.20 : 1.00)));
         const damageFactor = Number(pricingRules[`faktor_kerusakan_${damage}`] || (damage === 'berat' ? 1.10 : (damage === 'sedang' ? 1.05 : 1.00)));
-        const ratingPercent = estimate && estimate.baseRate > 0
-            ? Math.round(estimate.ratingFee / estimate.baseRate * 100)
-            : 0;
         const urgencyPercent = Math.round((urgencyFactor - 1) * 100);
         const damagePercent = Math.round((damageFactor - 1) * 100);
 
         const workerDescEl = document.getElementById('priceBreakdownWorker');
         if (workerDescEl) {
             if (estimateCard) {
-                workerDescEl.textContent = `Estimasi dihitung menggunakan ${priceSource}. Setiap rating dan tahun pengalaman bernilai 25% dari tarif dasar.`;
+                workerDescEl.textContent = `Estimasi memakai tarif layanan ${serviceName}. Setiap bintang rating dan tahun pengalaman bernilai 0,25 poin.`;
             } else if (serviceName) {
                 workerDescEl.textContent = `Belum ada mitra khusus siap bekerja untuk kategori ini. Estimasi memakai tarif dasar layanan ${serviceName}.`;
             } else {
@@ -704,20 +793,30 @@
         const priceBaseLabel = document.getElementById('priceBaseLabel');
         if (priceBaseLabel) {
             if (estimateCard && chosenCard) {
-                priceBaseLabel.textContent = `Tarif dasar tukang (${estimateCard.dataset.workerName})`;
+                priceBaseLabel.textContent = `Tarif layanan (${serviceName})`;
             } else if (estimateCard) {
-                priceBaseLabel.textContent = `Tarif dasar tukang (${estimateCard.dataset.workerName} - Rekomendasi)`;
+                priceBaseLabel.textContent = `Tarif layanan (${serviceName})`;
             } else if (serviceName) {
-                priceBaseLabel.textContent = `Tarif dasar layanan (${serviceName})`;
+                priceBaseLabel.textContent = `Tarif layanan (${serviceName})`;
             } else {
-                priceBaseLabel.textContent = 'Tarif dasar perhitungan layanan';
+                priceBaseLabel.textContent = 'Tarif layanan';
             }
         }
         document.getElementById('priceBase').textContent = estimate ? formatRupiah(estimate.baseRate) : '-';
-        document.getElementById('priceRatingLabel').textContent = `Penyesuaian rating (+${ratingPercent}%)`;
-        document.getElementById('priceRating').textContent = estimate ? `+ ${formatRupiah(estimate.ratingFee)}` : '-';
-        document.getElementById('priceExperienceLabel').textContent = estimate ? `Pengalaman ${estimate.experience} thn (+${estimate.experiencePercent}%)` : 'Penyesuaian pengalaman';
-        document.getElementById('priceExperience').textContent = estimate ? `+ ${formatRupiah(estimate.experienceFee)}` : '-';
+        document.getElementById('priceRatingLabel').textContent = estimate?.rating === null
+            ? 'Skor rating'
+            : `Skor rating (${estimate.rating} bintang × 0,25 = ${(estimate.rating * 0.25).toFixed(2)})`;
+        document.getElementById('priceRating').textContent = estimate?.ratingScore === null
+            ? '-'
+            : (estimate ? estimate.ratingScore.toFixed(2) : '-');
+        document.getElementById('priceExperienceLabel').textContent = estimate
+            ? `Skor pengalaman (${estimate.experience} thn × 0,25 = ${estimate.experienceScore.toFixed(2)})`
+            : 'Skor pengalaman';
+        document.getElementById('priceExperience').textContent = estimate ? estimate.experienceScore.toFixed(2) : '-';
+        document.getElementById('priceWorkerFeeLabel').textContent = estimate?.workerScore === null
+            ? 'Biaya layanan'
+            : `Biaya tukang (${estimate.workerScore.toFixed(2)} × ${formatRupiah(estimate.baseRate)})`;
+        document.getElementById('priceWorkerFee').textContent = estimate ? formatRupiah(estimate.adjustedRate) : '-';
         document.getElementById('priceUrgencyLabel').textContent = `Tambahan urgensi (+${urgencyPercent}%)`;
         document.getElementById('priceUrgency').textContent = estimate ? `+ ${formatRupiah(estimate.urgencyFee)}` : '-';
         document.getElementById('priceDamageLabel').textContent = `Kerusakan tambahan (+${damagePercent}%)`;
@@ -726,7 +825,9 @@
 
         const priceTransportEl = document.getElementById('priceTransport');
         if (priceTransportEl) {
-            if (estimate) {
+            if (estimate?.transportFee === null) {
+                priceTransportEl.textContent = 'Menunggu rute berkendara...';
+            } else if (estimate) {
                 priceTransportEl.textContent = estimate.transportFee > 0
                     ? formatRupiah(estimate.transportFee)
                     : `Rp 0 (Bebas biaya \u2264 ${estimate.jarakGratisKm} km)`;
@@ -734,7 +835,9 @@
                 priceTransportEl.textContent = '-';
             }
         }
-        document.getElementById('priceTotal').textContent = estimate ? formatRupiah(estimate.total) : '-';
+        document.getElementById('priceTotal').textContent = estimate?.total === null
+            ? 'Menunggu rute berkendara...'
+            : (estimate ? formatRupiah(estimate.total) : '-');
     }
 
     const layananEl = document.getElementById('layananInput');

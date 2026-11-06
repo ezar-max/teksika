@@ -578,7 +578,7 @@
                                         Belum ada penawaran final. Berikut estimasi awal dari data request:
                                     </div>
                                     <div style="display:flex; justify-content:space-between; margin-top:10px;">
-                                        <span style="color:#64748b;">Tarif dasar perhitungan:</span>
+                                        <span style="color:#64748b;">Tarif layanan:</span>
                                         <b style="color:#0f172a;">Rp {{ number_format($booking->harga_dasar_estimasi ?? $booking->harga_layanan ?? 0, 0, ',', '.') }}</b>
                                     </div>
                                     @if($booking->biaya_rating_estimasi !== null || $booking->biaya_pengalaman_estimasi !== null)
@@ -797,9 +797,10 @@
                                             </div>
 
                                             <div style="font-size:0.86rem; color:#475569;">
-                                                <div>Tarif dasar perhitungan: <b>Rp {{ number_format($offer->harga_dasar_snapshot ?? 0, 0, ',', '.') }}</b></div>
+                                                <div>Tarif layanan: <b>Rp {{ number_format($offer->harga_dasar_snapshot ?? 0, 0, ',', '.') }}</b></div>
                                                 @if($offer->biaya_rating_snapshot !== null || $offer->biaya_pengalaman_snapshot !== null)
-                                                    <div style="font-size:0.8rem;">Rating: +Rp {{ number_format($offer->biaya_rating_snapshot ?? 0, 0, ',', '.') }} · Pengalaman: +Rp {{ number_format($offer->biaya_pengalaman_snapshot ?? 0, 0, ',', '.') }}</div>
+                                                    <div style="font-size:0.8rem;">Skor rating: {{ number_format((float) $offer->rating_snapshot * 0.25, 2) }} · Skor pengalaman: {{ number_format((float) $offer->pengalaman_snapshot * 0.25, 2) }}</div>
+                                                    <div style="font-size:0.8rem;">Biaya tukang: <b>Rp {{ number_format($offer->biaya_kualifikasi_snapshot ?? 0, 0, ',', '.') }}</b></div>
                                                 @else
                                                     <div style="font-size:0.8rem;">Penyesuaian rating &amp; pengalaman: +Rp {{ number_format($offer->biaya_kualifikasi_snapshot ?? 0, 0, ',', '.') }}</div>
                                                 @endif
@@ -871,9 +872,10 @@
                             </div>
 
                             <div style="font-size:0.88rem; color:#475569;">
-                                <div>Tarif dasar perhitungan: <b>Rp {{ number_format($selectedOffer->harga_dasar_snapshot ?? 0, 0, ',', '.') }}</b></div>
+                                <div>Tarif layanan: <b>Rp {{ number_format($selectedOffer->harga_dasar_snapshot ?? 0, 0, ',', '.') }}</b></div>
                                 @if($selectedOffer->biaya_rating_snapshot !== null || $selectedOffer->biaya_pengalaman_snapshot !== null)
-                                    <div style="font-size:0.8rem;">Rating: +Rp {{ number_format($selectedOffer->biaya_rating_snapshot ?? 0, 0, ',', '.') }} · Pengalaman: +Rp {{ number_format($selectedOffer->biaya_pengalaman_snapshot ?? 0, 0, ',', '.') }}</div>
+                                    <div style="font-size:0.8rem;">Skor rating: {{ number_format((float) $selectedOffer->rating_snapshot * 0.25, 2) }} · Skor pengalaman: {{ number_format((float) $selectedOffer->pengalaman_snapshot * 0.25, 2) }}</div>
+                                    <div style="font-size:0.8rem;">Biaya tukang: <b>Rp {{ number_format($selectedOffer->biaya_kualifikasi_snapshot ?? 0, 0, ',', '.') }}</b></div>
                                 @else
                                     <div style="font-size:0.8rem;">Penyesuaian rating &amp; pengalaman: +Rp {{ number_format($selectedOffer->biaya_kualifikasi_snapshot ?? 0, 0, ',', '.') }}</div>
                                 @endif

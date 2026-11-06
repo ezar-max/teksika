@@ -59,17 +59,6 @@ function clearAccuracyCircle() {
     accuracyCircle = null;
 }
 
-function calculateStraightLineKm(lat1, lon1, lat2, lon2) {
-    const toRad = deg => (deg * Math.PI) / 180;
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return Math.round(6371 * c * 100) / 100;
-}
-
 function syncLocationAddress(options = {}) {
     clearTimeout(addressLookupDebounce);
     addressLookupSequence++;
@@ -77,28 +66,102 @@ function syncLocationAddress(options = {}) {
     const lokasiInput = document.getElementById('lokasiInput');
     if (lokasiInput) lokasiInput.value = address;
 
-    if (options.lookupMap !== false) lookupCoordinatesFromAddress(address);
+    if (options.lookupMap === true) lookupCoordinatesFromAddress(address);
 }
 
-function lookupCoordinatesFromAddress(address) {
+function clearLocationDetails() {
+    clearTimeout(addressGeocodeDebounce);
+    addressGeocodeSequence++;
+    lastAddressGeocodeKey = '';
+    setAddressSearchLoading(false);
+    const details = document.getElementById('locationDetails');
+    if (details) details.hidden = true;
+}
+
+function renderLocationDetails(location, latitude, longitude) {
+    const details = document.getElementById('locationDetails');
+    const name = document.getElementById('locationDetailsName');
+    const address = document.getElementById('locationDetailsAddress');
+    const grid = document.getElementById('locationDetailsGrid');
+    const coordinates = document.getElementById('locationDetailsCoordinates');
+    if (!details || !name || !address || !grid || !coordinates) return;
+
+    const detailEntries = Object.entries(location.address_details || {})
+        .filter(([, value]) => String(value || '').trim() !== '');
+    name.textContent = location.address_details?.Jalan
+        || location.address_details?.Kelurahan
+        || location.address_details?.['Kota/Kabupaten']
+        || location.display_name
+        || 'Lokasi ditemukan';
+    address.textContent = location.display_name || '';
+    grid.replaceChildren();
+
+    detailEntries.forEach(([label, value]) => {
+        const item = document.createElement('div');
+        item.className = 'location-detail-item';
+        const labelElement = document.createElement('strong');
+        labelElement.textContent = label;
+        const valueElement = document.createElement('span');
+        valueElement.textContent = value;
+        item.append(labelElement, valueElement);
+        grid.appendChild(item);
+    });
+
+    const providerName = location.provider === 'google_maps'
+        ? 'Google Maps'
+        : (location.provider === 'photon' ? 'Photon OpenStreetMap' : 'OpenStreetMap');
+    coordinates.textContent = `Koordinat: ${Number(latitude).toFixed(7)}, ${Number(longitude).toFixed(7)}${location.provider ? ` · Sumber: ${providerName}` : ''}`;
+    details.hidden = false;
+}
+
+function setAddressSearchLoading(isLoading) {
+    const button = document.getElementById('btnSearchLocation');
+    if (!button) return;
+    button.disabled = isLoading;
+    button.innerHTML = isLoading
+        ? '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><span>Mencari...</span>'
+        : '<i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><span>Cari Lokasi</span>';
+}
+
+function searchAddressLocation() {
+    const address = document.getElementById('alamatLengkap')?.value.trim() || '';
     const status = document.getElementById('addressStatus');
+    if (!address) {
+        if (status) status.innerHTML = '<i class="fa-solid fa-circle-exclamation" style="color:#ef4444;"></i> Masukkan alamat yang ingin dicari.';
+        document.getElementById('alamatLengkap')?.focus();
+        return;
+    }
+
+    syncLocationAddress({ lookupMap: false });
+    clearLocationDetails();
+    setAddressSearchLoading(true);
+    if (status) status.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="color:#087cf0;"></i> Sedang mencari alamat...';
+    lookupCoordinatesFromAddress(address, {
+        immediate: true,
+        onComplete: () => setAddressSearchLoading(false)
+    });
+}
+
+function lookupCoordinatesFromAddress(address, options = {}) {
+    const status = document.getElementById('addressStatus');
+    const finish = typeof options.onComplete === 'function' ? options.onComplete : () => {};
 
     if (!address) {
         clearTimeout(addressGeocodeDebounce);
         addressGeocodeSequence++;
         lastAddressGeocodeKey = '';
         if (status) status.innerHTML = '<i class="fa-solid fa-circle-info" style="color:#64748b;"></i> Masukkan alamat lengkap untuk mengarahkan titik di peta secara otomatis.';
+        finish();
         return;
     }
 
     const addressKey = address.toLowerCase();
-    if (addressKey === lastAddressGeocodeKey) return;
+    if (addressKey === lastAddressGeocodeKey && !options.onComplete) return;
     clearTimeout(addressGeocodeDebounce);
     const sequence = ++addressGeocodeSequence;
     lastAddressGeocodeKey = addressKey;
-    if (status) status.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="color:#007bff;"></i> Mencari titik lokasi di peta...';
 
-    addressGeocodeDebounce = setTimeout(function () {
+    const performLookup = function () {
         const fullQuery = /\bindonesia\b/i.test(address) ? address : `${address}, Indonesia`;
 
         // 1. Coba pencarian langsung di client-side Google Maps jika Google Maps aktif dan Geocoder tersedia
@@ -116,26 +179,54 @@ function lookupCoordinatesFromAddress(address) {
                             lat: loc.lat(),
                             lng: loc.lng()
                         }, { clearAddress: false, lookupAddress: false, zoom: 16, keepHomeInViewAfterRoute: true });
-                        if (status) {
-                            status.innerHTML = `<i class="fa-solid fa-circle-check" style="color:#10b981;"></i> Titik peta berhasil diarahkan otomatis ke alamat (Google Maps). Geser pin bila perlu menyesuaikan.`;
-                        }
+                        const components = {};
+                        (results[0].address_components || []).forEach(function (component) {
+                            const type = component.types.find(item => ({
+                                street_number: 'Nomor',
+                                route: 'Jalan',
+                                neighborhood: 'Lingkungan',
+                                sublocality_level_1: 'Kelurahan',
+                                administrative_area_level_4: 'Kelurahan',
+                                administrative_area_level_3: 'Kecamatan',
+                                locality: 'Kota',
+                                administrative_area_level_2: 'Kabupaten/Kota',
+                                administrative_area_level_1: 'Provinsi',
+                                postal_code: 'Kode Pos',
+                                country: 'Negara'
+                            })[item]);
+                            if (type && !components[type]) components[type] = component.long_name;
+                        });
+                        renderLocationDetails({
+                            display_name: results[0].formatted_address || address,
+                            address_details: components,
+                            provider: 'google_maps'
+                        }, loc.lat(), loc.lng());
+                        if (status) status.innerHTML = '<i class="fa-solid fa-circle-check" style="color:#10b981;"></i> Lokasi ditemukan. Periksa detail alamat di bawah.';
+                        finish();
                         return;
                     }
                     // Jika client-side tidak menemukan, fallback ke backend server
-                    fetchServerGeocode(address, sequence, status);
+                    fetchServerGeocode(address, sequence, status, finish);
                 });
                 return;
             } catch (e) {
-                // Lewati ke fetch server
+                fetchServerGeocode(address, sequence, status, finish);
+                return;
             }
         }
 
         // 2. Gunakan backend endpoint (cascading Google -> Photon -> OpenStreetMap)
-        fetchServerGeocode(address, sequence, status);
-    }, 600);
+        fetchServerGeocode(address, sequence, status, finish);
+    };
+
+    if (options.immediate) {
+        performLookup();
+    } else {
+        addressGeocodeDebounce = setTimeout(performLookup, 600);
+    }
 }
 
-function fetchServerGeocode(address, sequence, status) {
+function fetchServerGeocode(address, sequence, status, finish = () => {}) {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')
         ? document.querySelector('meta[name="csrf-token"]').getAttribute('content')
         : (document.querySelector('input[name="_token"]') ? document.querySelector('input[name="_token"]').value : '');
@@ -159,18 +250,21 @@ function fetchServerGeocode(address, sequence, status) {
             lat: data.location.latitude,
             lng: data.location.longitude
         }, { clearAddress: false, lookupAddress: false, zoom: 16, keepHomeInViewAfterRoute: true });
+        renderLocationDetails(data.location, data.location.latitude, data.location.longitude);
         if (status) {
             const provider = data.location.provider === 'google_maps'
                 ? 'Google Maps'
                 : (data.location.provider === 'photon' ? 'Photon OpenStreetMap' : 'OpenStreetMap');
-            status.innerHTML = `<i class="fa-solid fa-circle-check" style="color:#10b981;"></i> Titik peta berhasil diarahkan ke lokasi alamat (${provider}). Geser pin bila perlu menyesuaikan.`;
+            status.innerHTML = `<i class="fa-solid fa-circle-check" style="color:#10b981;"></i> Lokasi ditemukan (${provider}). Periksa detail alamat di bawah.`;
         }
+        finish();
     })
-    .catch(function () {
+    .catch(function (error) {
         if (sequence === addressGeocodeSequence && status) {
             lastAddressGeocodeKey = '';
-            status.innerHTML = '<i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b;"></i> Titik spesifik belum terdeteksi. Silakan lengkapi nama jalan/patokan atau geser pin merah pada peta.';
+            status.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b;"></i> ${error.message || 'Lokasi belum ditemukan. Lengkapi alamat atau geser pin pada peta.'}`;
         }
+        finish();
     });
 }
 
@@ -210,6 +304,16 @@ function lookupAddressFromCoordinates(latitude, longitude) {
             const addressInput = document.getElementById('alamatLengkap');
             if (addressInput) addressInput.value = addressParts.join(', ');
             syncLocationAddress({ lookupMap: false });
+            renderLocationDetails({
+                display_name: addressParts.join(', '),
+                address_details: {
+                    'Jalan': address.jalan,
+                    'RT/RW': [address.rt ? `RT ${address.rt}` : '', address.rw ? `RW ${address.rw}` : ''].filter(Boolean).join(' / '),
+                    'Kecamatan': address.kecamatan,
+                    'Kabupaten/Kota': address.kabupaten
+                },
+                provider: address.provider === 'google_maps' ? 'google_maps' : 'openstreetmap'
+            }, latitude, longitude);
             if (status) {
                 const providerName = address.provider === 'google_maps' ? 'Google Maps' : 'OpenStreetMap';
                 status.innerText = address.rt && address.rw
@@ -430,6 +534,7 @@ function setHomeLocation(point, options = {}) {
     }
 
     if (options.clearAddress !== false) {
+        clearLocationDetails();
         clearTimeout(addressGeocodeDebounce);
         addressGeocodeSequence++;
         lastAddressGeocodeKey = '';
@@ -500,12 +605,11 @@ function renderOsrmRoute(route) {
         }
     }
 
-    const straightKm = calculateStraightLineKm(officePoint[0], officePoint[1], homeLat, homeLon);
     const sourceLabel = route.source === 'google_routes' ? 'Google Maps Compute Routes' : 'OSRM Fallback';
 
     const routeStatus = document.getElementById('routeStatus');
     if (routeStatus) {
-        routeStatus.innerHTML = `<i class="fa-solid fa-route"></i> <span>Rute Jalan (${sourceLabel}): <strong>${route.distance_km} km</strong> (~${route.duration_minutes} menit) &bull; Garis Lurus: <strong>${straightKm} km</strong>. Titik awal: Kantor Pusat TEKSIKA</span>`;
+        routeStatus.innerHTML = `<i class="fa-solid fa-route"></i> <span>Rute Jalan (${sourceLabel}): <strong>${route.distance_km} km</strong> (~${route.duration_minutes} menit). Titik awal: Kantor Pusat TEKSIKA</span>`;
     }
 }
 
@@ -706,10 +810,9 @@ function runEstimasiAjax() {
             window.currentRouteDistanceKm = null;
             window.currentRouteUnavailable = true;
             if (typeof updatePricingBreakdown === 'function') updatePricingBreakdown();
-            const straightKm = calculateStraightLineKm(officePoint[0], officePoint[1], Number(lat), Number(lon));
             const routeStatus = document.getElementById('routeStatus');
             if (routeStatus) {
-                routeStatus.innerHTML = `<i class="fa-solid fa-circle-info"></i> <span>${data.message || 'Rute jalan tidak dapat dihitung saat ini.'} (Jarak Garis Lurus: <strong>${straightKm} km</strong>)</span>`;
+                routeStatus.innerHTML = `<i class="fa-solid fa-circle-info"></i> <span>${data.message || 'Rute jalan tidak dapat dihitung saat ini.'}</span>`;
             }
             return;
         }
@@ -732,9 +835,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const initLat = document.getElementById('latInput') ? document.getElementById('latInput').value : '';
     const initLon = document.getElementById('lonInput') ? document.getElementById('lonInput').value : '';
     const initAddress = document.getElementById('alamatLengkap')?.value.trim() || '';
-    if (initAddress) {
-        lookupCoordinatesFromAddress(initAddress);
-    } else if (initLat && initLon) {
+    if (initAddress) searchAddressLocation(); else if (initLat && initLon) {
         lookupAddressFromCoordinates(initLat, initLon);
     }
     window.addEventListener('resize', function() {

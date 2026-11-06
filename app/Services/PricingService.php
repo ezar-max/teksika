@@ -45,8 +45,9 @@ class PricingService
         $baseRate = round(max(0, $baseRate));
         $experienceYears = max(0, $experienceYears);
         $ratingScore = $rating === null ? null : min(5, max(0, $rating)) * 0.25;
+        $experienceScore = $experienceYears * 0.25;
         $ratingFee = $ratingScore === null ? 0 : round($baseRate * $ratingScore);
-        $experienceFee = round($baseRate * $experienceYears * 0.25);
+        $experienceFee = $ratingScore === null ? 0 : round($baseRate * $experienceScore);
         $adjustedRate = $ratingScore === null
             ? $baseRate
             : $ratingFee + $experienceFee;
@@ -59,10 +60,22 @@ class PricingService
             'biaya_kualifikasi' => (float) ($ratingFee + $experienceFee),
             'biaya_rating' => (float) $ratingFee,
             'biaya_pengalaman' => (float) $experienceFee,
-            'pengalaman_persen' => (float) ($experienceYears * 25),
+            'skor_rating' => $ratingScore,
+            'skor_pengalaman' => (float) $experienceScore,
+            'skor_total' => $ratingScore === null ? null : (float) ($ratingScore + $experienceScore),
+            'pengalaman_persen' => (float) ($experienceScore * 100),
             'harga_layanan' => (float) $adjustedRate,
             'biaya_additional' => 0.0,
         ];
+    }
+
+    public function serviceRateForComplexity(float $hargaMin, float $hargaMax, string $kompleksitas): float
+    {
+        return match (strtolower(trim($kompleksitas))) {
+            'rendah' => max(0, $hargaMin),
+            'tinggi' => max(0, $hargaMax),
+            default => round((max(0, $hargaMin) + max(0, $hargaMax)) / 2),
+        };
     }
 
     /**
@@ -144,14 +157,7 @@ class PricingService
         }
 
         // 2. Harga Dasar Layanan berdasarkan Kompleksitas
-        if ($kompleksitas === 'rendah') {
-            $hargaLayanan = $hargaMin;
-        } elseif ($kompleksitas === 'tinggi') {
-            $hargaLayanan = $hargaMax;
-        } else {
-            // 'sedang' (rata-rata min dan max)
-            $hargaLayanan = round(($hargaMin + $hargaMax) / 2);
-        }
+        $hargaLayanan = $this->serviceRateForComplexity($hargaMin, $hargaMax, $kompleksitas);
 
         // 3. Faktor Pengali Urgensi
         $faktorUrgensi = 1.00;

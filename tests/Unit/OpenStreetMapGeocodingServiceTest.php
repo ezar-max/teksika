@@ -63,6 +63,13 @@ class OpenStreetMapGeocodingServiceTest extends TestCase
                             'lng' => 106.987654,
                         ],
                     ],
+                    'address_components' => [
+                        ['long_name' => 'Jalan Melati', 'types' => ['route']],
+                        ['long_name' => 'Gunung Putri', 'types' => ['administrative_area_level_3']],
+                        ['long_name' => 'Bogor', 'types' => ['administrative_area_level_2']],
+                        ['long_name' => 'Jawa Barat', 'types' => ['administrative_area_level_1']],
+                        ['long_name' => 'Indonesia', 'types' => ['country']],
+                    ],
                 ]],
             ]),
         ]);
@@ -74,6 +81,13 @@ class OpenStreetMapGeocodingServiceTest extends TestCase
             'latitude' => -6.345678,
             'longitude' => 106.987654,
             'display_name' => 'Jalan Melati, Kabupaten Bogor, Indonesia',
+            'address_details' => [
+                'Jalan' => 'Jalan Melati',
+                'Kecamatan' => 'Gunung Putri',
+                'Kabupaten/Kota' => 'Bogor',
+                'Provinsi' => 'Jawa Barat',
+                'Negara' => 'Indonesia',
+            ],
             'provider' => 'google_maps',
         ], $location);
         Http::assertSent(fn (ClientRequest $request) => str_contains($request->url(), 'maps.googleapis.com/maps/api/geocode/json')
@@ -92,6 +106,14 @@ class OpenStreetMapGeocodingServiceTest extends TestCase
                     'lat' => '-6.345678',
                     'lon' => '106.987654',
                     'display_name' => 'Jalan Melati, Gunung Putri, Indonesia',
+                    'address' => [
+                        'road' => 'Jalan Melati',
+                        'city_district' => 'Gunung Putri',
+                        'county' => 'Bogor',
+                        'state' => 'Jawa Barat',
+                        'postcode' => '16964',
+                        'country' => 'Indonesia',
+                    ],
                 ],
             ]),
         ]);
@@ -103,6 +125,14 @@ class OpenStreetMapGeocodingServiceTest extends TestCase
             'latitude' => -6.345678,
             'longitude' => 106.987654,
             'display_name' => 'Jalan Melati, Gunung Putri, Indonesia',
+            'address_details' => [
+                'Jalan' => 'Jalan Melati',
+                'Kecamatan' => 'Gunung Putri',
+                'Kabupaten' => 'Bogor',
+                'Provinsi' => 'Jawa Barat',
+                'Kode Pos' => '16964',
+                'Negara' => 'Indonesia',
+            ],
             'provider' => 'nominatim',
         ], $geocoder->forward($query));
 
@@ -111,6 +141,14 @@ class OpenStreetMapGeocodingServiceTest extends TestCase
                 'latitude' => -6.345678,
                 'longitude' => 106.987654,
                 'display_name' => 'Jalan Melati, Gunung Putri, Indonesia',
+                'address_details' => [
+                    'Jalan' => 'Jalan Melati',
+                    'Kecamatan' => 'Gunung Putri',
+                    'Kabupaten' => 'Bogor',
+                    'Provinsi' => 'Jawa Barat',
+                    'Kode Pos' => '16964',
+                    'Negara' => 'Indonesia',
+                ],
                 'provider' => 'nominatim',
             ],
             $geocoder->forward($query)
@@ -146,6 +184,12 @@ class OpenStreetMapGeocodingServiceTest extends TestCase
             'latitude' => -6.345678,
             'longitude' => 106.987654,
             'display_name' => 'Jalan Melati, Gunung Putri, Kabupaten Bogor, Indonesia',
+            'address_details' => [
+                'Nama lokasi' => 'Jalan Melati',
+                'Kecamatan' => 'Gunung Putri',
+                'Kota/Kabupaten' => 'Kabupaten Bogor',
+                'Negara' => 'Indonesia',
+            ],
             'provider' => 'photon',
         ], $location);
         Http::assertSentCount(2);

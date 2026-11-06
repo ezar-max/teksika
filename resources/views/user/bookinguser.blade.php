@@ -1555,6 +1555,11 @@
                   $detailRatingCharge = $detailOffer?->biaya_rating_snapshot ?? $request->biaya_rating_estimasi;
                   $detailExperienceCharge = $detailOffer?->biaya_pengalaman_snapshot ?? $request->biaya_pengalaman_estimasi;
                   $detailExperiencePercent = $detailOffer?->pengalaman_persen_snapshot ?? $request->pengalaman_persen_estimasi;
+                  $detailWorkerFee = $detailOffer
+                    ? (float) ($detailOffer->biaya_kualifikasi_snapshot ?? ((float) ($detailRatingCharge ?? 0) + (float) ($detailExperienceCharge ?? 0)))
+                    : (float) ($detailQualificationCharge ?? 0);
+                  $detailRating = $detailOffer?->rating_snapshot ?? $request->rating_estimasi ?? $detailOfferWorker?->rating;
+                  $detailExperience = $detailOffer?->pengalaman_snapshot ?? $request->pengalaman_estimasi ?? $detailOfferWorker?->pengalaman;
                   $detailAdditionalCharge = $detailOffer?->biaya_additional_snapshot ?? $request->biaya_additional_estimasi;
                   $detailServiceCharge = $detailOffer?->biaya_jasa_snapshot ?? ($request->harga_layanan !== null ? (float) $request->harga_layanan + (float) ($request->biaya_urgensi_estimasi ?? 0) + (float) ($request->biaya_kerusakan_estimasi ?? 0) : null);
                   $detailMaterialCharge = $detailOffer?->biaya_material_snapshot ?? 0;
@@ -1585,7 +1590,7 @@
                         data-rating="{{ $detailOffer?->rating_snapshot ?? $request->rating_estimasi ?? $detailOfferWorker?->rating ?? '' }}"
                         data-pengalaman="{{ $detailOffer?->pengalaman_snapshot ?? $request->pengalaman_estimasi ?? $detailOfferWorker?->pengalaman ?? '' }}"
                         data-jarak="{{ $detailOffer?->jarak_km ?? $request->jarak_km ?? '' }}"
-                        data-jarak-label="{{ $detailOffer ? 'Jarak perjalanan penawaran' : ($request->estimasi_total !== null ? 'Estimasi jarak garis lurus' : 'Jarak') }}"
+                        data-jarak-label="{{ $detailOffer ? 'Jarak rute berkendara penawaran' : 'Jarak rute berkendara' }}"
                         data-durasi-layanan="{{ $detailOffer?->estimasi_durasi_menit ?? $request->estimasi_durasi_menit ?? '' }}"
                         data-harga="{{ $detailPriceTotal ?? '' }}"
                         data-harga-dasar="{{ $detailBasePrice ?? '' }}"
@@ -1593,6 +1598,9 @@
                         data-biaya-rating="{{ $detailRatingCharge ?? '' }}"
                         data-biaya-pengalaman="{{ $detailExperienceCharge ?? '' }}"
                         data-pengalaman-persen="{{ $detailExperiencePercent ?? '' }}"
+                        data-skor-rating="{{ $detailRating !== null ? number_format((float) $detailRating * 0.25, 2, '.', '') : '' }}"
+                        data-skor-pengalaman="{{ $detailExperience !== null ? number_format((float) $detailExperience * 0.25, 2, '.', '') : '' }}"
+                        data-biaya-tukang="{{ $detailWorkerFee }}"
                         data-biaya-additional="{{ $detailAdditionalCharge ?? '' }}"
                         data-biaya-urgensi="{{ $detailUrgencyCharge ?? '' }}"
                         data-biaya-kerusakan="{{ $detailDamageCharge ?? '' }}"
@@ -1637,9 +1645,10 @@
                                           @if($offer->worker?->foto)<img src="{{ asset('storage/' . $offer->worker->foto) }}" alt="{{ $offer->worker->name }}" onerror="this.onerror=null;this.src='{{ asset('images/userabu.png') }}';" style="width:42px;height:42px;object-fit:cover;border-radius:50%;">@endif
                                           <div style="flex:1; min-width:150px;"><strong>{{ $offer->worker?->name ?? 'Mitra' }}</strong><div style="color:#64748b;font-size:.8rem;">{{ $offer->keahlian_snapshot }} · {{ $offer->pengalaman_snapshot }} thn · ★ {{ number_format($offer->rating_snapshot, 1) }} ({{ $offer->jumlah_ulasan_snapshot }} ulasan)</div></div>
                                           <div style="font-size:.82rem;">
-                                            Tarif dasar perhitungan <b>Rp {{ number_format($offer->harga_dasar_snapshot ?? 0, 0, ',', '.') }}</b><br>
+                                            Tarif layanan <b>Rp {{ number_format($offer->harga_dasar_snapshot ?? 0, 0, ',', '.') }}</b><br>
                                             @if($offer->biaya_rating_snapshot !== null || $offer->biaya_pengalaman_snapshot !== null)
-                                              Rating <b>+Rp {{ number_format($offer->biaya_rating_snapshot ?? 0, 0, ',', '.') }}</b> · pengalaman <b>+Rp {{ number_format($offer->biaya_pengalaman_snapshot ?? 0, 0, ',', '.') }}</b><br>
+                                              Skor rating <b>{{ number_format((float) $offer->rating_snapshot * 0.25, 2) }}</b> · skor pengalaman <b>{{ number_format((float) $offer->pengalaman_snapshot * 0.25, 2) }}</b><br>
+                                              Biaya tukang <b>Rp {{ number_format($offer->biaya_kualifikasi_snapshot ?? 0, 0, ',', '.') }}</b><br>
                                             @else
                                               Penyesuaian rating & pengalaman <b>+Rp {{ number_format($offer->biaya_kualifikasi_snapshot ?? 0, 0, ',', '.') }}</b><br>
                                             @endif
@@ -1805,10 +1814,11 @@
                 <div class="detail-price-panel">
                     <h3><i class="fa-solid fa-receipt"></i> Transparansi harga</h3>
                     <p class="detail-price-caption" id="dHargaStatus"></p>
-                    <div class="detail-price-row"><span>Tarif dasar perhitungan</span><strong id="dHargaDasar"></strong></div>
+                    <div class="detail-price-row"><span>Tarif layanan</span><strong id="dHargaDasar"></strong></div>
                     <div class="detail-price-row" id="dRowLegacyQualification" style="display:none;"><span>Penyesuaian kualifikasi (data lama)</span><strong id="dBiayaKualifikasi"></strong></div>
-                    <div class="detail-price-row" id="dRowRating"><span id="dRatingLabel">Penyesuaian rating</span><strong id="dBiayaRating"></strong></div>
-                    <div class="detail-price-row" id="dRowExperience"><span id="dExperienceLabel">Penyesuaian pengalaman</span><strong id="dBiayaPengalaman"></strong></div>
+                    <div class="detail-price-row" id="dRowRating"><span id="dRatingLabel">Skor rating</span><strong id="dBiayaRating"></strong></div>
+                    <div class="detail-price-row" id="dRowExperience"><span id="dExperienceLabel">Skor pengalaman</span><strong id="dBiayaPengalaman"></strong></div>
+                    <div class="detail-price-row" id="dRowWorkerFee"><span id="dWorkerFeeLabel">Biaya tukang</span><strong id="dBiayaTukang"></strong></div>
                     <div class="detail-price-row" id="dRowAdditional" style="display:none;"><span>Biaya tambahan (data booking lama)</span><strong id="dBiayaAdditional"></strong></div>
                     <div class="detail-price-row"><span>Tambahan urgensi</span><strong id="dBiayaUrgensi"></strong></div>
                     <div class="detail-price-row"><span>Tambahan tingkat kerusakan</span><strong id="dBiayaKerusakan"></strong></div>
@@ -2071,11 +2081,14 @@
             document.getElementById('dRowLegacyQualification').style.display = hasDetailedQualification ? 'none' : '';
             document.getElementById('dRowRating').style.display = hasDetailedQualification ? '' : 'none';
             document.getElementById('dRowExperience').style.display = hasDetailedQualification ? '' : 'none';
+            document.getElementById('dRowWorkerFee').style.display = hasDetailedQualification ? '' : 'none';
             document.getElementById('dBiayaKualifikasi').textContent = formatMoney(card.dataset.biayaKualifikasi);
-            document.getElementById('dBiayaRating').textContent = formatMoney(card.dataset.biayaRating);
-            document.getElementById('dBiayaPengalaman').textContent = formatMoney(card.dataset.biayaPengalaman);
-            document.getElementById('dRatingLabel').textContent = `Nilai rating (${card.dataset.rating || '-'} × 25% tarif dasar)`;
-            document.getElementById('dExperienceLabel').textContent = `Pengalaman ${card.dataset.pengalaman || '-'} thn (${card.dataset.pengalamanPersen || 0}% tarif dasar)`;
+            document.getElementById('dBiayaRating').textContent = card.dataset.skorRating || '-';
+            document.getElementById('dBiayaPengalaman').textContent = card.dataset.skorPengalaman || '-';
+            document.getElementById('dBiayaTukang').textContent = formatMoney(card.dataset.biayaTukang);
+            document.getElementById('dRatingLabel').textContent = `Skor rating (${card.dataset.rating || '-'} bintang × 0,25)`;
+            document.getElementById('dExperienceLabel').textContent = `Skor pengalaman (${card.dataset.pengalaman || '-'} thn × 0,25)`;
+            document.getElementById('dWorkerFeeLabel').textContent = `Biaya tukang (${Number(card.dataset.skorRating || 0) + Number(card.dataset.skorPengalaman || 0)} × ${formatMoney(card.dataset.hargaDasar)})`;
             document.getElementById('dBiayaAdditional').textContent = formatMoney(card.dataset.biayaAdditional);
             document.getElementById('dRowAdditional').style.display = Number(card.dataset.biayaAdditional || 0) > 0 ? '' : 'none';
             document.getElementById('dBiayaUrgensi').textContent = formatMoney(card.dataset.biayaUrgensi);

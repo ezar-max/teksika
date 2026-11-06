@@ -262,6 +262,7 @@ class OpenStreetMapGeocodingService
                 'latitude' => (float) $lat,
                 'longitude' => (float) $lng,
                 'display_name' => (string) ($result['formatted_address'] ?? ''),
+                'address_details' => $this->googleAddressDetails($result['address_components'] ?? []),
                 'provider' => 'google_maps',
             ];
         } catch (\Throwable $exception) {
@@ -277,7 +278,7 @@ class OpenStreetMapGeocodingService
             $response = Http::withHeaders([
                 'Content-Type' => 'application/json',
                 'X-Goog-Api-Key' => $apiKey,
-                'X-Goog-FieldMask' => 'places.displayName,places.formattedAddress,places.location',
+                'X-Goog-FieldMask' => 'places.displayName,places.formattedAddress,places.addressComponents,places.location',
             ])->timeout(5)->post('https://places.googleapis.com/v1/places:searchText', [
                 'textQuery' => $query,
                 'languageCode' => 'id',
@@ -301,6 +302,7 @@ class OpenStreetMapGeocodingService
                 'latitude' => (float) $lat,
                 'longitude' => (float) $lng,
                 'display_name' => (string) ($place['formattedAddress'] ?? $place['displayName']['text'] ?? ''),
+                'address_details' => $this->googleAddressDetails($place['addressComponents'] ?? []),
                 'provider' => 'google_maps',
             ];
         } catch (\Throwable $exception) {
@@ -336,6 +338,7 @@ class OpenStreetMapGeocodingService
                 'latitude' => (float) $location['lat'],
                 'longitude' => (float) $location['lon'],
                 'display_name' => (string) ($location['display_name'] ?? ''),
+                'address_details' => $this->openStreetMapAddressDetails($location['address'] ?? []),
                 'provider' => 'nominatim',
             ];
         } catch (\Throwable $exception) {
@@ -381,6 +384,7 @@ class OpenStreetMapGeocodingService
                 'latitude' => (float) $coordinates[1],
                 'longitude' => (float) $coordinates[0],
                 'display_name' => $displayName,
+                'address_details' => $this->photonAddressDetails($properties),
                 'provider' => 'photon',
             ];
         } catch (\Throwable $exception) {
@@ -403,5 +407,92 @@ class OpenStreetMapGeocodingService
         }
 
         return '';
+    }
+
+    private function googleAddressDetails(array $components): array
+    {
+        $typeLabels = [
+            'street_number' => 'Nomor',
+            'route' => 'Jalan',
+            'neighborhood' => 'Lingkungan',
+            'sublocality_level_1' => 'Kelurahan',
+            'administrative_area_level_4' => 'Kelurahan',
+            'administrative_area_level_3' => 'Kecamatan',
+            'locality' => 'Kota',
+            'administrative_area_level_2' => 'Kabupaten/Kota',
+            'administrative_area_level_1' => 'Provinsi',
+            'postal_code' => 'Kode Pos',
+            'country' => 'Negara',
+        ];
+        $details = [];
+
+        foreach ($components as $component) {
+            $value = trim((string) ($component['long_name'] ?? $component['longText'] ?? ''));
+            if ($value === '') {
+                continue;
+            }
+
+            foreach ($component['types'] ?? [] as $type) {
+                if (isset($typeLabels[$type]) && !isset($details[$typeLabels[$type]])) {
+                    $details[$typeLabels[$type]] = $value;
+                }
+            }
+        }
+
+        return $details;
+    }
+
+    private function openStreetMapAddressDetails(array $address): array
+    {
+        $fields = [
+            'road' => 'Jalan',
+            'house_number' => 'Nomor',
+            'neighbourhood' => 'Lingkungan',
+            'suburb' => 'Kelurahan',
+            'village' => 'Desa/Kelurahan',
+            'city_district' => 'Kecamatan',
+            'municipality' => 'Kecamatan',
+            'district' => 'Kecamatan',
+            'city' => 'Kota',
+            'town' => 'Kota',
+            'county' => 'Kabupaten',
+            'state' => 'Provinsi',
+            'postcode' => 'Kode Pos',
+            'country' => 'Negara',
+        ];
+        $details = [];
+
+        foreach ($fields as $field => $label) {
+            $value = trim((string) ($address[$field] ?? ''));
+            if ($value !== '' && !isset($details[$label])) {
+                $details[$label] = $value;
+            }
+        }
+
+        return $details;
+    }
+
+    private function photonAddressDetails(array $properties): array
+    {
+        $fields = [
+            'housenumber' => 'Nomor',
+            'name' => 'Nama lokasi',
+            'street' => 'Jalan',
+            'district' => 'Kecamatan',
+            'city' => 'Kota/Kabupaten',
+            'state' => 'Provinsi',
+            'postcode' => 'Kode Pos',
+            'country' => 'Negara',
+        ];
+        $details = [];
+
+        foreach ($fields as $field => $label) {
+            $value = trim((string) ($properties[$field] ?? ''));
+            if ($value !== '') {
+                $details[$label] = $value;
+            }
+        }
+
+        return $details;
     }
 }

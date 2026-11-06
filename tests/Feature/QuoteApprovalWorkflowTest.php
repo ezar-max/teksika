@@ -81,8 +81,7 @@ class QuoteApprovalWorkflowTest extends TestCase
         foreach ($offers as $offer) {
             $this->assertEquals($offer->biaya_jasa_material + $offer->biaya_transportasi + $offer->biaya_additional_snapshot, $offer->total_estimasi);
             $this->assertEquals($offer->biaya_jasa_snapshot + $offer->biaya_material_snapshot, $offer->biaya_jasa_material);
-            $workerTarif = DB::table('workers')->where('id', $offer->id_worker)->value('tarif');
-            $expectedTarif = (float) $workerTarif > 0 ? (float) $workerTarif : 100000;
+            $expectedTarif = 150000;
             $experiencePercent = (int) $offer->pengalaman_snapshot * 25;
             $ratingFee = round($expectedTarif * (float) $offer->rating_snapshot * 0.25);
             $experienceFee = round($expectedTarif * (int) $offer->pengalaman_snapshot * 0.25);
@@ -307,9 +306,18 @@ class QuoteApprovalWorkflowTest extends TestCase
         ]);
     }
 
-    public function test_request_submission_shows_initial_estimate_without_requiring_osrm(): void
+    public function test_request_submission_saves_the_driving_route_for_initial_estimate(): void
     {
-        Http::fake();
+        Http::fake([
+            'router.project-osrm.org/*' => Http::response([
+                'code' => 'Ok',
+                'routes' => [[
+                    'distance' => 8400,
+                    'duration' => 1200,
+                    'geometry' => ['coordinates' => [[106.9401, -6.4239], [106.9500, -6.4200]]],
+                ]],
+            ]),
+        ]);
         Storage::fake('public');
         $user = $this->createCustomer();
         DB::table('services')->insert([
@@ -346,7 +354,7 @@ class QuoteApprovalWorkflowTest extends TestCase
             ])
             ->assertRedirect(route('bookinguser'));
 
-        Http::assertNothingSent();
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'router.project-osrm.org/route/v1/driving/'));
         $saved = DB::table('request')->where('id_user', $user->id)->latest('id_request')->first();
         $this->assertSame('menunggu', $saved->status);
         $this->assertSame('tinggi', $saved->urgensi);
@@ -355,14 +363,126 @@ class QuoteApprovalWorkflowTest extends TestCase
         $this->assertEquals(100000 * (float) DB::table('pricing_rules')->where('key', 'faktor_urgensi_tinggi')->value('value'), $saved->harga_layanan + $saved->biaya_urgensi_estimasi);
         $this->assertGreaterThan(0, $saved->biaya_kerusakan_estimasi);
         $this->assertGreaterThan(0, $saved->estimasi_total);
-        $this->assertGreaterThan(0, $saved->jarak_km);
+        $this->assertEquals(8.4, $saved->jarak_km);
         $this->assertNull($saved->id_worker);
         $this->assertNull($saved->id_worker_estimasi);
     }
 
+    public function test_booking_page_replaces_a_legacy_straight_line_estimate_with_the_driving_route(): void
+    {
+        Http::fake([
+            'router.project-osrm.org/*' => Http::response([
+                'code' => 'Ok',
+                'routes' => [[
+                    'distance' => 8400,
+                    'duration' => 1200,
+                    'geometry' => ['coordinates' => [[106.9401, -6.4239], [106.9500, -6.4200]]],
+                ]],
+            ]),
+        ]);
+        $user = $this->createCustomer();
+        $straightDistanceKm = app(\App\Services\HaversineService::class)->calculateDistance(
+            \App\Services\HaversineService::OFFICE_LATITUDE,
+            \App\Services\HaversineService::OFFICE_LONGITUDE,
+            -6.4200,
+            106.9500
+        );
+        $requestId = $this->createRequest($user, [
+            'jarak_km' => $straightDistanceKm,
+            'harga_layanan' => 100000,
+            'biaya_jarak' => 0,
+            'estimasi_total' => 100000,
+        ]);
+
+        $rules = app(\App\Services\PricingService::class)->getRules();
+        $expectedTransport = round((8.4 - (float) ($rules['jarak_gratis_km'] ?? 5)) * (float) ($rules['tarif_per_km'] ?? 2500));
+
+        $this->actingAs($user, 'web')
+            ->get(route('bookinguser'))
+            ->assertOk()
+            ->assertSee('data-jarak="8.4"', false)
+            ->assertSee('data-biaya-transportasi="' . $expectedTransport . '"', false);
+
+        $this->assertDatabaseHas('request', [
+            'id_request' => $requestId,
+            'jarak_km' => 8.4,
+            'durasi_perjalanan_menit' => 20,
+            'biaya_jarak' => $expectedTransport,
+            'estimasi_total' => 100000 + $expectedTransport,
+        ]);
+    }
+
+    public function test_booking_page_refreshes_an_unapproved_legacy_offer_using_the_driving_route(): void
+    {
+        Http::fake([
+            'router.project-osrm.org/*' => Http::response([
+                'code' => 'Ok',
+                'routes' => [[
+                    'distance' => 8400,
+                    'duration' => 1200,
+                    'geometry' => ['coordinates' => [[106.9401, -6.4239], [106.9500, -6.4200]]],
+                ]],
+            ]),
+        ]);
+        $user = $this->createCustomer();
+        $workerId = $this->createWorker('Legacy Offer Worker', 'Listrik', 2, 4.5);
+        $straightDistanceKm = app(\App\Services\HaversineService::class)->calculateDistance(
+            \App\Services\HaversineService::OFFICE_LATITUDE,
+            \App\Services\HaversineService::OFFICE_LONGITUDE,
+            -6.4200,
+            106.9500
+        );
+        $requestId = $this->createRequest($user, [
+            'status' => 'menunggu_persetujuan',
+            'penawaran_dikirim_at' => now(),
+            'jarak_km' => $straightDistanceKm,
+        ]);
+        $offerId = DB::table('worker_offers')->insertGetId([
+            'id_request' => $requestId,
+            'id_worker' => $workerId,
+            'biaya_jasa_material' => 100000,
+            'biaya_transportasi' => 0,
+            'total_estimasi' => 100000,
+            'jarak_km' => $straightDistanceKm,
+            'estimasi_durasi_menit' => 60,
+            'rating_snapshot' => 4.5,
+            'pengalaman_snapshot' => 2,
+            'jumlah_ulasan_snapshot' => 0,
+            'keahlian_snapshot' => 'Listrik',
+            'faktor_harga_snapshot' => 1,
+            'status' => 'ditawarkan',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($user, 'web')
+            ->get(route('bookinguser'))
+            ->assertOk()
+            ->assertSee('data-jarak="8.4"', false)
+            ->assertSee('data-biaya-transportasi="8500"', false)
+            ->assertSee('data-total-penawaran="108500"', false);
+
+        $this->assertDatabaseHas('worker_offers', [
+            'id' => $offerId,
+            'jarak_km' => 8.4,
+            'biaya_transportasi' => 8500,
+            'total_estimasi' => 108500,
+            'status' => 'ditawarkan',
+        ]);
+    }
+
     public function test_initial_estimate_uses_the_worker_selected_in_the_request_form(): void
     {
-        Http::fake();
+        Http::fake([
+            'router.project-osrm.org/*' => Http::response([
+                'code' => 'Ok',
+                'routes' => [[
+                    'distance' => 8400,
+                    'duration' => 1200,
+                    'geometry' => ['coordinates' => [[106.9401, -6.4239], [106.9500, -6.4200]]],
+                ]],
+            ]),
+        ]);
         Storage::fake('public');
         $user = $this->createCustomer();
         DB::table('services')->insert([
@@ -392,13 +512,13 @@ class QuoteApprovalWorkflowTest extends TestCase
             ])
             ->assertRedirect(route('bookinguser'));
 
-        Http::assertNothingSent();
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'router.project-osrm.org/route/v1/driving/'));
         $saved = DB::table('request')->where('id_user', $user->id)->latest('id_request')->first();
         $this->assertSame($workerId, (int) $saved->id_worker_pilihan);
         $this->assertSame($workerId, (int) $saved->id_worker_estimasi);
-        $this->assertEquals(135000, $saved->harga_dasar_estimasi);
-        $this->assertEquals(286875, $saved->biaya_kualifikasi_estimasi);
-        $this->assertEquals(286875, $saved->harga_layanan);
+        $this->assertEquals(100000, $saved->harga_dasar_estimasi);
+        $this->assertEquals(212500, $saved->biaya_kualifikasi_estimasi);
+        $this->assertEquals(212500, $saved->harga_layanan);
         $this->assertGreaterThan(0, $saved->biaya_urgensi_estimasi);
         $this->assertGreaterThan(0, $saved->biaya_kerusakan_estimasi);
         $this->assertEquals(

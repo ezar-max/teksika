@@ -5,8 +5,10 @@ namespace Tests\Feature;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -17,11 +19,22 @@ class PricingTransparencyTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        Cache::flush();
         $this->seed(\Database\Seeders\PricingRuleSeeder::class);
     }
 
     public function test_request_form_shows_cost_breakdown_and_saves_damage_level(): void
     {
+        Http::fake([
+            'router.project-osrm.org/*' => Http::response([
+                'code' => 'Ok',
+                'routes' => [[
+                    'distance' => 8400,
+                    'duration' => 1200,
+                    'geometry' => ['coordinates' => [[106.9401, -6.4239], [106.9500, -6.4200]]],
+                ]],
+            ]),
+        ]);
         $user = User::create([
             'name' => 'Pricing Test Customer',
             'email' => uniqid('pricing-customer-', true) . '@example.test',
@@ -53,7 +66,10 @@ class PricingTransparencyTest extends TestCase
             ->assertSee('Kerusakan parah, tidak berfungsi, atau berisiko.')
             ->assertSee('akan diverifikasi admin sebelum penawaran final')
             ->assertSee('Foto Kerusakan')
-            ->assertSee('Wajib untuk verifikasi tingkat kerusakan oleh admin');
+            ->assertSee('Wajib untuk verifikasi tingkat kerusakan oleh admin')
+            ->assertSee('Cari Lokasi')
+            ->assertSee('id="locationDetails"', false)
+            ->assertDontSee('Garis Lurus');
 
         Storage::fake('public');
         $requestData = [
@@ -93,11 +109,14 @@ class PricingTransparencyTest extends TestCase
 
         $estimate = DB::table('request')->where('id_user', $user->id)->latest('id_request')->first();
         $this->assertStringContainsString('request_foto/', $estimate->foto);
+        $this->assertEquals(8.4, $estimate->jarak_km);
         $this->get(route('bookinguser'))
             ->assertOk()
             ->assertSee('Estimasi awal:')
             ->assertSee('data-status-harga="Estimasi awal memakai harga layanan karena belum ada tukang yang cocok"', false)
             ->assertSee('data-total-penawaran="' . number_format((float) $estimate->estimasi_total, 2, '.', '') . '"', false)
+            ->assertSee('data-jarak="8.40"', false)
+            ->assertSee('data-jarak-label="Jarak rute berkendara"', false)
             ->assertDontSee('data-poin=', false)
             ->assertDontSee('Biaya poin', false);
     }
@@ -146,8 +165,8 @@ class PricingTransparencyTest extends TestCase
         $offerId = DB::table('worker_offers')->insertGetId([
             'id_request' => $requestId,
             'id_worker' => $workerId,
-            'biaya_jasa_material' => 367500,
-            'biaya_jasa_snapshot' => 367500,
+            'biaya_jasa_material' => 242500,
+            'biaya_jasa_snapshot' => 242500,
             'biaya_material_snapshot' => 0,
             'harga_dasar_snapshot' => 100000,
             'biaya_kualifikasi_snapshot' => 212500,
@@ -156,24 +175,24 @@ class PricingTransparencyTest extends TestCase
             'pengalaman_persen_snapshot' => 100,
             'biaya_additional_snapshot' => 0,
             'biaya_urgensi_snapshot' => 20000,
-            'biaya_kerusakan_snapshot' => 35000,
+            'biaya_kerusakan_snapshot' => 10000,
             'biaya_transportasi' => 10000,
-            'total_estimasi' => 377500,
+            'total_estimasi' => 252500,
             'jarak_km' => 15,
             'estimasi_durasi_menit' => 90,
             'rating_snapshot' => 4.5,
             'pengalaman_snapshot' => 4,
             'jumlah_ulasan_snapshot' => 0,
             'keahlian_snapshot' => 'Listrik',
-            'faktor_harga_snapshot' => 1.3,
+            'faktor_harga_snapshot' => 2.425,
             'status' => 'ditugaskan',
             'created_at' => now(),
             'updated_at' => now(),
         ]);
         DB::table('request')->where('id_request', $requestId)->update([
             'id_penawaran_terpilih' => $offerId,
-            'estimasi_total' => 377500,
-            'jumlah_pembayaran' => 377500,
+            'estimasi_total' => 252500,
+            'jumlah_pembayaran' => 252500,
         ]);
 
         $this->actingAs($user, 'web')
@@ -190,7 +209,7 @@ class PricingTransparencyTest extends TestCase
             ->assertSee('data-biaya-pengalaman="100000.00"', false)
             ->assertDontSee('data-poin=', false)
             ->assertSee('data-biaya-urgensi="20000.00"', false)
-            ->assertSee('data-biaya-kerusakan="35000.00"', false)
+            ->assertSee('data-biaya-kerusakan="10000.00"', false)
             ->assertDontSee('Biaya poin', false)
             ->assertSee('Transparansi harga');
     }

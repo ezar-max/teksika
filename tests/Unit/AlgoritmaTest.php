@@ -101,12 +101,18 @@ class AlgoritmaTest extends TestCase
         $this->assertSame(212500.0, $adjusted['harga_layanan']);
         $this->assertSame(112500.0, $adjusted['biaya_rating']);
         $this->assertSame(100000.0, $adjusted['biaya_pengalaman']);
+        $this->assertSame(1.125, $adjusted['skor_rating']);
+        $this->assertSame(1.0, $adjusted['skor_pengalaman']);
+        $this->assertSame(2.125, $adjusted['skor_total']);
         $this->assertSame(0.0, $adjusted['biaya_additional']);
 
         $example = $pricing->adjustWorkerRate(100000, 5, 7);
         $this->assertSame(3.0, $example['faktor_kualifikasi']);
         $this->assertSame(125000.0, $example['biaya_rating']);
         $this->assertSame(175000.0, $example['biaya_pengalaman']);
+        $this->assertSame(1.25, $example['skor_rating']);
+        $this->assertSame(1.75, $example['skor_pengalaman']);
+        $this->assertSame(3.0, $example['skor_total']);
         $this->assertSame(300000.0, $example['harga_layanan']);
     }
 

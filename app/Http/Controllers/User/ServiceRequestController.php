@@ -267,12 +267,11 @@ class ServiceRequestController extends Controller
                 }
             }
             usort($workerCandidates, function ($left, $right) use ($service, $pricingService) {
-                $leftBaseRate = (float) ($left->tarif ?? 0) > 0 ? (float) $left->tarif : (float) $service->harga_min;
-                $rightBaseRate = (float) ($right->tarif ?? 0) > 0 ? (float) $right->tarif : (float) $service->harga_min;
                 $leftRating = $left->review_count > 0 ? (float) $left->review_average : (float) ($left->rating ?? 5);
                 $rightRating = $right->review_count > 0 ? (float) $right->review_average : (float) ($right->rating ?? 5);
-                $leftRate = $pricingService->adjustWorkerRate($leftBaseRate, $leftRating, (int) ($left->pengalaman ?? 0));
-                $rightRate = $pricingService->adjustWorkerRate($rightBaseRate, $rightRating, (int) ($right->pengalaman ?? 0));
+                $serviceRate = (float) $service->harga_min;
+                $leftRate = $pricingService->adjustWorkerRate($serviceRate, $leftRating, (int) ($left->pengalaman ?? 0));
+                $rightRate = $pricingService->adjustWorkerRate($serviceRate, $rightRating, (int) ($right->pengalaman ?? 0));
                 $leftPrice = $leftRate['harga_layanan'];
                 $rightPrice = $rightRate['harga_layanan'];
 
@@ -286,9 +285,21 @@ class ServiceRequestController extends Controller
 
         $userLat = (float) $validated['latitude'];
         $userLon = (float) $validated['longitude'];
-        $hargaDasar = $estimateWorker && (float) ($estimateWorker->tarif ?? 0) > 0
-            ? (float) $estimateWorker->tarif
-            : (float) $service->harga_min;
+        $office = [
+            'latitude' => HaversineService::OFFICE_LATITUDE,
+            'longitude' => HaversineService::OFFICE_LONGITUDE,
+        ];
+        $route = $this->haversineService->getDrivingRoute(
+            $office['latitude'],
+            $office['longitude'],
+            $userLat,
+            $userLon
+        );
+        if ($route === null) {
+            return back()->withInput()->with('error', 'Rute jalan tidak dapat dihitung saat ini. Permintaan belum disimpan. Silakan coba kembali.');
+        }
+
+        $hargaDasar = (float) $service->harga_min;
         $workerRate = $pricingService->adjustWorkerRate(
             $hargaDasar,
             $estimateWorker ? $estimateWorkerRating : null,
@@ -301,8 +312,8 @@ class ServiceRequestController extends Controller
             durasiDasarMenit: (int) ($service->durasi_dasar_menit ?? 60),
             kompleksitas: 'sedang',
             urgensi: $validated['urgensi'],
-            userLat: $userLat,
-            userLon: $userLon,
+            routeDistanceKm: $route['distance_km'],
+            routeDurationMinutes: $route['duration_minutes'],
             tingkatKerusakan: $validated['tingkat_kerusakan'],
             biayaAdditional: $workerRate['biaya_additional'],
             tarifDasarPerhitungan: $workerRate['harga_dasar']
@@ -348,7 +359,7 @@ class ServiceRequestController extends Controller
             'biaya_jarak' => $pricing['biaya_jarak'],
             'estimasi_total' => $pricing['estimasi_total'],
             'estimasi_durasi_menit' => $pricing['estimasi_durasi_menit'],
-            'durasi_perjalanan_menit' => $pricing['durasi_tempuh_menit'],
+            'durasi_perjalanan_menit' => $route['duration_minutes'],
             'detail' => $validated['detail'],
             'status' => 'menunggu',
             'status_admin' => 'belum_diterima',
