@@ -40,10 +40,13 @@ class AlgoritmaTest extends TestCase
         $this->setPricingRule('tarif_per_km', '2500');
         $this->setPricingRule('radius_maksimal_km', '15.0');
         $this->setPricingRule('jarak_gratis_km', '5.0');
+<<<<<<< HEAD
         $this->setPricingRule('poin_tarif_persen', '2.00');
         $this->setPricingRule('pengalaman_per_tahun_persen', '1.00');
         $this->setPricingRule('pengalaman_batas_persen', '25.00');
 >>>>>>> 40abfce1492bc7d6974163b6b4b29023d1a61d3b
+=======
+>>>>>>> cef250ff0e772f677286d0619936d807ab7b7e4a
         $this->pricing->clearRulesCache();
     }
 
@@ -103,55 +106,42 @@ class AlgoritmaTest extends TestCase
         Http::assertSent(fn (ClientRequest $request) => str_contains($request->url(), 'router.project-osrm.org/route/v1/driving/'));
     }
 
-    public function test_worker_rate_adjustment_uses_rating_and_experience_with_a_cap(): void
+    public function test_worker_rate_adjustment_uses_rating_and_experience_formula_without_a_cap(): void
     {
         $pricing = new PricingService($this->haversine);
 
         $adjusted = $pricing->adjustWorkerRate(100000, 4.5, 4);
         $this->assertSame(100000.0, $adjusted['harga_dasar']);
-        $this->assertSame(1.07, $adjusted['faktor_kualifikasi']);
-        $this->assertSame(7000.0, $adjusted['biaya_kualifikasi']);
-        $this->assertSame(107000.0, $adjusted['harga_layanan']);
+        $this->assertSame(2.125, $adjusted['faktor_kualifikasi']);
+        $this->assertSame(212500.0, $adjusted['harga_layanan']);
+        $this->assertSame(112500.0, $adjusted['biaya_rating']);
+        $this->assertSame(100000.0, $adjusted['biaya_pengalaman']);
+        $this->assertSame(0.0, $adjusted['biaya_additional']);
 
-        $capped = $pricing->adjustWorkerRate(100000, 5, 30);
-        $this->assertSame(1.29, $capped['faktor_kualifikasi']);
-        $this->assertSame(4000.0, $capped['biaya_rating']);
-        $this->assertSame(25000.0, $capped['biaya_pengalaman']);
-        $this->assertSame(29000.0, $capped['biaya_kualifikasi']);
+        $example = $pricing->adjustWorkerRate(100000, 5, 7);
+        $this->assertSame(3.0, $example['faktor_kualifikasi']);
+        $this->assertSame(125000.0, $example['biaya_rating']);
+        $this->assertSame(175000.0, $example['biaya_pengalaman']);
+        $this->assertSame(300000.0, $example['harga_layanan']);
     }
 
-    public function test_additional_fee_uses_worker_points_as_a_capped_percentage(): void
+    public function test_worker_rate_adjustment_clamps_invalid_rating_and_experience(): void
     {
-        $this->assertSame(800.0, $this->pricing->calculateAdditionalFee(200000, 20));
-        $this->assertSame(2000.0, $this->pricing->calculateAdditionalFee(200000, 50));
-        $this->assertSame(4000.0, $this->pricing->calculateAdditionalFee(200000, 100));
-        $this->assertSame(4000.0, $this->pricing->calculateAdditionalFee(200000, 150));
-        $this->assertSame(0.0, $this->pricing->calculateAdditionalFee(200000, -10));
+        $adjusted = $this->pricing->adjustWorkerRate(100000, 8, -3);
 
-        $pricing = $this->pricing->calculate(
-            hargaMin: 200000,
-            hargaMax: 200000,
-            durasiDasarMenit: 60,
-            kompleksitas: 'rendah',
-            urgensi: 'rendah',
-            biayaAdditional: $this->pricing->calculateAdditionalFee(200000, 100)
-        );
-
-        $this->assertSame(4000.0, $pricing['biaya_additional']);
-        $this->assertSame(204000.0, $pricing['estimasi_total']);
+        $this->assertSame(1.25, $adjusted['faktor_kualifikasi']);
+        $this->assertSame(125000.0, $adjusted['harga_layanan']);
+        $this->assertSame(0.0, $adjusted['biaya_pengalaman']);
     }
 
-    public function test_worker_experience_price_rules_are_configurable(): void
+    public function test_worker_rate_uses_the_service_base_rate_when_no_worker_is_available(): void
     {
-        $this->setPricingRule('pengalaman_per_tahun_persen', '2.00');
-        $this->setPricingRule('pengalaman_batas_persen', '10.00');
-        $this->pricing->clearRulesCache();
+        $adjusted = $this->pricing->adjustWorkerRate(100000, null, 0);
 
-        $adjusted = $this->pricing->adjustWorkerRate(100000, 3, 8);
-
-        $this->assertSame(10.0, $adjusted['pengalaman_persen']);
-        $this->assertSame(10000.0, $adjusted['biaya_pengalaman']);
+        $this->assertSame(1.0, $adjusted['faktor_kualifikasi']);
+        $this->assertSame(100000.0, $adjusted['harga_layanan']);
         $this->assertSame(0.0, $adjusted['biaya_rating']);
+        $this->assertSame(0.0, $adjusted['biaya_pengalaman']);
     }
 
     public function test_google_compute_routes_distance_and_polyline_decoding(): void

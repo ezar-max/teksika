@@ -43,8 +43,9 @@ class PricingTransparencyTest extends TestCase
             ->get(route('request'))
             ->assertOk()
             ->assertSee('Transparansi Estimasi Biaya')
-            ->assertSee('Tambahan poin')
-            ->assertSee('poin maksimum 100')
+            ->assertSee('tarif dasar')
+            ->assertSee('rating × 0,25')
+            ->assertDontSee('Biaya poin')
             ->assertDontSee('Estimasi pengerjaan')
             ->assertSee('Tingkat Kerusakan')
             ->assertSee('Gangguan kecil; fungsi utama masih berjalan.')
@@ -84,8 +85,7 @@ class PricingTransparencyTest extends TestCase
             'layanan' => 'Pricing Transparency Test',
             'urgensi' => 'sedang',
             'tingkat_kerusakan' => 'berat',
-            'poin_estimasi' => 0,
-            'poin_persen_estimasi' => 2,
+            'biaya_additional_estimasi' => 0,
             'biaya_rating_estimasi' => 0,
             'biaya_pengalaman_estimasi' => 0,
             'estimasi_durasi_menit' => 60,
@@ -98,9 +98,8 @@ class PricingTransparencyTest extends TestCase
             ->assertSee('Estimasi awal:')
             ->assertSee('data-status-harga="Estimasi awal memakai harga layanan karena belum ada tukang yang cocok"', false)
             ->assertSee('data-total-penawaran="' . number_format((float) $estimate->estimasi_total, 2, '.', '') . '"', false)
-            ->assertSee('data-poin="0"', false)
-            ->assertSee('data-poin-persen="2.00"', false)
-            ->assertSee('Biaya poin', false);
+            ->assertDontSee('data-poin=', false)
+            ->assertDontSee('Biaya poin', false);
     }
 
     public function test_booking_detail_shows_worker_distance_and_saved_price_breakdown(): void
@@ -147,36 +146,34 @@ class PricingTransparencyTest extends TestCase
         $offerId = DB::table('worker_offers')->insertGetId([
             'id_request' => $requestId,
             'id_worker' => $workerId,
-            'biaya_jasa_material' => 155000,
-            'biaya_jasa_snapshot' => 155000,
+            'biaya_jasa_material' => 367500,
+            'biaya_jasa_snapshot' => 367500,
             'biaya_material_snapshot' => 0,
             'harga_dasar_snapshot' => 100000,
-            'biaya_kualifikasi_snapshot' => 7000,
-            'biaya_rating_snapshot' => 3000,
-            'biaya_pengalaman_snapshot' => 4000,
-            'pengalaman_persen_snapshot' => 4,
-            'poin_snapshot' => 50,
-            'poin_persen_snapshot' => 2,
-            'biaya_additional_snapshot' => 1000,
+            'biaya_kualifikasi_snapshot' => 212500,
+            'biaya_rating_snapshot' => 112500,
+            'biaya_pengalaman_snapshot' => 100000,
+            'pengalaman_persen_snapshot' => 100,
+            'biaya_additional_snapshot' => 0,
             'biaya_urgensi_snapshot' => 20000,
             'biaya_kerusakan_snapshot' => 35000,
             'biaya_transportasi' => 10000,
-            'total_estimasi' => 165000,
+            'total_estimasi' => 377500,
             'jarak_km' => 15,
             'estimasi_durasi_menit' => 90,
             'rating_snapshot' => 4.5,
             'pengalaman_snapshot' => 4,
             'jumlah_ulasan_snapshot' => 0,
             'keahlian_snapshot' => 'Listrik',
-            'faktor_harga_snapshot' => 1.55,
+            'faktor_harga_snapshot' => 1.3,
             'status' => 'ditugaskan',
             'created_at' => now(),
             'updated_at' => now(),
         ]);
         DB::table('request')->where('id_request', $requestId)->update([
             'id_penawaran_terpilih' => $offerId,
-            'estimasi_total' => 165000,
-            'jumlah_pembayaran' => 165000,
+            'estimasi_total' => 377500,
+            'jumlah_pembayaran' => 377500,
         ]);
 
         $this->actingAs($user, 'web')
@@ -189,12 +186,12 @@ class PricingTransparencyTest extends TestCase
             ->assertSee('data-jarak="15.00"', false)
             ->assertSee('data-durasi-layanan="90"', false)
             ->assertSee('data-harga-dasar="100000.00"', false)
-            ->assertSee('data-biaya-rating="3000.00"', false)
-            ->assertSee('data-biaya-pengalaman="4000.00"', false)
-            ->assertSee('data-poin="50"', false)
+            ->assertSee('data-biaya-rating="112500.00"', false)
+            ->assertSee('data-biaya-pengalaman="100000.00"', false)
+            ->assertDontSee('data-poin=', false)
             ->assertSee('data-biaya-urgensi="20000.00"', false)
             ->assertSee('data-biaya-kerusakan="35000.00"', false)
-            ->assertSee('Poin (50/100', false)
+            ->assertDontSee('Biaya poin', false)
             ->assertSee('Transparansi harga');
     }
 
