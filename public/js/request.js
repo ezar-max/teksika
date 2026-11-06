@@ -17,6 +17,7 @@ function previewImages(event) {
     const files = event.target.files;
     const previewContainer = document.getElementById('previewContainer');
     const placeholder = document.getElementById('placeholder') || document.getElementById('placeholderText');
+    const uploadError = document.getElementById('uploadRequiredError');
 
     if (!previewContainer) return;
 
@@ -25,9 +26,12 @@ function previewImages(event) {
         alert('Maksimal upload 5 foto!');
         event.target.value = '';
         previewContainer.innerHTML = '';
+        if (uploadError) uploadError.hidden = false;
         if (placeholder) placeholder.style.display = 'block';
         return;
     }
+
+    if (uploadError) uploadError.hidden = files.length > 0;
 
     // Bersihkan preview sebelumnya
     previewContainer.innerHTML = '';

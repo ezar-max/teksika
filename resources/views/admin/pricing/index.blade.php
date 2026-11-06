@@ -408,10 +408,10 @@
                 <div>
                     <h1 class="pricing-title">
                         <i class="fa-solid fa-sliders" style="color:#007bff;"></i>
-                        Aturan Tarif &amp; Parameter Algoritma
+                        Aturan Tarif &amp; Biaya
                     </h1>
                     <div class="pricing-subtitle">
-                        Formula jarak Haversine, radius jangkauan, dan bobot rekomendasi tukang berbasis Weighted Scoring
+                        Pengaturan tarif layanan, poin, pengalaman, urgensi, kerusakan, dan jangkauan.
                     </div>
                 </div>
 
@@ -446,18 +446,7 @@
                     </div>
                 </div>
 
-                <!-- Card 3: Bobot Algoritma -->
-                <div class="pricing-summary-card">
-                    <div class="icon-bg purple">
-                        <i class="fa-solid fa-scale-balanced"></i>
-                    </div>
-                    <div class="stat-info">
-                        <div class="stat-value"><span id="summaryTotalBobot">1.00</span> / 1.00</div>
-                        <div class="stat-label">Status Bobot Rekomendasi</div>
-                    </div>
-                </div>
-
-                <!-- Card 4: Pengali Urgensi -->
+                <!-- Card 3: Pengali Urgensi -->
                 <div class="pricing-summary-card">
                     <div class="icon-bg yellow">
                         <i class="fa-solid fa-clock-rotate-left"></i>
@@ -531,63 +520,42 @@
                     </div>
                 </div>
 
-                <!-- Section 2: Bobot Algoritma Weighted Scoring -->
+                <!-- Section 2: Penyesuaian Tarif Tukang -->
                 <div class="card-box">
                     <div class="card-header-row">
                         <div class="card-title-group">
                             <div class="card-icon-bubble bubble-purple">
-                                <i class="fa-solid fa-scale-balanced"></i>
+                                <i class="fa-solid fa-user-gear"></i>
                             </div>
                             <div>
-                                <h3 class="card-title">Bobot Algoritma Rekomendasi (Weighted Scoring)</h3>
-                                <p class="card-desc">Total penjumlahan keempat bobot kriteria harus bernilai tepat <b>1.00 (100%)</b>.</p>
+                                <h3 class="card-title">Penyesuaian Tarif Tukang</h3>
+                                <p class="card-desc">Atur tambahan harga berdasarkan poin dan pengalaman. Poin dibatasi 0–100 dan semua tambahan dihitung dari tarif dasar.</p>
                             </div>
-                        </div>
-                        <div id="weightBadge" class="weight-badge valid">
-                            <i class="fa-solid fa-check"></i> Total Bobot: <span id="weightTotalText">1.00</span> / 1.00
                         </div>
                     </div>
 
                     <div class="form-grid">
                         <div class="field-group">
-                            <label class="field-label" for="bobot_jarak">
-                                <i class="fa-solid fa-location-dot" style="color:#007bff;"></i>
-                                Bobot Jarak Kantor (0 - 1)
-                            </label>
-                            <input type="number" step="0.01" min="0" max="1" class="field-input weight-input" id="bobot_jarak" name="bobot_jarak" value="{{ $rules['bobot_jarak']->value ?? '0.25' }}" oninput="updateTotalWeight()" required>
-                            <span class="field-hint">Tingkat pengaruh kedekatan lokasi terhadap prioritas penugasan.</span>
+                            <label class="field-label" for="poin_tarif_persen">Tambahan Poin (% tarif dasar)</label>
+                            <input type="number" step="0.1" min="0" max="100" class="field-input" id="poin_tarif_persen" name="poin_tarif_persen" value="{{ $rules['poin_tarif_persen']->value ?? '2.00' }}" required>
+                            <span class="field-hint">Rumus: tarif dasar × persentase ini × (poin/100). Poin di atas 100 tetap dihitung sebagai 100.</span>
                         </div>
 
                         <div class="field-group">
-                            <label class="field-label" for="bobot_rating">
-                                <i class="fa-solid fa-star" style="color:#f59e0b;"></i>
-                                Bobot Rating User (0 - 1)
-                            </label>
-                            <input type="number" step="0.01" min="0" max="1" class="field-input weight-input" id="bobot_rating" name="bobot_rating" value="{{ $rules['bobot_rating']->value ?? '0.15' }}" oninput="updateTotalWeight()" required>
-                            <span class="field-hint">Prioritas kepuasan pelanggan dan skor ulasan tukang.</span>
+                            <label class="field-label" for="pengalaman_per_tahun_persen">Tambahan Pengalaman (% per tahun)</label>
+                            <input type="number" step="0.1" min="0" max="100" class="field-input" id="pengalaman_per_tahun_persen" name="pengalaman_per_tahun_persen" value="{{ $rules['pengalaman_per_tahun_persen']->value ?? '1.00' }}" required>
+                            <span class="field-hint">Persentase tarif dasar untuk setiap tahun pengalaman tukang.</span>
                         </div>
 
                         <div class="field-group">
-                            <label class="field-label" for="bobot_pengalaman">
-                                <i class="fa-solid fa-award" style="color:#10b981;"></i>
-                                Bobot Pengalaman Kerja (0 - 1)
-                            </label>
-                            <input type="number" step="0.01" min="0" max="1" class="field-input weight-input" id="bobot_pengalaman" name="bobot_pengalaman" value="{{ $rules['bobot_pengalaman']->value ?? '0.15' }}" oninput="updateTotalWeight()" required>
-                            <span class="field-hint">Prioritas jam terbang dan tahun kerja aktif teknisi.</span>
-                        </div>
-
-                        <div class="field-group">
-                            <label class="field-label" for="bobot_beban_kerja">
-                                <i class="fa-solid fa-briefcase" style="color:#6366f1;"></i>
-                                Bobot Beban Kerja (0 - 1)
-                            </label>
-                            <input type="number" step="0.01" min="0" max="1" class="field-input weight-input" id="bobot_beban_kerja" name="bobot_beban_kerja" value="{{ $rules['bobot_beban_kerja']->value ?? '0.45' }}" oninput="updateTotalWeight()" required>
-                            <span class="field-hint">Distribusi tugas adil ke tukang dengan beban kerja lebih sedikit.</span>
+                            <label class="field-label" for="pengalaman_batas_persen">Batas Tambahan Pengalaman (%)</label>
+                            <input type="number" step="0.1" min="0" max="100" class="field-input" id="pengalaman_batas_persen" name="pengalaman_batas_persen" value="{{ $rules['pengalaman_batas_persen']->value ?? '25.00' }}" required>
+                            <span class="field-hint">Membatasi total persentase tambahan harga dari pengalaman.</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Section 3: Faktor Urgensi & Durasi Kerja -->
+                <!-- Section 4: Faktor Urgensi & Durasi Kerja -->
                 <div class="card-box">
                     <div class="card-header-row">
                         <div class="card-title-group">
@@ -595,8 +563,8 @@
                                 <i class="fa-solid fa-clock-rotate-left"></i>
                             </div>
                             <div>
-                                <h3 class="card-title">Faktor Pengali Urgensi &amp; Durasi Pengerjaan</h3>
-                                <p class="card-desc">Pengali harga berdasarkan tingkat kedaruratan serta durasi estimasi teknisi.</p>
+                                <h3 class="card-title">Faktor Urgensi &amp; Tingkat Kerusakan</h3>
+                                <p class="card-desc">Pengali harga berdasarkan tingkat kedaruratan dan kerusakan.</p>
                             </div>
                         </div>
                     </div>
@@ -638,17 +606,6 @@
                             <span class="field-hint">+10% penyesuaian pekerjaan berat.</span>
                         </div>
 
-                        <div class="field-group">
-                            <label class="field-label" for="pengali_durasi_sedang">Pengali Durasi Sedang</label>
-                            <input type="number" step="0.1" min="1" class="field-input" id="pengali_durasi_sedang" name="pengali_durasi_sedang" value="{{ $rules['pengali_durasi_sedang']->value ?? '1.50' }}" required>
-                            <span class="field-hint">Pekerjaan sedang (60 mnt x 1.5 = 90 mnt).</span>
-                        </div>
-
-                        <div class="field-group">
-                            <label class="field-label" for="pengali_durasi_tinggi">Pengali Durasi Berat</label>
-                            <input type="number" step="0.1" min="1" class="field-input" id="pengali_durasi_tinggi" name="pengali_durasi_tinggi" value="{{ $rules['pengali_durasi_tinggi']->value ?? '2.00' }}" required>
-                            <span class="field-hint">Pekerjaan kompleks (60 mnt x 2.0 = 120 mnt).</span>
-                        </div>
                     </div>
                 </div>
 
@@ -736,41 +693,7 @@
         }
     }
 
-    // ==========================================
-    // VALIDASI TOTAL BOBOT (HARUS 1.00)
-    // ==========================================
-    function updateTotalWeight() {
-        const j = parseFloat(document.getElementById('bobot_jarak').value) || 0;
-        const r = parseFloat(document.getElementById('bobot_rating').value) || 0;
-        const p = parseFloat(document.getElementById('bobot_pengalaman').value) || 0;
-        const b = parseFloat(document.getElementById('bobot_beban_kerja').value) || 0;
-
-        const total = Math.round((j + r + p + b) * 100) / 100;
-        const badge = document.getElementById('weightBadge');
-        const text = document.getElementById('weightTotalText');
-        const summaryText = document.getElementById('summaryTotalBobot');
-        const btn = document.getElementById('btnSubmitPricing');
-
-        if (text) text.innerText = total.toFixed(2);
-        if (summaryText) summaryText.innerText = total.toFixed(2);
-
-        if (Math.abs(total - 1.00) < 0.001) {
-            if (badge) {
-                badge.className = 'weight-badge valid';
-                badge.innerHTML = '<i class="fa-solid fa-check"></i> Total Bobot: ' + total.toFixed(2) + ' / 1.00 (Valid)';
-            }
-            if (btn) btn.disabled = false;
-        } else {
-            if (badge) {
-                badge.className = 'weight-badge invalid';
-                badge.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Total Bobot: ' + total.toFixed(2) + ' / 1.00 (Harus tepat 1.00)';
-            }
-            if (btn) btn.disabled = true;
-        }
-    }
-
     document.addEventListener('DOMContentLoaded', function() {
-        updateTotalWeight();
         updateSummaryCards();
     });
     </script>

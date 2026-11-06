@@ -34,6 +34,7 @@ Route::get('/', function () {
 
 // Landing Page
 Route::get('/landingpageuser', [AuthController::class, 'landingpageuser'])->name('landingpageuser');
+Route::get('/tukang/{id}/ulasan', [App\Http\Controllers\WorkerReviewController::class, 'index'])->name('tukang.ulasan');
 
 // Authentication Routes
 Route::get('/login', [UserAuthController::class, 'showLogin'])->name('login');
@@ -120,6 +121,9 @@ Route::middleware(['admin.auth'])->group(function () {
     Route::get('/admin/dashboard', [AdminAuthController::class, 'index'])->name('dashboardadmin');
 
     // Services Management
+    Route::get('/services', function () {
+        return redirect()->to(route('admin.home') . '#services');
+    })->name('services.index');
     Route::post('/services', [ServiceController::class, 'store'])->name('services.store');
     Route::put('/services/{service}', [ServiceController::class, 'update'])->name('services.update');
     Route::delete('/services/{service}', [ServiceController::class, 'destroy'])->name('services.destroy');
@@ -140,7 +144,7 @@ Route::middleware(['admin.auth'])->group(function () {
     Route::get('/admin/booking/export/pdf', [BookingAdminController::class, 'exportPdf'])->name('booking.export.pdf');
     Route::get('/export-booking-pdf', [BookingExportController::class, 'exportPDF'])->name('export.booking.pdf');
 
-    // Pengaturan Tarif & Bobot Algoritma
+    // Pengaturan tarif dan biaya
     Route::get('/admin/pricing', [App\Http\Controllers\Admin\PricingRuleController::class, 'index'])->name('admin.pricing.index');
     Route::post('/admin/pricing', [App\Http\Controllers\Admin\PricingRuleController::class, 'update'])->name('admin.pricing.update');
 

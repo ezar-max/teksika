@@ -19,7 +19,7 @@ class WorkerScoringService
     }
 
     /**
-     * Dapatkan daftar tukang yang memenuhi kualifikasi beserta skor rekomendasi (Weighted Scoring).
+     * Dapatkan tukang yang sesuai dan urutkan berdasarkan rating tertinggi.
      *
      * Konsep Jarak:
      * Dihitung dari Kantor Pusat TEKSIKA ke rumah user (bukan per lokasi tukang individual).
@@ -61,14 +61,7 @@ class WorkerScoringService
             return [];
         }
 
-        $wJarak = (float) ($rules['bobot_jarak'] ?? 0.25);
-        $wRating = (float) ($rules['bobot_rating'] ?? 0.15);
-        $wPengalaman = (float) ($rules['bobot_pengalaman'] ?? 0.15);
-        $wBeban = (float) ($rules['bobot_beban_kerja'] ?? 0.45);
-
-        // Normalisasi Skor Jarak (Cost Criterion):
-        // Makin dekat rumah user ke kantor pusat, nilai makin mendekati 1.
-        // Catatan: Karena dihitung dari kantor pusat, nilai ini sama untuk seluruh kandidat tukang.
+        // Jarak kantor tetap digunakan untuk batas radius operasional, bukan pemeringkatan.
         $skorJarak = max(0.0, 1.0 - ($jarakKantorKm / $radiusMax));
 
         $reviewStats = DB::table('worker_reviews')
@@ -135,12 +128,6 @@ class WorkerScoringService
             // c. Beban Kerja (Cost Criterion): Maksimal patokan 5 job aktif (makin sedikit makin tinggi nilainya)
             $skorBeban = max(0.0, 1.0 - min(1.0, $jobAktif / 5.0));
 
-            // 5. Hitung Skor Akhir (Weighted Sum)
-            $skorTotal = ($wJarak * $skorJarak) +
-                         ($wRating * $skorRating) +
-                         ($wPengalaman * $skorPengalaman) +
-                         ($wBeban * $skorBeban);
-
             $candidates[] = [
                 'worker' => $worker,
                 'id_worker' => $worker->id,
@@ -152,6 +139,7 @@ class WorkerScoringService
                 'latitude' => (float) ($worker->latitude ?? $kantorLat),
                 'longitude' => (float) ($worker->longitude ?? $kantorLon),
                 'rating' => $ratingVal,
+                'poin' => max(0, min(100, (int) ($worker->poin ?? 0))),
                 'jumlah_ulasan' => (int) ($worker->review_count ?? 0),
                 'pengalaman' => $pengalamanTahun,
                 'job_aktif' => $jobAktif,
@@ -160,25 +148,11 @@ class WorkerScoringService
                 'skor_rating' => round($skorRating, 4),
                 'skor_pengalaman' => round($skorPengalaman, 4),
                 'skor_beban' => round($skorBeban, 4),
-                'skor_total' => round($skorTotal, 3),
+                'skor_total' => round($skorRating, 3),
             ];
         }
 
-        // Urutkan berdasarkan skor_total DESC.
-        // Jika skor seri (karena skor_jarak identik), pemecah seri menggunakan:
-        // 1) Rating pelanggan tertinggi -> 2) Beban kerja aktif paling sedikit -> 3) Pengalaman terbanyak
-        usort($candidates, function ($a, $b) {
-            if (abs($b['skor_total'] - $a['skor_total']) < 0.0001) {
-                if ($b['rating'] != $a['rating']) {
-                    return $b['rating'] <=> $a['rating'];
-                }
-                if ($a['job_aktif'] != $b['job_aktif']) {
-                    return $a['job_aktif'] <=> $b['job_aktif'];
-                }
-                return $b['pengalaman'] <=> $a['pengalaman'];
-            }
-            return $b['skor_total'] <=> $a['skor_total'];
-        });
+        usort($candidates, fn ($a, $b) => ($b['rating'] <=> $a['rating']) ?: ($a['id_worker'] <=> $b['id_worker']));
 
         // Beri ranking 1, 2, 3...
         $ranked = [];
@@ -237,4 +211,3 @@ class WorkerScoringService
         }
     }
 }
-

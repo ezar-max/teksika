@@ -3,6 +3,9 @@
 namespace Tests\Unit;
 
 use App\Services\OpenStreetMapGeocodingService;
+use App\Services\HaversineService;
+use App\Http\Controllers\User\ServiceRequestController;
+use Illuminate\Http\Request;
 use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -10,6 +13,41 @@ use Tests\TestCase;
 
 class OpenStreetMapGeocodingServiceTest extends TestCase
 {
+    public function test_request_address_endpoint_accepts_one_full_address_and_retries_without_rt_rw(): void
+    {
+        $address = 'Jalan Pancasila, RT 004/RW 002, Kecamatan Gunung Putri, Kabupaten Bogor';
+        $location = [
+            'latitude' => -6.345678,
+            'longitude' => 106.987654,
+            'display_name' => 'Jalan Pancasila, Gunung Putri, Kabupaten Bogor',
+            'provider' => 'photon',
+        ];
+        $geocoder = \Mockery::mock(OpenStreetMapGeocodingService::class);
+        $geocoder->shouldReceive('forward')
+            ->once()
+            ->with($address . ', Indonesia')
+            ->andReturn(null);
+        $geocoder->shouldReceive('forward')
+            ->once()
+            ->with('Jalan Pancasila, Kecamatan Gunung Putri, Kabupaten Bogor, Indonesia')
+            ->andReturn($location);
+        $request = Request::create(
+            '/request/lokasi-alamat',
+            'POST',
+            [],
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json'],
+            json_encode(['alamat' => $address])
+        );
+
+        $response = (new ServiceRequestController(app(HaversineService::class)))
+            ->locateAddress($request, $geocoder);
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame($location, $response->getData(true)['location']);
+    }
+
     public function test_it_uses_google_geocoding_to_find_coordinates_from_an_address(): void
     {
         Cache::flush();

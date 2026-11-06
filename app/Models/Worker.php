@@ -19,6 +19,7 @@ class Worker extends Model
         'tarif',
         'pengalaman',
         'rating',
+        'poin',
         'umur',
         'status',
         'foto',

@@ -593,16 +593,28 @@ textarea.form-control {
 }
 
 .damage-level-card {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 18px;
   align-items: center;
-  justify-content: space-between;
-  gap: 6px;
+  gap: 8px;
   padding: 10px 12px;
   border: 1.5px solid var(--border-color);
   border-radius: 10px;
   color: var(--text-sub);
   font-size: 0.84rem;
   cursor: pointer;
+}
+
+.damage-level-name {
+  font-weight: 700;
+}
+
+.damage-level-description {
+  grid-column: 1 / -1;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.45;
 }
 
 .damage-level-card.selected {
@@ -617,6 +629,28 @@ textarea.form-control {
 
 .damage-level-card input {
   accent-color: var(--blue-primary);
+}
+
+.damage-level-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 9px 0 0;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.damage-level-note i {
+  margin-top: 2px;
+  color: var(--blue-primary);
+}
+
+.upload-required-error {
+  margin: 8px 0 0;
+  color: #b91c1c;
+  font-size: 0.82rem;
+  line-height: 1.45;
 }
 
 .price-breakdown {

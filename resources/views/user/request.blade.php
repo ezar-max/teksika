@@ -158,7 +158,7 @@
                             <div class="form-group">
                                 <label class="form-label">Jenis Layanan <span class="required">*</span></label>
                                 @php
-                                  $selected = isset($services) ? $services->firstWhere('nama', request('layanan')) : null;
+                                  $selected = $selected ?? ($services->first() ?? null);
                                   $activeLayanan = old('layanan', $selected ? $selected->nama : ($services->first()->nama ?? ''));
                                 @endphp
 
@@ -197,6 +197,7 @@
                                                data-tarif="{{ $worker->tarif ?? '' }}"
                                                data-rating="{{ $worker->display_rating }}"
                                                data-experience="{{ $worker->pengalaman ?? 0 }}"
+                                               data-points="{{ min(100, max(0, (int) ($worker->poin ?? 0))) }}"
                                                data-worker-name="{{ $worker->name }}"
                                                onclick="const r = this.querySelector('input[type=radio]'); if(!r.disabled){ r.checked = true; selectWorker(r); }">
                                         @if($worker->foto)
@@ -214,8 +215,9 @@
                                                 <i class="fa-solid fa-star"></i> {{ number_format($worker->display_rating, 1) }} ({{ $worker->jumlah_ulasan }})
                                             </div>
                                           </div>
-                                          <div class="worker-meta-info">Keahlian: {{ $worker->skills ?: $worker->role }} &bull; {{ $worker->pengalaman }} thn</div>
+                                          <div class="worker-meta-info">Keahlian: {{ $worker->skills ?: $worker->role }} &bull; {{ $worker->pengalaman }} thn &bull; {{ min(100, max(0, (int) ($worker->poin ?? 0))) }} poin</div>
                                           <div class="worker-choice-price">Tarif jasa akan disesuaikan</div>
+                                          <a href="{{ route('tukang.ulasan', $worker->id) }}" onclick="event.stopPropagation();" style="display:inline-block; margin-top:6px; color:#2563eb; font-size:.8rem; font-weight:700;">Lihat semua ulasan</a>
                                         </div>
                                         <input type="radio" name="id_worker_pilihan" value="{{ $worker->id }}" class="worker-radio-custom" {{ old('id_worker_pilihan') == $worker->id ? 'checked' : '' }} {{ $worker->display_availability !== 'Siap Bekerja' ? 'disabled' : '' }} onchange="selectWorker(this)">
                                       </article>
@@ -237,7 +239,7 @@
                                 </div>
                                 <div class="request-card-title-group">
                                     <h2>Detail Kerusakan & Dokumentasi</h2>
-                                    <p>Tuliskan penjelasan kendala dan unggah foto lokasi kerusakan</p>
+                                    <p>Tuliskan penjelasan kendala dan unggah foto kerusakan untuk verifikasi admin</p>
                                 </div>
                             </div>
 
@@ -247,13 +249,14 @@
                             </div>
 
                             <div class="form-group">
-                                <label class="form-label">Foto Kerusakan (Opsional)</label>
-                                <div class="upload-dropzone" id="uploadBox" onclick="triggerUpload()">
+                                <label class="form-label">Foto Kerusakan <span class="required">*</span></label>
+                                <div class="upload-dropzone" id="uploadBox" tabindex="-1" onclick="triggerUpload()">
                                     <i class="fa-solid fa-cloud-arrow-up upload-dropzone-icon"></i>
-                                    <div class="upload-dropzone-text" id="placeholder">Klik untuk Pilih Foto Kerusakan</div>
-                                    <div class="upload-dropzone-hint">Maksimal 5 foto (JPG, JPEG, PNG), ukuran per file max 5MB</div>
-                                    <input type="file" id="uploadInput" name="foto[]" accept="image/*" multiple style="display: none;" onchange="previewImages(event)">
+                                    <div class="upload-dropzone-text" id="placeholder">Klik untuk Pilih Minimal 1 Foto Kerusakan</div>
+                                    <div class="upload-dropzone-hint">Wajib untuk verifikasi tingkat kerusakan oleh admin. Maksimal 5 foto (JPG, JPEG, PNG), ukuran per foto maksimal 5MB.</div>
+                                    <input type="file" id="uploadInput" name="foto[]" accept="image/jpeg,image/png" multiple aria-required="true" style="display: none;" onchange="previewImages(event)">
                                 </div>
+                                <p id="uploadRequiredError" class="upload-required-error" role="alert" hidden>Unggah minimal 1 foto kerusakan agar admin dapat memverifikasi kondisi.</p>
                                 <div id="previewContainer" class="preview-container"></div>
                             </div>
                         </div>
@@ -278,21 +281,21 @@
                                             <span>Normal</span>
                                             <input type="radio" name="urgensi" value="rendah" {{ old('urgensi', 'rendah') === 'rendah' ? 'checked' : '' }} required onchange="selectUrgency(this)">
                                         </div>
-                                        <div class="urgency-card-desc">Tarif standar tanpa biaya tambahan. Pengerjaan terjadwal.</div>
+                                        <div class="urgency-card-desc">Tarif standar tanpa biaya tambahan.</div>
                                     </label>
                                     <label class="urgency-card urgensi-sedang {{ old('urgensi') === 'sedang' ? 'selected' : '' }}">
                                         <div class="urgency-card-title">
                                             <span>Mendesak</span>
                                             <input type="radio" name="urgensi" value="sedang" {{ old('urgensi') === 'sedang' ? 'checked' : '' }} onchange="selectUrgency(this)">
                                         </div>
-                                        <div class="urgency-card-desc"><strong style="color:#d97706;">+{{ number_format(((float) ($pricingRules['faktor_urgensi_sedang'] ?? 1.20) - 1) * 100, 0) }}%</strong>; Prioritas konfirmasi & penanganan admin.</div>
+                                        <div class="urgency-card-desc"><strong style="color:#d97706;">+{{ number_format(((float) ($pricingRules['faktor_urgensi_sedang'] ?? 1.20) - 1) * 100, 0) }}%</strong>; Prioritas pengerjaan lebih tinggi.</div>
                                     </label>
                                     <label class="urgency-card urgensi-tinggi {{ old('urgensi') === 'tinggi' ? 'selected' : '' }}">
                                         <div class="urgency-card-title">
                                             <span>Darurat</span>
                                             <input type="radio" name="urgensi" value="tinggi" {{ old('urgensi') === 'tinggi' ? 'checked' : '' }} onchange="selectUrgency(this)">
                                         </div>
-                                        <div class="urgency-card-desc"><strong style="color:#ef4444;">+{{ number_format(((float) ($pricingRules['faktor_urgensi_tinggi'] ?? 1.40) - 1) * 100, 0) }}%</strong>; Prioritas tertinggi segera dikerjakan hari ini.</div>
+                                        <div class="urgency-card-desc"><strong style="color:#ef4444;">+{{ number_format(((float) ($pricingRules['faktor_urgensi_tinggi'] ?? 1.40) - 1) * 100, 0) }}%</strong>; Prioritas pengerjaan tertinggi.</div>
                                     </label>
                                 </div>
                             </div>
@@ -307,12 +310,23 @@
                                     ] as $value => [$label, $rule, $defaultFactor])
                                         @php $damagePercent = number_format(((float) ($pricingRules[$rule] ?? $defaultFactor) - 1) * 100, 0); @endphp
                                         <label class="damage-level-card {{ old('tingkat_kerusakan', 'ringan') === $value ? 'selected' : '' }}">
-                                            <span>{{ $label }}</span>
+                                            <span class="damage-level-name">{{ $label }}</span>
                                             <strong>{{ $damagePercent > 0 ? '+' : '' }}{{ $damagePercent }}%</strong>
                                             <input type="radio" name="tingkat_kerusakan" value="{{ $value }}" {{ old('tingkat_kerusakan', 'ringan') === $value ? 'checked' : '' }} required onchange="selectDamageLevel(this)">
+                                            <span class="damage-level-description">
+                                                @switch($value)
+                                                    @case('ringan') Gangguan kecil; fungsi utama masih berjalan. @break
+                                                    @case('sedang') Fungsi terganggu atau sebagian tidak berjalan. @break
+                                                    @case('berat') Kerusakan parah, tidak berfungsi, atau berisiko. @break
+                                                @endswitch
+                                            </span>
                                         </label>
                                     @endforeach
                                 </div>
+                                <p class="damage-level-note">
+                                    <i class="fa-solid fa-circle-info"></i>
+                                    Pilih berdasarkan kondisi yang Anda lihat. Tingkat kerusakan ini merupakan perkiraan awal dan akan diverifikasi admin sebelum penawaran final; admin dapat menyesuaikannya setelah pemeriksaan.
+                                </p>
                             </div>
 
                             <div class="price-breakdown" id="priceBreakdown" aria-live="polite">
@@ -323,8 +337,16 @@
                                     <strong id="priceBase">-</strong>
                                 </div>
                                 <div class="price-breakdown-row">
-                                    <span id="priceQualificationLabel">Penyesuaian rating & pengalaman</span>
-                                    <strong id="priceQualification">-</strong>
+                                    <span id="priceRatingLabel">Penyesuaian rating</span>
+                                    <strong id="priceRating">-</strong>
+                                </div>
+                                <div class="price-breakdown-row">
+                                    <span id="priceExperienceLabel">Penyesuaian pengalaman</span>
+                                    <strong id="priceExperience">-</strong>
+                                </div>
+                                <div class="price-breakdown-row">
+                                    <span id="pricePointsLabel">Tambahan poin</span>
+                                    <strong id="pricePoints">-</strong>
                                 </div>
                                 <div class="price-breakdown-row">
                                     <span id="priceUrgencyLabel">Tambahan urgensi</span>
@@ -346,7 +368,7 @@
                                     <span>Estimasi total</span>
                                     <strong id="priceTotal">-</strong>
                                 </div>
-                                <p class="price-breakdown-note">Estimasi jasa memakai tarif teknisi (atau harga awal layanan jika tarif belum diatur) dan belum termasuk material/suku cadang. Harga final dikonfirmasi admin setelah pemeriksaan.</p>
+                                <p class="price-breakdown-note">Tambahan poin = tarif dasar × persentase poin × poin/100; poin maksimum 100. Pengalaman dan rating dihitung terpisah dari tarif dasar. Material/suku cadang belum termasuk; harga final dikonfirmasi admin setelah pemeriksaan.</p>
                             </div>
 
                             <div class="form-group" style="margin-top: 16px;">
@@ -392,7 +414,7 @@
                                 </div>
                                 <div class="request-card-title-group">
                                     <h2>Lokasi & Alamat Lengkap</h2>
-                                    <p>Isi kecamatan, kota, dan jalan untuk menampilkan titik lokasi di peta</p>
+                                    <p>Isi alamat lengkap untuk menampilkan titik lokasi di peta</p>
                                 </div>
                             </div>
 
@@ -400,32 +422,12 @@
                             <input type="hidden" id="lokasiInput" name="lokasi" value="{{ old('lokasi') }}">
                             @include('user.request._estimasi')
 
-                            <!-- Input Alamat Rinci -->
+                            <!-- Input Alamat Lengkap -->
                             <div class="form-group" style="margin-top: 14px;">
-                                <label class="form-label">Rincian Wilayah & Alamat</label>
-                                <div class="address-grid">
-                                    <div>
-                                        <input type="text" id="alamatKabupaten" name="alamat_kabupaten" value="{{ old('alamat_kabupaten') }}" oninput="syncLocationAddress()" onchange="syncLocationAddress()" onblur="syncLocationAddress()" placeholder="Kabupaten / Kota" maxlength="100" class="form-control">
-                                    </div>
-                                    <div>
-                                        <input type="text" id="alamatKecamatan" name="alamat_kecamatan" value="{{ old('alamat_kecamatan') }}" oninput="syncLocationAddress()" onchange="syncLocationAddress()" onblur="syncLocationAddress()" placeholder="Kecamatan" maxlength="100" class="form-control">
-                                    </div>
-                                </div>
-                                <div class="address-grid">
-                                    <div>
-                                        <input type="text" id="alamatJalan" name="alamat_jalan" value="{{ old('alamat_jalan') }}" oninput="syncLocationAddress()" onchange="syncLocationAddress()" onblur="syncLocationAddress()" placeholder="Nama Jalan / Gang / Patokan" maxlength="120" class="form-control">
-                                    </div>
-                                    <div class="address-rtrw-grid">
-                                        <div>
-                                            <input type="text" id="alamatRt" name="alamat_rt" value="{{ old('alamat_rt') }}" oninput="syncLocationAddress()" onchange="syncLocationAddress()" placeholder="RT" maxlength="5" class="form-control">
-                                        </div>
-                                        <div>
-                                            <input type="text" id="alamatRw" name="alamat_rw" value="{{ old('alamat_rw') }}" oninput="syncLocationAddress()" onchange="syncLocationAddress()" placeholder="RW" maxlength="5" class="form-control">
-                                        </div>
-                                    </div>
-                                </div>
+                                <label class="form-label" for="alamatLengkap">Alamat Lengkap</label>
+                                <textarea id="alamatLengkap" oninput="syncLocationAddress()" onchange="syncLocationAddress()" onblur="syncLocationAddress()" placeholder="Kabupaten Bogor, Kecamatan Gunung Putri, Jalan Pancasila, RT 004/RW 001" maxlength="255" rows="2" class="form-control">{{ old('lokasi') }}</textarea>
                                 <div id="addressStatus" style="font-size:0.78rem; color:#64748b; margin-top:5px;">
-                                    <i class="fa-solid fa-circle-check" style="color:#10b981;"></i> Titik peta dicari otomatis setelah nama jalan dan kabupaten/kota diisi. Geser pin untuk menyesuaikan posisi.
+                                    <i class="fa-solid fa-circle-check" style="color:#10b981;"></i> Titik peta dicari otomatis dari alamat. Sertakan kabupaten, kecamatan, jalan, dan RT/RW bila tersedia.
                                 </div>
                             </div>
 
@@ -486,7 +488,16 @@
     }
 
     // Form submission ensures address is synced
-    document.getElementById('requestForm').addEventListener('submit', function() {
+    document.getElementById('requestForm').addEventListener('submit', function(event) {
+        const uploadInput = document.getElementById('uploadInput');
+        const uploadError = document.getElementById('uploadRequiredError');
+        if (!uploadInput.files.length) {
+            event.preventDefault();
+            uploadError.hidden = false;
+            document.getElementById('uploadBox').focus();
+            return;
+        }
+        uploadError.hidden = true;
         if (typeof syncLocationAddress === 'function') syncLocationAddress();
         this.action = "{{ route('request.store') }}";
         this.method = "POST";
@@ -562,20 +573,25 @@
 
         const rating = Number(workerCard?.dataset?.rating || 3);
         const experience = Number(workerCard?.dataset?.experience || 0);
+        const points = Math.max(0, Math.min(100, Number(workerCard?.dataset?.points || 0)));
         const ratingPremium = Math.max(0, rating - 3) * 0.02;
-        const experiencePremium = Math.max(0, experience) * 0.01;
-        const qualificationFactor = Math.min(1.25, 1 + ratingPremium + experiencePremium);
-        const adjustedRate = Math.round(workerBaseRate * qualificationFactor);
-        const qualificationFee = adjustedRate - Math.round(workerBaseRate);
+        const experienceRate = Math.min(100, Math.max(0, Number(pricingRules.pengalaman_per_tahun_persen ?? 1)));
+        const experienceCap = Math.min(100, Math.max(0, Number(pricingRules.pengalaman_batas_persen ?? 25)));
+        const experiencePremium = Math.min(Math.max(0, experience) * experienceRate, experienceCap) / 100;
+        const ratingFee = Math.round(workerBaseRate * ratingPremium);
+        const experienceFee = Math.round(workerBaseRate * experiencePremium);
+        const adjustedRate = Math.round(workerBaseRate) + ratingFee + experienceFee;
+        const pointsRate = Math.min(100, Math.max(0, Number(pricingRules.poin_tarif_persen ?? 2)));
+        const pointsFee = Math.round(workerBaseRate * pointsRate / 100 * points / 100);
 
         const urgency = document.querySelector('input[name="urgensi"]:checked')?.value || 'rendah';
         const damage = document.querySelector('input[name="tingkat_kerusakan"]:checked')?.value || 'ringan';
         const urgencyFactor = Number(pricingRules[`faktor_urgensi_${urgency}`] || (urgency === 'tinggi' ? 1.40 : (urgency === 'sedang' ? 1.20 : 1.00)));
         const damageFactor = Number(pricingRules[`faktor_kerusakan_${damage}`] || (damage === 'berat' ? 1.10 : (damage === 'sedang' ? 1.05 : 1.00)));
 
-        const urgencyFee = Math.round(adjustedRate * (urgencyFactor - 1));
-        const laborTotal = Math.round(adjustedRate * urgencyFactor * damageFactor);
-        const damageFee = laborTotal - adjustedRate - urgencyFee;
+        const urgencyFee = Math.round(workerBaseRate * (urgencyFactor - 1));
+        const damageFee = Math.round(workerBaseRate * (damageFactor - 1));
+        const laborTotal = adjustedRate + urgencyFee + damageFee;
 
         // Gunakan jarak rute berkendara Google Maps (fallback garis lurus)
         const distance = (typeof window.currentRouteDistanceKm === 'number' && !window.currentRouteUnavailable)
@@ -591,9 +607,13 @@
             baseRate: Math.round(workerBaseRate),
             rating: rating,
             experience: experience,
-            qualificationFactor: qualificationFactor,
+            points: points,
+            pointsRate: pointsRate,
+            ratingFee: ratingFee,
+            experienceFee: experienceFee,
+            experiencePercent: experiencePremium * 100,
             adjustedRate: adjustedRate,
-            qualificationFee: qualificationFee,
+            pointsFee: pointsFee,
             urgency: urgency,
             urgencyFactor: urgencyFactor,
             urgencyFee: urgencyFee,
@@ -604,7 +624,7 @@
             distance: distance,
             jarakGratisKm: jarakGratisKm,
             transportFee: transportFee,
-            total: laborTotal + transportFee
+            total: laborTotal + transportFee + pointsFee
         };
     }
 
@@ -651,7 +671,7 @@
         estimatedWorkers.forEach(function (item) {
             const priceEl = item.card.querySelector('.worker-choice-price');
             if (priceEl) {
-                priceEl.textContent = `Estimasi total ${formatRupiah(item.estimate.total)} · kualifikasi +${formatRupiah(item.estimate.qualificationFee)}`;
+                priceEl.textContent = `Estimasi total ${formatRupiah(item.estimate.total)} · rating +${formatRupiah(item.estimate.ratingFee)} · pengalaman +${formatRupiah(item.estimate.experienceFee)} · poin +${formatRupiah(item.estimate.pointsFee)}`;
             }
         });
 
@@ -675,8 +695,8 @@
         const damage = document.querySelector('input[name="tingkat_kerusakan"]:checked')?.value || 'ringan';
         const urgencyFactor = Number(pricingRules[`faktor_urgensi_${urgency}`] || (urgency === 'tinggi' ? 1.40 : (urgency === 'sedang' ? 1.20 : 1.00)));
         const damageFactor = Number(pricingRules[`faktor_kerusakan_${damage}`] || (damage === 'berat' ? 1.10 : (damage === 'sedang' ? 1.05 : 1.00)));
-        const qualificationPercent = estimate && estimate.baseRate > 0
-            ? Math.round((estimate.adjustedRate / estimate.baseRate - 1) * 100)
+        const ratingPercent = estimate && estimate.baseRate > 0
+            ? Math.round(estimate.ratingFee / estimate.baseRate * 100)
             : 0;
         const urgencyPercent = Math.round((urgencyFactor - 1) * 100);
         const damagePercent = Math.round((damageFactor - 1) * 100);
@@ -684,7 +704,7 @@
         const workerDescEl = document.getElementById('priceBreakdownWorker');
         if (workerDescEl) {
             if (estimateCard) {
-                workerDescEl.textContent = `Estimasi dihitung menggunakan ${priceSource}. Rating & pengalaman menyesuaikan tarif hingga maksimal 25%.`;
+                workerDescEl.textContent = `Estimasi dihitung menggunakan ${priceSource}. Poin dibatasi 0–100; pengalaman dikenakan ${pricingRules.pengalaman_per_tahun_persen ?? 1}% per tahun hingga batas ${pricingRules.pengalaman_batas_persen ?? 25}%.`;
             } else if (serviceName) {
                 workerDescEl.textContent = `Belum ada mitra khusus siap bekerja untuk kategori ini. Estimasi memakai tarif dasar layanan ${serviceName}.`;
             } else {
@@ -705,8 +725,14 @@
             }
         }
         document.getElementById('priceBase').textContent = estimate ? formatRupiah(estimate.baseRate) : '-';
-        document.getElementById('priceQualificationLabel').textContent = `Penyesuaian rating & pengalaman (+${qualificationPercent}%)`;
-        document.getElementById('priceQualification').textContent = estimate ? `+ ${formatRupiah(estimate.qualificationFee)}` : '-';
+        document.getElementById('priceRatingLabel').textContent = `Penyesuaian rating (+${ratingPercent}%)`;
+        document.getElementById('priceRating').textContent = estimate ? `+ ${formatRupiah(estimate.ratingFee)}` : '-';
+        document.getElementById('priceExperienceLabel').textContent = estimate ? `Pengalaman ${estimate.experience} thn (+${estimate.experiencePercent}%)` : 'Penyesuaian pengalaman';
+        document.getElementById('priceExperience').textContent = estimate ? `+ ${formatRupiah(estimate.experienceFee)}` : '-';
+        document.getElementById('pricePointsLabel').textContent = estimate
+            ? `Poin ${estimate.points}/100 × ${estimate.pointsRate}% tarif dasar`
+            : 'Tambahan poin';
+        document.getElementById('pricePoints').textContent = estimate ? `+ ${formatRupiah(estimate.pointsFee)}` : '-';
         document.getElementById('priceUrgencyLabel').textContent = `Tambahan urgensi (+${urgencyPercent}%)`;
         document.getElementById('priceUrgency').textContent = estimate ? `+ ${formatRupiah(estimate.urgencyFee)}` : '-';
         document.getElementById('priceDamageLabel').textContent = `Kerusakan tambahan (+${damagePercent}%)`;

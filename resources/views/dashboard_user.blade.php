@@ -86,6 +86,7 @@
           <i class="fa-solid fa-bell" style="color:#007bff; margin-right:6px;"></i> Notifikasi Anda
         </div>
         <div id="notifList" style="max-height:340px; overflow-y:auto;"></div>
+        <a href="{{ route('bookinguser') }}" style="display:block; padding:10px 16px; text-align:center; font-size:0.85rem;">Lihat semua booking</a>
       </div>
     </header>
 
@@ -130,7 +131,7 @@
         <div class="carousel-track">
           <!-- Slide 1: Tata Udara (AC) -->
           <div class="carousel-slide active">
-            <img src="{{ asset('images/ac2.jpg') }}" alt="Perawatan AC Berkualitas">
+            <img src="{{ asset('images/ac2.jpg') }}" alt="Perawatan AC Berkualitas" fetchpriority="high" decoding="async">
             <div class="carousel-overlay"></div>
             <div class="carousel-caption">
               <span class="slide-tag"><i class="fa-solid fa-snowflake"></i> Tata Udara</span>
@@ -147,7 +148,7 @@
 
           <!-- Slide 2: Kelistrikan -->
           <div class="carousel-slide">
-            <img src="{{ asset('images/benerinlistrikk.jpeg') }}" alt="Instalasi Listrik">
+            <img data-src="{{ asset('images/benerinlistrikk.jpeg') }}" alt="Instalasi Listrik" loading="lazy" decoding="async">
             <div class="carousel-overlay"></div>
             <div class="carousel-caption">
               <span class="slide-tag"><i class="fa-solid fa-bolt"></i> Kelistrikan</span>
@@ -164,7 +165,7 @@
 
           <!-- Slide 3: Renovasi & Bangunan -->
           <div class="carousel-slide">
-            <img src="{{ asset('images/tukanginn.jpg') }}" alt="Renovasi Bangunan">
+            <img data-src="{{ asset('images/tukanginn.jpg') }}" alt="Renovasi Bangunan" loading="lazy" decoding="async">
             <div class="carousel-overlay"></div>
             <div class="carousel-caption">
               <span class="slide-tag"><i class="fa-solid fa-helmet-safety"></i> Konstruksi &amp; Renovasi</span>
@@ -181,7 +182,7 @@
 
           <!-- Slide 4: Plumbing -->
           <div class="carousel-slide">
-            <img src="{{ asset('images/benerinpipaa.jpg') }}" alt="Plumbing & Pipa">
+            <img data-src="{{ asset('images/benerinpipaa.jpg') }}" alt="Plumbing & Pipa" loading="lazy" decoding="async">
             <div class="carousel-overlay"></div>
             <div class="carousel-caption">
               <span class="slide-tag"><i class="fa-solid fa-faucet-drip"></i> Sanitari &amp; Plumbing</span>
@@ -198,7 +199,7 @@
 
           <!-- Slide 5: Pengecatan -->
           <div class="carousel-slide">
-            <img src="{{ asset('images/tukangcatt.jpg') }}" alt="Pengecatan Rumah">
+            <img data-src="{{ asset('images/tukangcatt.jpg') }}" alt="Pengecatan Rumah" loading="lazy" decoding="async">
             <div class="carousel-overlay"></div>
             <div class="carousel-caption">
               <span class="slide-tag"><i class="fa-solid fa-paint-roller"></i> Finishing &amp; Cat</span>
@@ -276,12 +277,12 @@
     </div>
 
     <div class="services">
-      @php($services = isset($services) ? $services->where('status','aktif') : collect())
+      @php($services = $services ?? collect())
       @forelse($services as $service)
       <div class="service-card">
         @if(!empty($service->gambar))
           <div class="service-icon-box">
-            <img src="{{ asset('uploads/services/'.$service->gambar) }}" alt="{{ $service->nama }}">
+            <img src="{{ asset('uploads/services/'.$service->gambar) }}" alt="{{ $service->nama }}" loading="lazy" decoding="async">
           </div>
         @else
           <div class="service-icon-box fallback">
@@ -382,6 +383,11 @@
 
       currentSlide = (index + slides.length) % slides.length;
       slides[currentSlide].classList.add('active');
+      const activeImage = slides[currentSlide].querySelector('img[data-src]');
+      if (activeImage) {
+        activeImage.src = activeImage.dataset.src;
+        activeImage.removeAttribute('data-src');
+      }
       if (indicators[currentSlide]) indicators[currentSlide].classList.add('active');
     }
 

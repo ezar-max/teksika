@@ -50,12 +50,24 @@ class ServiceRequestController extends Controller
                 : (float) ($worker->rating ?? 5);
         }
 
-        $selectedLayanan = $request->query('layanan');
-            $selected = $services->firstWhere('nama', $selectedLayanan);
-        $user = Auth::user();
-            $pricingRules = $pricingService->getRules();
+        $selectedLayanan = trim((string) $request->query('layanan', ''));
 
-            return view('user.request', compact('services', 'selected', 'user', 'workers', 'pricingRules'));
+        if ($request->has('layanan')) {
+            $selected = $services->first(function ($service) use ($selectedLayanan) {
+                return strcasecmp(trim((string) $service->nama), $selectedLayanan) === 0;
+            });
+
+            if (!$selected) {
+                return redirect()->route('dashboard_user')->with('error', 'Layanan yang Anda pilih tidak tersedia saat ini. Silakan pilih layanan lain.');
+            }
+        } else {
+            $selected = $services->first();
+        }
+
+        $user = Auth::user();
+        $pricingRules = $pricingService->getRules();
+
+        return view('user.request', compact('services', 'selected', 'user', 'workers', 'pricingRules'));
     }
 
     public function reverseAddress(Request $request, OpenStreetMapGeocodingService $geocoder)
@@ -82,54 +94,27 @@ class ServiceRequestController extends Controller
     public function locateAddress(Request $request, OpenStreetMapGeocodingService $geocoder)
     {
         $validated = $request->validate([
-            'kabupaten' => 'nullable|string|max:100',
-            'kecamatan' => 'nullable|string|max:100',
-            'jalan' => 'nullable|string|max:120',
+            'alamat' => 'required|string|max:255',
         ]);
 
-        $jalan = trim($validated['jalan'] ?? '');
-        $kecamatan = trim($validated['kecamatan'] ?? '');
-        $kabupaten = trim($validated['kabupaten'] ?? '');
-
-        if ($jalan === '' && $kecamatan === '' && $kabupaten === '') {
+        $alamat = trim(preg_replace('/\s+/', ' ', $validated['alamat']) ?? '');
+        if ($alamat === '') {
             return response()->json([
                 'success' => false,
-                'message' => 'Lengkapi rincian alamat (nama jalan, kecamatan, atau kota/kabupaten).',
+                'message' => 'Lengkapi alamat sebelum mencari titik peta.',
             ], 422);
         }
 
-        // Susun variasi query bertingkat (dari spesifik ke umum) agar peluang menemukan koordinat sangat tinggi
-        $candidateQueries = [];
-
-        if ($jalan !== '') {
-            if ($kecamatan !== '' && $kabupaten !== '') {
-                $candidateQueries[] = "{$jalan}, Kecamatan {$kecamatan}, {$kabupaten}, Indonesia";
-                $candidateQueries[] = "{$jalan}, {$kecamatan}, {$kabupaten}, Indonesia";
-                $candidateQueries[] = "{$jalan}, {$kabupaten}, Indonesia";
-            } elseif ($kabupaten !== '') {
-                $candidateQueries[] = "{$jalan}, {$kabupaten}, Indonesia";
-            } elseif ($kecamatan !== '') {
-                $candidateQueries[] = "{$jalan}, {$kecamatan}, Indonesia";
-            }
-            $candidateQueries[] = "{$jalan}, Indonesia";
-        }
-
-        if ($kecamatan !== '' && $kabupaten !== '') {
-            $candidateQueries[] = "Kecamatan {$kecamatan}, {$kabupaten}, Indonesia";
-            $candidateQueries[] = "{$kecamatan}, {$kabupaten}, Indonesia";
-        } elseif ($kecamatan !== '') {
-            $candidateQueries[] = "Kecamatan {$kecamatan}, Indonesia";
-        }
-
-        if ($kabupaten !== '') {
-            $candidateQueries[] = "{$kabupaten}, Indonesia";
-        }
-
-        $candidateQueries = array_unique(array_filter($candidateQueries));
+        $addressWithoutRtRw = preg_replace('/\b(?:RT|RW)\s*[:.]?\s*\d+[A-Za-z]?\b/iu', '', $alamat) ?? $alamat;
+        $addressWithoutRtRw = preg_replace('/\s*\/\s*/', ' ', $addressWithoutRtRw) ?? $addressWithoutRtRw;
+        $addressWithoutRtRw = preg_replace('/\s*,\s*/', ', ', $addressWithoutRtRw) ?? $addressWithoutRtRw;
+        $addressWithoutRtRw = trim(preg_replace('/(?:,\s*){2,}/', ', ', $addressWithoutRtRw) ?? $addressWithoutRtRw, " ,\t\n\r\0\x0B");
+        $candidateQueries = array_unique(array_filter([$alamat, $addressWithoutRtRw]));
 
         $location = null;
         foreach ($candidateQueries as $candidate) {
-            $location = $geocoder->forward($candidate);
+            $query = preg_match('/\bIndonesia\b/i', $candidate) ? $candidate : "{$candidate}, Indonesia";
+            $location = $geocoder->forward($query);
             if ($location !== null) {
                 break;
             }
@@ -210,7 +195,8 @@ class ServiceRequestController extends Controller
             'tingkat_kerusakan' => 'required|in:ringan,sedang,berat',
             'detail' => 'required|string',
             'metode_pembayaran' => 'required|in:E-wallet,Bank,COD',
-            'foto.*' => 'nullable|image|max:5120',
+            'foto' => 'required|array|min:1|max:5',
+            'foto.*' => 'required|image|mimes:jpg,jpeg,png|max:5120',
         ]);
 
         $service = DB::table('services')->where('nama', $validated['layanan'])->where('status', 'aktif')->first();
@@ -285,8 +271,10 @@ class ServiceRequestController extends Controller
                 $rightBaseRate = (float) ($right->tarif ?? 0) > 0 ? (float) $right->tarif : (float) $service->harga_min;
                 $leftRating = $left->review_count > 0 ? (float) $left->review_average : (float) ($left->rating ?? 5);
                 $rightRating = $right->review_count > 0 ? (float) $right->review_average : (float) ($right->rating ?? 5);
-                $leftPrice = $pricingService->adjustWorkerRate($leftBaseRate, $leftRating, (int) ($left->pengalaman ?? 0))['harga_layanan'];
-                $rightPrice = $pricingService->adjustWorkerRate($rightBaseRate, $rightRating, (int) ($right->pengalaman ?? 0))['harga_layanan'];
+                $leftRate = $pricingService->adjustWorkerRate($leftBaseRate, $leftRating, (int) ($left->pengalaman ?? 0), (int) ($left->poin ?? 0));
+                $rightRate = $pricingService->adjustWorkerRate($rightBaseRate, $rightRating, (int) ($right->pengalaman ?? 0), (int) ($right->poin ?? 0));
+                $leftPrice = $leftRate['harga_layanan'] + $leftRate['biaya_additional'];
+                $rightPrice = $rightRate['harga_layanan'] + $rightRate['biaya_additional'];
 
                 return $leftPrice <=> $rightPrice;
             });
@@ -304,7 +292,8 @@ class ServiceRequestController extends Controller
         $workerRate = $pricingService->adjustWorkerRate(
             $hargaDasar,
             $estimateWorker ? $estimateWorkerRating : 3.0,
-            (int) ($estimateWorker->pengalaman ?? 0)
+            (int) ($estimateWorker->pengalaman ?? 0),
+            (int) ($estimateWorker->poin ?? 0)
         );
         $hargaAwal = $workerRate['harga_layanan'];
         $pricing = $pricingService->calculate(
@@ -315,10 +304,12 @@ class ServiceRequestController extends Controller
             urgensi: $validated['urgensi'],
             userLat: $userLat,
             userLon: $userLon,
-            tingkatKerusakan: $validated['tingkat_kerusakan']
+            tingkatKerusakan: $validated['tingkat_kerusakan'],
+            biayaAdditional: $workerRate['biaya_additional'],
+            tarifDasarPerhitungan: $workerRate['harga_dasar']
         );
-        $biayaUrgensi = round($hargaAwal * ($pricing['faktor_urgensi'] - 1));
-        $biayaKerusakan = round($pricing['estimasi_total'] - $pricing['biaya_jarak'] - $hargaAwal - $biayaUrgensi);
+        $biayaUrgensi = $pricing['biaya_urgensi'];
+        $biayaKerusakan = $pricing['biaya_kerusakan'];
 
         // Upload foto
         $fotoPaths = [];
@@ -345,6 +336,12 @@ class ServiceRequestController extends Controller
             'jarak_km' => $pricing['jarak_km'],
             'harga_dasar_estimasi' => $workerRate['harga_dasar'],
             'biaya_kualifikasi_estimasi' => $workerRate['biaya_kualifikasi'],
+            'biaya_rating_estimasi' => $workerRate['biaya_rating'],
+            'biaya_pengalaman_estimasi' => $workerRate['biaya_pengalaman'],
+            'pengalaman_persen_estimasi' => $workerRate['pengalaman_persen'],
+            'poin_estimasi' => $workerRate['poin'],
+            'poin_persen_estimasi' => $workerRate['poin_persen'],
+            'biaya_additional_estimasi' => $pricing['biaya_additional'],
             'rating_estimasi' => $estimateWorker ? $estimateWorkerRating : null,
             'pengalaman_estimasi' => $estimateWorker ? (int) ($estimateWorker->pengalaman ?? 0) : null,
             'harga_layanan' => $hargaAwal,

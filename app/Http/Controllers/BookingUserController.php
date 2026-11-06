@@ -88,6 +88,11 @@ class BookingUserController extends Controller
                 return false;
             }
 
+            $worker = DB::table('workers')->where('id', $booking->id_worker)->lockForUpdate()->first();
+            if (!$worker) {
+                return false;
+            }
+
             DB::table('worker_reviews')->insert([
                 'id_request' => $id,
                 'id_worker' => $booking->id_worker,
@@ -101,6 +106,7 @@ class BookingUserController extends Controller
             $average = DB::table('worker_reviews')->where('id_worker', $booking->id_worker)->avg('rating');
             DB::table('workers')->where('id', $booking->id_worker)->update([
                 'rating' => round((float) $average, 2),
+                'poin' => min(100, max(0, (int) ($worker->poin ?? 0)) + ($validated['rating'] * 4)),
                 'updated_at' => now(),
             ]);
 

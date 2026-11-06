@@ -21,6 +21,9 @@ class Request extends Model
         'tingkat_kerusakan', 'penawaran_keahlian', 'biaya_material', 'penawaran_catatan',
         'id_worker_estimasi', 'biaya_urgensi_estimasi', 'biaya_kerusakan_estimasi',
         'harga_dasar_estimasi', 'biaya_kualifikasi_estimasi',
+        'biaya_additional_estimasi', 'poin_estimasi',
+        'biaya_rating_estimasi', 'biaya_pengalaman_estimasi',
+        'pengalaman_persen_estimasi', 'poin_persen_estimasi',
         'rating_estimasi', 'pengalaman_estimasi',
         'durasi_perjalanan_menit', 'penawaran_dikirim_at', 'persetujuan_user_at', 'verifikasi_admin_at',
         'id_penawaran_terpilih'

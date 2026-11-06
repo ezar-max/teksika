@@ -172,6 +172,7 @@
                                     <div>Umur:<br><b>{{ $worker->umur ?? '-' }} thn</b></div>
                                     <div>Pengalaman:<br><b>{{ $worker->pengalaman }} thn</b></div>
                                     <div>Rating:<br><b><i class="fa-solid fa-star" style="color:#eab308;"></i> {{ number_format($worker->rating ?? 5.0, 1) }}</b></div>
+                                    <div><a href="{{ route('tukang.ulasan', $worker->id) }}" style="color:#2563eb; font-weight:700;">Lihat {{ $worker->reviews_count }} ulasan</a></div>
                                 </div>
                                 <div style="margin-bottom:4px;">
                                     <i class="fa-solid fa-location-dot" style="color:#ef4444; margin-right:4px;"></i>
