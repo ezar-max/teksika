@@ -792,15 +792,7 @@
 
         const priceBaseLabel = document.getElementById('priceBaseLabel');
         if (priceBaseLabel) {
-            if (estimateCard && chosenCard) {
-                priceBaseLabel.textContent = `Tarif layanan (${serviceName})`;
-            } else if (estimateCard) {
-                priceBaseLabel.textContent = `Tarif layanan (${serviceName})`;
-            } else if (serviceName) {
-                priceBaseLabel.textContent = `Tarif layanan (${serviceName})`;
-            } else {
-                priceBaseLabel.textContent = 'Tarif layanan';
-            }
+            priceBaseLabel.textContent = 'Tarif layanan';
         }
         document.getElementById('priceBase').textContent = estimate ? formatRupiah(estimate.baseRate) : '-';
         document.getElementById('priceRatingLabel').textContent = estimate?.rating === null
