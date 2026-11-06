@@ -82,25 +82,18 @@ class QuoteApprovalWorkflowTest extends TestCase
             $this->assertEquals($offer->biaya_jasa_material + $offer->biaya_transportasi + $offer->biaya_additional_snapshot, $offer->total_estimasi);
             $this->assertEquals($offer->biaya_jasa_snapshot + $offer->biaya_material_snapshot, $offer->biaya_jasa_material);
             $workerTarif = DB::table('workers')->where('id', $offer->id_worker)->value('tarif');
-            $workerPoints = DB::table('workers')->where('id', $offer->id_worker)->value('poin');
             $expectedTarif = (float) $workerTarif > 0 ? (float) $workerTarif : 100000;
-            $experiencePercent = min(
-                (int) $offer->pengalaman_snapshot * (float) DB::table('pricing_rules')->where('key', 'pengalaman_per_tahun_persen')->value('value'),
-                (float) DB::table('pricing_rules')->where('key', 'pengalaman_batas_persen')->value('value')
-            );
-            $ratingFee = round($expectedTarif * max(0, (float) $offer->rating_snapshot - 3) * 0.02);
-            $experienceFee = round($expectedTarif * $experiencePercent / 100);
+            $experiencePercent = (int) $offer->pengalaman_snapshot * 25;
+            $ratingFee = round($expectedTarif * (float) $offer->rating_snapshot * 0.25);
+            $experienceFee = round($expectedTarif * (int) $offer->pengalaman_snapshot * 0.25);
             $qualificationFee = $ratingFee + $experienceFee;
-            $adjustedTarif = $expectedTarif + $qualificationFee;
+            $adjustedTarif = $qualificationFee;
             $this->assertEquals($expectedTarif, $offer->harga_dasar_snapshot);
-            $this->assertEquals(min(100, max(0, (int) $workerPoints)), $offer->poin_snapshot);
+            $this->assertSame(0, (int) $offer->poin_snapshot);
             $this->assertEquals($ratingFee, $offer->biaya_rating_snapshot);
             $this->assertEquals($experienceFee, $offer->biaya_pengalaman_snapshot);
             $this->assertEquals($experiencePercent, $offer->pengalaman_persen_snapshot);
-            $this->assertEquals(
-                round($expectedTarif * (float) DB::table('pricing_rules')->where('key', 'poin_tarif_persen')->value('value') / 100 * min(100, max(0, (int) $workerPoints)) / 100),
-                $offer->biaya_additional_snapshot
-            );
+            $this->assertEquals(0, $offer->biaya_additional_snapshot);
             $this->assertEquals($qualificationFee, $offer->biaya_kualifikasi_snapshot);
             $this->assertEquals(0, $offer->biaya_urgensi_snapshot);
             $this->assertEquals(round($expectedTarif * 0.05), $offer->biaya_kerusakan_snapshot);
@@ -163,6 +156,7 @@ class QuoteApprovalWorkflowTest extends TestCase
         $user = $this->createCustomer();
         $admin = $this->createAdmin();
         $workerId = $this->createWorker('Approved Workflow Worker', 'Listrik', 6, 4.8);
+        DB::table('workers')->where('id', $workerId)->update(['poin' => 20]);
         $requestId = $this->createRequest($user, [
             'status' => 'menunggu_persetujuan',
             'penawaran_dikirim_at' => now(),
@@ -403,8 +397,8 @@ class QuoteApprovalWorkflowTest extends TestCase
         $this->assertSame($workerId, (int) $saved->id_worker_pilihan);
         $this->assertSame($workerId, (int) $saved->id_worker_estimasi);
         $this->assertEquals(135000, $saved->harga_dasar_estimasi);
-        $this->assertEquals(9450, $saved->biaya_kualifikasi_estimasi);
-        $this->assertEquals(144450, $saved->harga_layanan);
+        $this->assertEquals(286875, $saved->biaya_kualifikasi_estimasi);
+        $this->assertEquals(286875, $saved->harga_layanan);
         $this->assertGreaterThan(0, $saved->biaya_urgensi_estimasi);
         $this->assertGreaterThan(0, $saved->biaya_kerusakan_estimasi);
         $this->assertEquals(

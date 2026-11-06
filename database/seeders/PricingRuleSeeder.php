@@ -35,28 +35,6 @@ class PricingRuleSeeder extends Seeder
                 'tipe' => 'number',
                 'keterangan' => 'Tukang di luar radius ini tidak akan dimasukkan ke rekomendasi.',
             ],
-            [
-                'key' => 'poin_tarif_persen',
-                'value' => '2.00',
-                'label' => 'Biaya Poin (% tarif dasar)',
-                'tipe' => 'number',
-                'keterangan' => 'Persentase tarif dasar yang dikalikan dengan poin/100.',
-            ],
-            [
-                'key' => 'pengalaman_per_tahun_persen',
-                'value' => '1.00',
-                'label' => 'Tambahan Pengalaman (% per tahun)',
-                'tipe' => 'number',
-                'keterangan' => 'Persentase tambahan tarif dasar untuk setiap tahun pengalaman.',
-            ],
-            [
-                'key' => 'pengalaman_batas_persen',
-                'value' => '25.00',
-                'label' => 'Batas Tambahan Pengalaman (%)',
-                'tipe' => 'number',
-                'keterangan' => 'Batas maksimum persentase tambahan tarif dasar dari pengalaman.',
-            ],
-
             // Faktor Urgensi Multiplier
             [
                 'key' => 'faktor_urgensi_rendah',
@@ -116,5 +94,11 @@ class PricingRuleSeeder extends Seeder
                 ]
             );
         }
+
+        DB::table('pricing_rules')->whereIn('key', [
+            'poin_tarif_persen',
+            'pengalaman_per_tahun_persen',
+            'pengalaman_batas_persen',
+        ])->delete();
     }
 }

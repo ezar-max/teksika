@@ -221,12 +221,13 @@ class BookingController extends Controller
         $biayaMaterial = (float) $validated['biaya_material'];
         $offers = [];
         foreach (array_slice($rankedWorkers, 0, 3) as $candidate) {
-            $tarifDasar = $candidate['tarif'] !== null ? (float) $candidate['tarif'] : (float) $service->harga_min;
+            $tarifDasar = (float) $candidate['tarif'] > 0
+                ? (float) $candidate['tarif']
+                : (float) $service->harga_min;
             $workerRate = $this->pricingService->adjustWorkerRate(
                 $tarifDasar,
                 (float) $candidate['rating'],
-                (int) $candidate['pengalaman'],
-                (int) ($candidate['poin'] ?? 0)
+                (int) $candidate['pengalaman']
             );
             $pricing = $this->pricingService->calculate(
                 hargaMin: $workerRate['harga_layanan'],
@@ -264,8 +265,6 @@ class BookingController extends Controller
                 'jarak_km' => $route['distance_km'],
                 'estimasi_durasi_menit' => $pricing['estimasi_durasi_menit'],
                 'rating_snapshot' => $candidate['rating'],
-                'poin_snapshot' => $workerRate['poin'],
-                'poin_persen_snapshot' => $workerRate['poin_persen'],
                 'biaya_additional_snapshot' => $pricing['biaya_additional'],
                 'pengalaman_snapshot' => $candidate['pengalaman'],
                 'jumlah_ulasan_snapshot' => $candidate['jumlah_ulasan'],
@@ -365,8 +364,6 @@ class BookingController extends Controller
                 'biaya_rating_estimasi' => $offer->biaya_rating_snapshot,
                 'biaya_pengalaman_estimasi' => $offer->biaya_pengalaman_snapshot,
                 'pengalaman_persen_estimasi' => $offer->pengalaman_persen_snapshot,
-                'poin_estimasi' => $offer->poin_snapshot,
-                'poin_persen_estimasi' => $offer->poin_persen_snapshot,
                 'biaya_additional_estimasi' => $offer->biaya_additional_snapshot ?? 0,
                 'rating_estimasi' => $offer->rating_snapshot,
                 'pengalaman_estimasi' => $offer->pengalaman_snapshot,

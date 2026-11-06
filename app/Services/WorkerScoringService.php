@@ -139,7 +139,6 @@ class WorkerScoringService
                 'latitude' => (float) ($worker->latitude ?? $kantorLat),
                 'longitude' => (float) ($worker->longitude ?? $kantorLon),
                 'rating' => $ratingVal,
-                'poin' => max(0, min(100, (int) ($worker->poin ?? 0))),
                 'jumlah_ulasan' => (int) ($worker->review_count ?? 0),
                 'pengalaman' => $pengalamanTahun,
                 'job_aktif' => $jobAktif,

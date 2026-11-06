@@ -197,7 +197,6 @@
                                                data-tarif="{{ $worker->tarif ?? '' }}"
                                                data-rating="{{ $worker->display_rating }}"
                                                data-experience="{{ $worker->pengalaman ?? 0 }}"
-                                               data-points="{{ min(100, max(0, (int) ($worker->poin ?? 0))) }}"
                                                data-worker-name="{{ $worker->name }}"
                                                onclick="const r = this.querySelector('input[type=radio]'); if(!r.disabled){ r.checked = true; selectWorker(r); }">
                                         @if($worker->foto)
@@ -215,7 +214,7 @@
                                                 <i class="fa-solid fa-star"></i> {{ number_format($worker->display_rating, 1) }} ({{ $worker->jumlah_ulasan }})
                                             </div>
                                           </div>
-                                          <div class="worker-meta-info">Keahlian: {{ $worker->skills ?: $worker->role }} &bull; {{ $worker->pengalaman }} thn &bull; {{ min(100, max(0, (int) ($worker->poin ?? 0))) }} poin</div>
+                                          <div class="worker-meta-info">Keahlian: {{ $worker->skills ?: $worker->role }} &bull; {{ $worker->pengalaman }} thn</div>
                                           <div class="worker-choice-price">Tarif jasa akan disesuaikan</div>
                                           <a href="{{ route('tukang.ulasan', $worker->id) }}" onclick="event.stopPropagation();" style="display:inline-block; margin-top:6px; color:#2563eb; font-size:.8rem; font-weight:700;">Lihat semua ulasan</a>
                                         </div>
@@ -333,7 +332,7 @@
                                 <h3><i class="fa-solid fa-receipt"></i> Transparansi Estimasi Biaya</h3>
                                 <p class="price-breakdown-worker" id="priceBreakdownWorker">Pilih layanan untuk melihat estimasi dari tarif teknisi.</p>
                                 <div class="price-breakdown-row">
-                                    <span id="priceBaseLabel">Harga awal jasa</span>
+                                    <span id="priceBaseLabel">Tarif dasar perhitungan</span>
                                     <strong id="priceBase">-</strong>
                                 </div>
                                 <div class="price-breakdown-row">
@@ -343,10 +342,6 @@
                                 <div class="price-breakdown-row">
                                     <span id="priceExperienceLabel">Penyesuaian pengalaman</span>
                                     <strong id="priceExperience">-</strong>
-                                </div>
-                                <div class="price-breakdown-row">
-                                    <span id="pricePointsLabel">Tambahan poin</span>
-                                    <strong id="pricePoints">-</strong>
                                 </div>
                                 <div class="price-breakdown-row">
                                     <span id="priceUrgencyLabel">Tambahan urgensi</span>
@@ -368,7 +363,7 @@
                                     <span>Estimasi total</span>
                                     <strong id="priceTotal">-</strong>
                                 </div>
-                                <p class="price-breakdown-note">Tambahan poin = tarif dasar × persentase poin × poin/100; poin maksimum 100. Pengalaman dan rating dihitung terpisah dari tarif dasar. Material/suku cadang belum termasuk; harga final dikonfirmasi admin setelah pemeriksaan.</p>
+                                <p class="price-breakdown-note">Tarif tukang dihitung dari rating dan pengalaman: (rating × 0,25 + tahun pengalaman × 0,25) × tarif dasar. Material/suku cadang belum termasuk; harga final dikonfirmasi admin setelah pemeriksaan.</p>
                             </div>
 
                             <div class="form-group" style="margin-top: 16px;">
@@ -571,18 +566,15 @@
             : serviceBasePrice;
         if (!(workerBaseRate > 0)) return null;
 
-        const rating = Number(workerCard?.dataset?.rating || 3);
-        const experience = Number(workerCard?.dataset?.experience || 0);
-        const points = Math.max(0, Math.min(100, Number(workerCard?.dataset?.points || 0)));
-        const ratingPremium = Math.max(0, rating - 3) * 0.02;
-        const experienceRate = Math.min(100, Math.max(0, Number(pricingRules.pengalaman_per_tahun_persen ?? 1)));
-        const experienceCap = Math.min(100, Math.max(0, Number(pricingRules.pengalaman_batas_persen ?? 25)));
-        const experiencePremium = Math.min(Math.max(0, experience) * experienceRate, experienceCap) / 100;
-        const ratingFee = Math.round(workerBaseRate * ratingPremium);
-        const experienceFee = Math.round(workerBaseRate * experiencePremium);
-        const adjustedRate = Math.round(workerBaseRate) + ratingFee + experienceFee;
-        const pointsRate = Math.min(100, Math.max(0, Number(pricingRules.poin_tarif_persen ?? 2)));
-        const pointsFee = Math.round(workerBaseRate * pointsRate / 100 * points / 100);
+        const rating = workerCard?.dataset?.rating === ''
+            ? null
+            : Math.min(5, Math.max(0, Number(workerCard?.dataset?.rating || 0)));
+        const experience = Math.max(0, Number(workerCard?.dataset?.experience || 0));
+        const ratingFee = rating === null ? 0 : Math.round(workerBaseRate * rating * 0.25);
+        const experienceFee = Math.round(workerBaseRate * experience * 0.25);
+        const adjustedRate = rating === null
+            ? Math.round(workerBaseRate)
+            : ratingFee + experienceFee;
 
         const urgency = document.querySelector('input[name="urgensi"]:checked')?.value || 'rendah';
         const damage = document.querySelector('input[name="tingkat_kerusakan"]:checked')?.value || 'ringan';
@@ -607,13 +599,10 @@
             baseRate: Math.round(workerBaseRate),
             rating: rating,
             experience: experience,
-            points: points,
-            pointsRate: pointsRate,
             ratingFee: ratingFee,
             experienceFee: experienceFee,
-            experiencePercent: experiencePremium * 100,
+            experiencePercent: experience * 25,
             adjustedRate: adjustedRate,
-            pointsFee: pointsFee,
             urgency: urgency,
             urgencyFactor: urgencyFactor,
             urgencyFee: urgencyFee,
@@ -624,7 +613,7 @@
             distance: distance,
             jarakGratisKm: jarakGratisKm,
             transportFee: transportFee,
-            total: laborTotal + transportFee + pointsFee
+            total: laborTotal + transportFee
         };
     }
 
@@ -671,7 +660,7 @@
         estimatedWorkers.forEach(function (item) {
             const priceEl = item.card.querySelector('.worker-choice-price');
             if (priceEl) {
-                priceEl.textContent = `Estimasi total ${formatRupiah(item.estimate.total)} · rating +${formatRupiah(item.estimate.ratingFee)} · pengalaman +${formatRupiah(item.estimate.experienceFee)} · poin +${formatRupiah(item.estimate.pointsFee)}`;
+                priceEl.textContent = `Estimasi total ${formatRupiah(item.estimate.total)} · rating +${formatRupiah(item.estimate.ratingFee)} · pengalaman +${formatRupiah(item.estimate.experienceFee)}`;
             }
         });
 
@@ -679,7 +668,7 @@
         const estimate = estimateCard
             ? calculateWorkerEstimate(estimateCard, serviceBasePrice)
             : (serviceBasePrice > 0
-                ? calculateWorkerEstimate({ dataset: { tarif: String(serviceBasePrice), rating: '3', experience: '0' } }, serviceBasePrice)
+                ? calculateWorkerEstimate({ dataset: { tarif: String(serviceBasePrice), rating: '', experience: '0' } }, serviceBasePrice)
                 : null);
 
         let priceSource = '';
@@ -704,7 +693,7 @@
         const workerDescEl = document.getElementById('priceBreakdownWorker');
         if (workerDescEl) {
             if (estimateCard) {
-                workerDescEl.textContent = `Estimasi dihitung menggunakan ${priceSource}. Poin dibatasi 0–100; pengalaman dikenakan ${pricingRules.pengalaman_per_tahun_persen ?? 1}% per tahun hingga batas ${pricingRules.pengalaman_batas_persen ?? 25}%.`;
+                workerDescEl.textContent = `Estimasi dihitung menggunakan ${priceSource}. Setiap rating dan tahun pengalaman bernilai 25% dari tarif dasar.`;
             } else if (serviceName) {
                 workerDescEl.textContent = `Belum ada mitra khusus siap bekerja untuk kategori ini. Estimasi memakai tarif dasar layanan ${serviceName}.`;
             } else {
@@ -721,7 +710,7 @@
             } else if (serviceName) {
                 priceBaseLabel.textContent = `Tarif dasar layanan (${serviceName})`;
             } else {
-                priceBaseLabel.textContent = 'Tarif dasar layanan';
+                priceBaseLabel.textContent = 'Tarif dasar perhitungan layanan';
             }
         }
         document.getElementById('priceBase').textContent = estimate ? formatRupiah(estimate.baseRate) : '-';
@@ -729,10 +718,6 @@
         document.getElementById('priceRating').textContent = estimate ? `+ ${formatRupiah(estimate.ratingFee)}` : '-';
         document.getElementById('priceExperienceLabel').textContent = estimate ? `Pengalaman ${estimate.experience} thn (+${estimate.experiencePercent}%)` : 'Penyesuaian pengalaman';
         document.getElementById('priceExperience').textContent = estimate ? `+ ${formatRupiah(estimate.experienceFee)}` : '-';
-        document.getElementById('pricePointsLabel').textContent = estimate
-            ? `Poin ${estimate.points}/100 × ${estimate.pointsRate}% tarif dasar`
-            : 'Tambahan poin';
-        document.getElementById('pricePoints').textContent = estimate ? `+ ${formatRupiah(estimate.pointsFee)}` : '-';
         document.getElementById('priceUrgencyLabel').textContent = `Tambahan urgensi (+${urgencyPercent}%)`;
         document.getElementById('priceUrgency').textContent = estimate ? `+ ${formatRupiah(estimate.urgencyFee)}` : '-';
         document.getElementById('priceDamageLabel').textContent = `Kerusakan tambahan (+${damagePercent}%)`;

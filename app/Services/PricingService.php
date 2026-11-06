@@ -40,41 +40,29 @@ class PricingService
         Cache::forget('teksika_pricing_rules');
     }
 
-    public function adjustWorkerRate(float $baseRate, float $rating, int $experienceYears, int $points = 0): array
+    public function adjustWorkerRate(float $baseRate, ?float $rating, int $experienceYears): array
     {
-        $ratingPremium = max(0, $rating - 3) * 0.02;
-        $rules = $this->getRules();
-        $experienceRate = min(100, max(0, (float) ($rules['pengalaman_per_tahun_persen'] ?? 1)));
-        $experienceCap = min(100, max(0, (float) ($rules['pengalaman_batas_persen'] ?? 25)));
-        $experiencePremium = min(max(0, $experienceYears) * $experienceRate, $experienceCap) / 100;
         $baseRate = round(max(0, $baseRate));
-        $ratingFee = round($baseRate * $ratingPremium);
-        $experienceFee = round($baseRate * $experiencePremium);
-        $points = max(0, min(100, $points));
-        $pointsRate = min(100, max(0, (float) ($rules['poin_tarif_persen'] ?? 2)));
-        $adjustedRate = $baseRate + $ratingFee + $experienceFee;
+        $experienceYears = max(0, $experienceYears);
+        $ratingScore = $rating === null ? null : min(5, max(0, $rating)) * 0.25;
+        $ratingFee = $ratingScore === null ? 0 : round($baseRate * $ratingScore);
+        $experienceFee = round($baseRate * $experienceYears * 0.25);
+        $adjustedRate = $ratingScore === null
+            ? $baseRate
+            : $ratingFee + $experienceFee;
 
         return [
             'harga_dasar' => (float) $baseRate,
-            'faktor_kualifikasi' => (float) ($baseRate > 0 ? $adjustedRate / $baseRate : 1),
+            'faktor_kualifikasi' => (float) ($ratingScore === null
+                ? 1
+                : $ratingScore + ($experienceYears * 0.25)),
             'biaya_kualifikasi' => (float) ($ratingFee + $experienceFee),
             'biaya_rating' => (float) $ratingFee,
             'biaya_pengalaman' => (float) $experienceFee,
-            'pengalaman_persen' => (float) ($experiencePremium * 100),
+            'pengalaman_persen' => (float) ($experienceYears * 25),
             'harga_layanan' => (float) $adjustedRate,
-            'poin' => $points,
-            'poin_persen' => (float) $pointsRate,
-            'biaya_additional' => $this->calculateAdditionalFee($baseRate, $points),
+            'biaya_additional' => 0.0,
         ];
-    }
-
-    public function calculateAdditionalFee(float $baseRate, int $points): float
-    {
-        $baseRate = max(0, $baseRate);
-        $points = max(0, min(100, $points));
-        $pointsRate = min(100, max(0, (float) ($this->getRules()['poin_tarif_persen'] ?? 2)));
-
-        return (float) round($baseRate * ($pointsRate / 100) * ($points / 100));
     }
 
     /**

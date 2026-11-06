@@ -271,10 +271,10 @@ class ServiceRequestController extends Controller
                 $rightBaseRate = (float) ($right->tarif ?? 0) > 0 ? (float) $right->tarif : (float) $service->harga_min;
                 $leftRating = $left->review_count > 0 ? (float) $left->review_average : (float) ($left->rating ?? 5);
                 $rightRating = $right->review_count > 0 ? (float) $right->review_average : (float) ($right->rating ?? 5);
-                $leftRate = $pricingService->adjustWorkerRate($leftBaseRate, $leftRating, (int) ($left->pengalaman ?? 0), (int) ($left->poin ?? 0));
-                $rightRate = $pricingService->adjustWorkerRate($rightBaseRate, $rightRating, (int) ($right->pengalaman ?? 0), (int) ($right->poin ?? 0));
-                $leftPrice = $leftRate['harga_layanan'] + $leftRate['biaya_additional'];
-                $rightPrice = $rightRate['harga_layanan'] + $rightRate['biaya_additional'];
+                $leftRate = $pricingService->adjustWorkerRate($leftBaseRate, $leftRating, (int) ($left->pengalaman ?? 0));
+                $rightRate = $pricingService->adjustWorkerRate($rightBaseRate, $rightRating, (int) ($right->pengalaman ?? 0));
+                $leftPrice = $leftRate['harga_layanan'];
+                $rightPrice = $rightRate['harga_layanan'];
 
                 return $leftPrice <=> $rightPrice;
             });
@@ -291,9 +291,8 @@ class ServiceRequestController extends Controller
             : (float) $service->harga_min;
         $workerRate = $pricingService->adjustWorkerRate(
             $hargaDasar,
-            $estimateWorker ? $estimateWorkerRating : 3.0,
-            (int) ($estimateWorker->pengalaman ?? 0),
-            (int) ($estimateWorker->poin ?? 0)
+            $estimateWorker ? $estimateWorkerRating : null,
+            (int) ($estimateWorker->pengalaman ?? 0)
         );
         $hargaAwal = $workerRate['harga_layanan'];
         $pricing = $pricingService->calculate(
@@ -339,8 +338,6 @@ class ServiceRequestController extends Controller
             'biaya_rating_estimasi' => $workerRate['biaya_rating'],
             'biaya_pengalaman_estimasi' => $workerRate['biaya_pengalaman'],
             'pengalaman_persen_estimasi' => $workerRate['pengalaman_persen'],
-            'poin_estimasi' => $workerRate['poin'],
-            'poin_persen_estimasi' => $workerRate['poin_persen'],
             'biaya_additional_estimasi' => $pricing['biaya_additional'],
             'rating_estimasi' => $estimateWorker ? $estimateWorkerRating : null,
             'pengalaman_estimasi' => $estimateWorker ? (int) ($estimateWorker->pengalaman ?? 0) : null,

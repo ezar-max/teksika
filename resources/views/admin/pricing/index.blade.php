@@ -411,7 +411,7 @@
                         Aturan Tarif &amp; Biaya
                     </h1>
                     <div class="pricing-subtitle">
-                        Pengaturan tarif layanan, poin, pengalaman, urgensi, kerusakan, dan jangkauan.
+                        Pengaturan tarif layanan, rating, pengalaman, urgensi, kerusakan, dan jangkauan.
                     </div>
                 </div>
 
@@ -528,29 +528,24 @@
                                 <i class="fa-solid fa-user-gear"></i>
                             </div>
                             <div>
-                                <h3 class="card-title">Penyesuaian Tarif Tukang</h3>
-                                <p class="card-desc">Atur tambahan harga berdasarkan poin dan pengalaman. Poin dibatasi 0–100 dan semua tambahan dihitung dari tarif dasar.</p>
+                                <h3 class="card-title">Tarif Rating &amp; Pengalaman Tukang</h3>
+                                <p class="card-desc">Rating dan lama pengalaman menentukan tarif jasa berdasarkan tarif dasar tukang.</p>
                             </div>
                         </div>
                     </div>
 
                     <div class="form-grid">
                         <div class="field-group">
-                            <label class="field-label" for="poin_tarif_persen">Tambahan Poin (% tarif dasar)</label>
-                            <input type="number" step="0.1" min="0" max="100" class="field-input" id="poin_tarif_persen" name="poin_tarif_persen" value="{{ $rules['poin_tarif_persen']->value ?? '2.00' }}" required>
-                            <span class="field-hint">Rumus: tarif dasar × persentase ini × (poin/100). Poin di atas 100 tetap dihitung sebagai 100.</span>
+                            <span class="field-label">Nilai rating</span>
+                            <span class="field-hint">Rating 5 = 1,25; rating 4 = 1,00; rating 3 = 0,75; rating 2 = 0,50; rating 1 = 0,25.</span>
                         </div>
-
                         <div class="field-group">
-                            <label class="field-label" for="pengalaman_per_tahun_persen">Tambahan Pengalaman (% per tahun)</label>
-                            <input type="number" step="0.1" min="0" max="100" class="field-input" id="pengalaman_per_tahun_persen" name="pengalaman_per_tahun_persen" value="{{ $rules['pengalaman_per_tahun_persen']->value ?? '1.00' }}" required>
-                            <span class="field-hint">Persentase tarif dasar untuk setiap tahun pengalaman tukang.</span>
+                            <span class="field-label">Nilai pengalaman</span>
+                            <span class="field-hint">Setiap tahun pengalaman bernilai 0,25. Nilai dihitung untuk seluruh tahun pengalaman.</span>
                         </div>
-
                         <div class="field-group">
-                            <label class="field-label" for="pengalaman_batas_persen">Batas Tambahan Pengalaman (%)</label>
-                            <input type="number" step="0.1" min="0" max="100" class="field-input" id="pengalaman_batas_persen" name="pengalaman_batas_persen" value="{{ $rules['pengalaman_batas_persen']->value ?? '25.00' }}" required>
-                            <span class="field-hint">Membatasi total persentase tambahan harga dari pengalaman.</span>
+                            <span class="field-label">Rumus tarif jasa</span>
+                            <span class="field-hint">(Nilai rating + (0,25 × tahun pengalaman)) × tarif dasar tukang. Contoh rating 5, pengalaman 7 tahun, dan tarif dasar Rp100.000 menghasilkan Rp300.000.</span>
                         </div>
                     </div>
                 </div>

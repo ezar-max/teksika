@@ -31,9 +31,9 @@ class PricingRuleController extends Controller
     public function update(Request $request)
     {
         $request->validate([
-            'poin_tarif_persen' => 'sometimes|required|numeric|min:0|max:100',
-            'pengalaman_per_tahun_persen' => 'sometimes|required|numeric|min:0|max:100',
-            'pengalaman_batas_persen' => 'sometimes|required|numeric|min:0|max:100',
+            'jarak_gratis_km' => 'sometimes|required|numeric|min:0',
+            'tarif_per_km' => 'sometimes|required|numeric|min:0',
+            'radius_maksimal_km' => 'sometimes|required|numeric|min:1|max:100',
         ]);
 
         $inputs = $request->except(['_token', '_method']);
@@ -43,9 +43,6 @@ class PricingRuleController extends Controller
             'jarak_gratis_km' => 'Batas Jarak Gratis (km)',
             'tarif_per_km' => 'Tarif Per KM (Rp)',
             'radius_maksimal_km' => 'Radius Maksimal Layanan (km)',
-            'poin_tarif_persen' => 'Biaya Poin (% tarif dasar)',
-            'pengalaman_per_tahun_persen' => 'Tambahan Pengalaman (% per tahun)',
-            'pengalaman_batas_persen' => 'Batas Tambahan Pengalaman (%)',
             'faktor_urgensi_rendah' => 'Faktor Urgensi Normal/Rendah',
             'faktor_urgensi_sedang' => 'Faktor Urgensi Mendesak/Sedang',
             'faktor_urgensi_tinggi' => 'Faktor Urgensi Darurat/Tinggi',

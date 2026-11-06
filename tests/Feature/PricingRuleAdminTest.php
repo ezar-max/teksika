@@ -36,8 +36,9 @@ class PricingRuleAdminTest extends TestCase
             ->assertSee('Aturan Tarif &amp; Biaya', false)
             ->assertSee('Radius Jangkauan Maksimal')
             ->assertSee('Tarif Tambahan Per KM')
-            ->assertSee('Tambahan Pengalaman (% per tahun)')
-            ->assertSee('Batas Tambahan Pengalaman (%)')
+            ->assertSee('Tarif Rating &amp; Pengalaman Tukang', false)
+            ->assertSee('Setiap tahun pengalaman bernilai 0,25')
+            ->assertDontSee('Biaya Poin')
             ->assertDontSee('Pengali Durasi')
             ->assertDontSee('Estimasi Kecepatan Tempuh')
             ->assertDontSee('Weighted Scoring')
@@ -47,6 +48,11 @@ class PricingRuleAdminTest extends TestCase
     public function test_admin_can_update_pricing_rules_and_persists_in_database(): void
     {
         DB::table('pricing_rules')->where('key', 'jarak_gratis_km')->delete();
+        DB::table('pricing_rules')->whereIn('key', [
+            'poin_tarif_persen',
+            'pengalaman_per_tahun_persen',
+            'pengalaman_batas_persen',
+        ])->delete();
 
         $payload = [
             'jarak_gratis_km' => '6.5',
@@ -58,9 +64,6 @@ class PricingRuleAdminTest extends TestCase
             'faktor_kerusakan_ringan' => '1.00',
             'faktor_kerusakan_sedang' => '1.08',
             'faktor_kerusakan_berat' => '1.15',
-            'poin_tarif_persen' => '2.50',
-            'pengalaman_per_tahun_persen' => '1.50',
-            'pengalaman_batas_persen' => '20.00',
         ];
 
         $response = $this->withSession(['role' => 'admin'])
@@ -85,19 +88,6 @@ class PricingRuleAdminTest extends TestCase
             'value' => '6.5',
             'label' => 'Batas Jarak Gratis (km)',
         ]);
-        $this->assertDatabaseHas('pricing_rules', [
-            'key' => 'poin_tarif_persen',
-            'value' => '2.50',
-        ]);
-        $this->assertDatabaseHas('pricing_rules', [
-            'key' => 'pengalaman_per_tahun_persen',
-            'value' => '1.50',
-        ]);
-        $this->assertDatabaseHas('pricing_rules', [
-            'key' => 'pengalaman_batas_persen',
-            'value' => '20.00',
-        ]);
-
         // Verifikasi pada halaman index bahwa nilai yang baru tersimpan muncul di kartu atas
         $followUp = $this->withSession(['role' => 'admin'])
             ->actingAs($this->admin)
@@ -110,6 +100,11 @@ class PricingRuleAdminTest extends TestCase
 
     public function test_pricing_update_no_longer_requires_recommendation_weights(): void
     {
+        DB::table('pricing_rules')->whereIn('key', [
+            'poin_tarif_persen',
+            'pengalaman_per_tahun_persen',
+            'pengalaman_batas_persen',
+        ])->delete();
         $existingWeight = DB::table('pricing_rules')->where('key', 'bobot_rating')->value('value');
         $payload = [
             'poin_tarif_persen' => '2.00',
@@ -129,5 +124,8 @@ class PricingRuleAdminTest extends TestCase
             $existingWeight,
             DB::table('pricing_rules')->where('key', 'bobot_rating')->value('value')
         );
+        $this->assertDatabaseMissing('pricing_rules', ['key' => 'poin_tarif_persen']);
+        $this->assertDatabaseMissing('pricing_rules', ['key' => 'pengalaman_per_tahun_persen']);
+        $this->assertDatabaseMissing('pricing_rules', ['key' => 'pengalaman_batas_persen']);
     }
 }
