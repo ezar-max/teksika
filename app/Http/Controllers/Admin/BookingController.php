@@ -80,7 +80,8 @@ class BookingController extends Controller
                 'workers.alamat',
                 'workers.status as worker_status'
             )
-            ->orderBy('rekomendasi_tukang.ranking', 'asc')
+            ->orderByDesc('rekomendasi_tukang.skor_rating')
+            ->orderBy('workers.id')
             ->get();
 
         // Jika belum ada rekomendasi dan koordinat ada, hitung otomatis
@@ -102,7 +103,8 @@ class BookingController extends Controller
                         'workers.alamat',
                         'workers.status as worker_status'
                     )
-                    ->orderBy('rekomendasi_tukang.ranking', 'asc')
+                    ->orderByDesc('rekomendasi_tukang.skor_rating')
+                    ->orderBy('workers.id')
                     ->get();
             }
         }
@@ -223,7 +225,8 @@ class BookingController extends Controller
             $workerRate = $this->pricingService->adjustWorkerRate(
                 $tarifDasar,
                 (float) $candidate['rating'],
-                (int) $candidate['pengalaman']
+                (int) $candidate['pengalaman'],
+                (int) ($candidate['poin'] ?? 0)
             );
             $pricing = $this->pricingService->calculate(
                 hargaMin: $workerRate['harga_layanan'],
@@ -233,13 +236,15 @@ class BookingController extends Controller
                 urgensi: $validated['urgensi'],
                 routeDistanceKm: $route['distance_km'],
                 routeDurationMinutes: $route['duration_minutes'],
-                tingkatKerusakan: $validated['tingkat_kerusakan']
+                tingkatKerusakan: $validated['tingkat_kerusakan'],
+                biayaAdditional: $workerRate['biaya_additional'],
+                tarifDasarPerhitungan: $workerRate['harga_dasar']
             );
-            $faktorHarga = $pricing['faktor_urgensi'] * $pricing['faktor_kerusakan'];
+            $faktorHarga = 1 + ($pricing['faktor_urgensi'] - 1) + ($pricing['faktor_kerusakan'] - 1);
             $hargaDasar = (float) $pricing['harga_layanan'];
-            $biayaUrgensi = round($hargaDasar * ($pricing['faktor_urgensi'] - 1));
-            $biayaJasa = round($pricing['harga_layanan'] * $faktorHarga);
-            $biayaKerusakan = $biayaJasa - $hargaDasar - $biayaUrgensi;
+            $biayaUrgensi = $pricing['biaya_urgensi'];
+            $biayaKerusakan = $pricing['biaya_kerusakan'];
+            $biayaJasa = round($hargaDasar + $biayaUrgensi + $biayaKerusakan);
             $jasaMaterial = round($biayaJasa + $biayaMaterial);
             $biayaTransport = (float) $pricing['biaya_transportasi'];
             $offers[] = [
@@ -249,13 +254,19 @@ class BookingController extends Controller
                 'biaya_material_snapshot' => $biayaMaterial,
                 'harga_dasar_snapshot' => $workerRate['harga_dasar'],
                 'biaya_kualifikasi_snapshot' => $workerRate['biaya_kualifikasi'],
+                'biaya_rating_snapshot' => $workerRate['biaya_rating'],
+                'biaya_pengalaman_snapshot' => $workerRate['biaya_pengalaman'],
+                'pengalaman_persen_snapshot' => $workerRate['pengalaman_persen'],
                 'biaya_urgensi_snapshot' => $biayaUrgensi,
                 'biaya_kerusakan_snapshot' => $biayaKerusakan,
                 'biaya_transportasi' => $biayaTransport,
-                'total_estimasi' => round($jasaMaterial + $biayaTransport),
+                'total_estimasi' => round($jasaMaterial + $biayaTransport + $pricing['biaya_additional']),
                 'jarak_km' => $route['distance_km'],
                 'estimasi_durasi_menit' => $pricing['estimasi_durasi_menit'],
                 'rating_snapshot' => $candidate['rating'],
+                'poin_snapshot' => $workerRate['poin'],
+                'poin_persen_snapshot' => $workerRate['poin_persen'],
+                'biaya_additional_snapshot' => $pricing['biaya_additional'],
                 'pengalaman_snapshot' => $candidate['pengalaman'],
                 'jumlah_ulasan_snapshot' => $candidate['jumlah_ulasan'],
                 'keahlian_snapshot' => $candidate['skills'] ?: $candidate['name'],
@@ -349,6 +360,16 @@ class BookingController extends Controller
                 'status' => 'dikonfirmasi',
                 'status_admin' => 'diterima',
                 'harga_layanan' => $offer->biaya_jasa_snapshot,
+                'harga_dasar_estimasi' => $offer->harga_dasar_snapshot,
+                'biaya_kualifikasi_estimasi' => $offer->biaya_kualifikasi_snapshot,
+                'biaya_rating_estimasi' => $offer->biaya_rating_snapshot,
+                'biaya_pengalaman_estimasi' => $offer->biaya_pengalaman_snapshot,
+                'pengalaman_persen_estimasi' => $offer->pengalaman_persen_snapshot,
+                'poin_estimasi' => $offer->poin_snapshot,
+                'poin_persen_estimasi' => $offer->poin_persen_snapshot,
+                'biaya_additional_estimasi' => $offer->biaya_additional_snapshot ?? 0,
+                'rating_estimasi' => $offer->rating_snapshot,
+                'pengalaman_estimasi' => $offer->pengalaman_snapshot,
                 'faktor_urgensi' => 1,
                 'biaya_material' => $offer->biaya_material_snapshot,
                 'biaya_jarak' => $offer->biaya_transportasi,

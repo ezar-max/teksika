@@ -29,48 +29,32 @@ class PricingRuleSeeder extends Seeder
                 'keterangan' => 'Biaya tambahan per kilometer setelah batas jarak gratis.',
             ],
             [
-                'key' => 'kecepatan_kmh',
-                'value' => '30',
-                'label' => 'Estimasi Kecepatan Tempuh (km/jam)',
-                'tipe' => 'number',
-                'keterangan' => 'Dipakai untuk estimasi waktu tempuh tukang menuju lokasi user (2 menit/km pada 30 km/jam).',
-            ],
-            [
                 'key' => 'radius_maksimal_km',
                 'value' => '15.0',
                 'label' => 'Radius Maksimal Layanan (km)',
                 'tipe' => 'number',
                 'keterangan' => 'Tukang di luar radius ini tidak akan dimasukkan ke rekomendasi.',
             ],
-
-            // Bobot Weighted Scoring (Total harus 1.00)
             [
-                'key' => 'bobot_jarak',
-                'value' => '0.25',
-                'label' => 'Bobot Jarak (0 - 1)',
+                'key' => 'poin_tarif_persen',
+                'value' => '2.00',
+                'label' => 'Biaya Poin (% tarif dasar)',
                 'tipe' => 'number',
-                'keterangan' => 'Prioritas kedekatan jarak tukang ke lokasi user.',
+                'keterangan' => 'Persentase tarif dasar yang dikalikan dengan poin/100.',
             ],
             [
-                'key' => 'bobot_rating',
-                'value' => '0.15',
-                'label' => 'Bobot Rating (0 - 1)',
+                'key' => 'pengalaman_per_tahun_persen',
+                'value' => '1.00',
+                'label' => 'Tambahan Pengalaman (% per tahun)',
                 'tipe' => 'number',
-                'keterangan' => 'Prioritas kepuasan pelanggan / penilaian performa tukang.',
+                'keterangan' => 'Persentase tambahan tarif dasar untuk setiap tahun pengalaman.',
             ],
             [
-                'key' => 'bobot_pengalaman',
-                'value' => '0.15',
-                'label' => 'Bobot Pengalaman (0 - 1)',
+                'key' => 'pengalaman_batas_persen',
+                'value' => '25.00',
+                'label' => 'Batas Tambahan Pengalaman (%)',
                 'tipe' => 'number',
-                'keterangan' => 'Prioritas jam terbang / masa kerja tukang dalam tahun.',
-            ],
-            [
-                'key' => 'bobot_beban_kerja',
-                'value' => '0.45',
-                'label' => 'Bobot Beban Kerja (0 - 1)',
-                'tipe' => 'number',
-                'keterangan' => 'Prioritas ketersediaan tukang (job aktif lebih sedikit lebih diutamakan).',
+                'keterangan' => 'Batas maksimum persentase tambahan tarif dasar dari pengalaman.',
             ],
 
             // Faktor Urgensi Multiplier
@@ -117,28 +101,6 @@ class PricingRuleSeeder extends Seeder
                 'keterangan' => 'Tambahan harga 10% untuk kerusakan berat.',
             ],
 
-            // Pengali Durasi Kerja berdasarkan Kompleksitas
-            [
-                'key' => 'pengali_durasi_rendah',
-                'value' => '1.00',
-                'label' => 'Pengali Durasi Kompleksitas Rendah',
-                'tipe' => 'number',
-                'keterangan' => 'Pengali durasi dasar untuk pekerjaan ringan.',
-            ],
-            [
-                'key' => 'pengali_durasi_sedang',
-                'value' => '1.50',
-                'label' => 'Pengali Durasi Kompleksitas Sedang',
-                'tipe' => 'number',
-                'keterangan' => 'Pengali durasi dasar untuk pekerjaan standar (misal: 60 menit x 1.5 = 90 menit).',
-            ],
-            [
-                'key' => 'pengali_durasi_tinggi',
-                'value' => '2.00',
-                'label' => 'Pengali Durasi Kompleksitas Tinggi',
-                'tipe' => 'number',
-                'keterangan' => 'Pengali durasi dasar untuk pekerjaan berat/rumit.',
-            ],
         ];
 
         foreach ($rules as $rule) {
@@ -156,4 +118,3 @@ class PricingRuleSeeder extends Seeder
         }
     }
 }
-

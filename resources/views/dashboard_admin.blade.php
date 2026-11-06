@@ -191,7 +191,7 @@
             @php($services = isset($services) ? $services : collect())
 
             <!-- Section Layanan Tersedia -->
-            <div class="services-header-row">
+            <div class="services-header-row" id="services">
                 <h3><i class="fa-solid fa-wrench" style="color:#007bff; margin-right:8px;"></i> Kategori Layanan Tersedia</h3>
                 <button type="button" class="btn-add" onclick="openCreatePopup()">
                     <i class="fa-solid fa-plus"></i>

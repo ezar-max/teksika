@@ -11,7 +11,9 @@ class WorkerOffer extends Model
     protected $fillable = [
         'id_request', 'id_worker', 'biaya_jasa_material', 'biaya_jasa_snapshot', 'biaya_material_snapshot',
         'harga_dasar_snapshot', 'biaya_urgensi_snapshot', 'biaya_kerusakan_snapshot',
-        'biaya_kualifikasi_snapshot',
+        'biaya_kualifikasi_snapshot', 'biaya_rating_snapshot', 'biaya_pengalaman_snapshot',
+        'pengalaman_persen_snapshot', 'poin_persen_snapshot',
+        'poin_snapshot', 'biaya_additional_snapshot',
         'biaya_transportasi', 'total_estimasi',
         'jarak_km', 'estimasi_durasi_menit', 'rating_snapshot', 'pengalaman_snapshot',
         'jumlah_ulasan_snapshot', 'keahlian_snapshot', 'faktor_harga_snapshot', 'status',

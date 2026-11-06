@@ -44,7 +44,7 @@ class ServiceController extends Controller
         }
 
         Service::create($data);
-        return redirect()->back()->with('success', 'Layanan berhasil ditambah!');
+        return redirect()->route('services.index')->with('success', 'Layanan berhasil ditambah!');
     }
 
     public function update(Request $request, Service $service)

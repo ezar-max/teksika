@@ -4,13 +4,21 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class PricingTransparencyTest extends TestCase
 {
     use DatabaseTransactions;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(\Database\Seeders\PricingRuleSeeder::class);
+    }
 
     public function test_request_form_shows_cost_breakdown_and_saves_damage_level(): void
     {
@@ -35,19 +43,40 @@ class PricingTransparencyTest extends TestCase
             ->get(route('request'))
             ->assertOk()
             ->assertSee('Transparansi Estimasi Biaya')
-            ->assertSee('Tingkat Kerusakan');
+            ->assertSee('Tambahan poin')
+            ->assertSee('poin maksimum 100')
+            ->assertDontSee('Estimasi pengerjaan')
+            ->assertSee('Tingkat Kerusakan')
+            ->assertSee('Gangguan kecil; fungsi utama masih berjalan.')
+            ->assertSee('Fungsi terganggu atau sebagian tidak berjalan.')
+            ->assertSee('Kerusakan parah, tidak berfungsi, atau berisiko.')
+            ->assertSee('akan diverifikasi admin sebelum penawaran final')
+            ->assertSee('Foto Kerusakan')
+            ->assertSee('Wajib untuk verifikasi tingkat kerusakan oleh admin');
+
+        Storage::fake('public');
+        $requestData = [
+            'layanan' => 'Pricing Transparency Test',
+            'lokasi' => 'Jalan Test, Kecamatan Gunung Putri',
+            'latitude' => -6.4200,
+            'longitude' => 106.9500,
+            'urgensi' => 'sedang',
+            'tingkat_kerusakan' => 'berat',
+            'detail' => 'Kerusakan perlu diperiksa.',
+            'metode_pembayaran' => 'COD',
+        ];
+        $this->actingAs($user, 'web')
+            ->post(route('user.request.store'), $requestData)
+            ->assertSessionHasErrors('foto');
+        $this->assertDatabaseMissing('request', [
+            'id_user' => $user->id,
+            'layanan' => 'Pricing Transparency Test',
+        ]);
 
         $this->actingAs($user, 'web')
-            ->post(route('user.request.store'), [
-                'layanan' => 'Pricing Transparency Test',
-                'lokasi' => 'Jalan Test, Kecamatan Gunung Putri',
-                'latitude' => -6.4200,
-                'longitude' => 106.9500,
-                'urgensi' => 'sedang',
-                'tingkat_kerusakan' => 'berat',
-                'detail' => 'Kerusakan perlu diperiksa.',
-                'metode_pembayaran' => 'COD',
-            ])
+            ->post(route('user.request.store'), array_merge($requestData, [
+                'foto' => [$this->fakeDamagePhoto()],
+            ]))
             ->assertRedirect(route('bookinguser'));
 
         $this->assertDatabaseHas('request', [
@@ -55,14 +84,23 @@ class PricingTransparencyTest extends TestCase
             'layanan' => 'Pricing Transparency Test',
             'urgensi' => 'sedang',
             'tingkat_kerusakan' => 'berat',
+            'poin_estimasi' => 0,
+            'poin_persen_estimasi' => 2,
+            'biaya_rating_estimasi' => 0,
+            'biaya_pengalaman_estimasi' => 0,
+            'estimasi_durasi_menit' => 60,
         ]);
 
         $estimate = DB::table('request')->where('id_user', $user->id)->latest('id_request')->first();
+        $this->assertStringContainsString('request_foto/', $estimate->foto);
         $this->get(route('bookinguser'))
             ->assertOk()
             ->assertSee('Estimasi awal:')
             ->assertSee('data-status-harga="Estimasi awal memakai harga layanan karena belum ada tukang yang cocok"', false)
-            ->assertSee('data-total-penawaran="' . number_format((float) $estimate->estimasi_total, 2, '.', '') . '"', false);
+            ->assertSee('data-total-penawaran="' . number_format((float) $estimate->estimasi_total, 2, '.', '') . '"', false)
+            ->assertSee('data-poin="0"', false)
+            ->assertSee('data-poin-persen="2.00"', false)
+            ->assertSee('Biaya poin', false);
     }
 
     public function test_booking_detail_shows_worker_distance_and_saved_price_breakdown(): void
@@ -113,6 +151,13 @@ class PricingTransparencyTest extends TestCase
             'biaya_jasa_snapshot' => 155000,
             'biaya_material_snapshot' => 0,
             'harga_dasar_snapshot' => 100000,
+            'biaya_kualifikasi_snapshot' => 7000,
+            'biaya_rating_snapshot' => 3000,
+            'biaya_pengalaman_snapshot' => 4000,
+            'pengalaman_persen_snapshot' => 4,
+            'poin_snapshot' => 50,
+            'poin_persen_snapshot' => 2,
+            'biaya_additional_snapshot' => 1000,
             'biaya_urgensi_snapshot' => 20000,
             'biaya_kerusakan_snapshot' => 35000,
             'biaya_transportasi' => 10000,
@@ -140,13 +185,20 @@ class PricingTransparencyTest extends TestCase
             ->assertSee('Tukang Pilihan Snapshot')
             ->assertSee('data-kerusakan="berat"', false)
             ->assertSee('data-urgensi="sedang"', false)
+            ->assertDontSee('data-urgensi-target=', false)
             ->assertSee('data-jarak="15.00"', false)
+            ->assertSee('data-durasi-layanan="90"', false)
             ->assertSee('data-harga-dasar="100000.00"', false)
+            ->assertSee('data-biaya-rating="3000.00"', false)
+            ->assertSee('data-biaya-pengalaman="4000.00"', false)
+            ->assertSee('data-poin="50"', false)
             ->assertSee('data-biaya-urgensi="20000.00"', false)
             ->assertSee('data-biaya-kerusakan="35000.00"', false)
+            ->assertSee('Poin (50/100', false)
             ->assertSee('Transparansi harga');
     }
 
+<<<<<<< HEAD
     public function test_locate_address_accepts_single_query_and_returns_location(): void
     {
         $user = User::create([
@@ -182,5 +234,13 @@ class PricingTransparencyTest extends TestCase
                     'display_name' => 'GIIC Blok BB, Cikarang Pusat, Kabupaten Bekasi, Indonesia',
                 ],
             ]);
+=======
+    private function fakeDamagePhoto(): UploadedFile
+    {
+        return UploadedFile::fake()->createWithContent(
+            'kerusakan.png',
+            base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADUlEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC')
+        );
+>>>>>>> 40abfce1492bc7d6974163b6b4b29023d1a61d3b
     }
 }

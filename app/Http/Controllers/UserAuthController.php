@@ -99,9 +99,23 @@ class UserAuthController extends Controller
         if (!$user) {
             return redirect()->route('login')->with(['login_error' => 'auth_required', 'active_tab' => 'customer']);
         }
-        $services = \App\Models\Service::all();
-        $requests = \App\Models\Request::where('id_user', $user->id)->orderBy('created_at', 'desc')->get();
-        $totalBooking = $requests->count();
+        $services = \App\Models\Service::query()
+            ->where('status', 'aktif')
+            ->get(['id', 'nama', 'deskripsi', 'gambar', 'harga_min', 'harga_max', 'status']);
+        $requests = \App\Models\Request::where('id_user', $user->id)
+            ->latest('created_at')
+            ->limit(10)
+            ->get([
+                'layanan',
+                'status_admin',
+                'metode_pembayaran',
+                'jumlah_pembayaran',
+                'bayar_sekarang',
+                'created_at',
+                'updated_at',
+                'kode_booking',
+            ]);
+        $totalBooking = \App\Models\Request::where('id_user', $user->id)->count();
         $totalTransaksi = \App\Models\Pembayaran::where('user_id', $user->id)->count();
 
         return view('dashboard_user', compact('user', 'services', 'totalBooking', 'totalTransaksi', 'requests'));

@@ -29,13 +29,36 @@ class AlgoritmaTest extends TestCase
         $this->scoring = app(WorkerScoringService::class);
 
         // Pastikan parameter algoritma uji menggunakan nilai default standar
+<<<<<<< HEAD
         DB::table('pricing_rules')->updateOrInsert(['key' => 'tarif_per_km'], ['value' => '2500']);
         DB::table('pricing_rules')->updateOrInsert(['key' => 'radius_maksimal_km'], ['value' => '15.0']);
         DB::table('pricing_rules')->updateOrInsert(['key' => 'jarak_gratis_km'], ['value' => '5.0']);
         DB::table('pricing_rules')->updateOrInsert(['key' => 'bobot_rating'], ['value' => '0.50']);
         DB::table('pricing_rules')->updateOrInsert(['key' => 'bobot_pengalaman'], ['value' => '0.50']);
         DB::table('pricing_rules')->whereIn('key', ['bobot_jarak', 'bobot_beban_kerja', 'kecepatan_kmh'])->delete();
+=======
+        $this->setPricingRule('tarif_per_km', '2500');
+        $this->setPricingRule('radius_maksimal_km', '15.0');
+        $this->setPricingRule('jarak_gratis_km', '5.0');
+        $this->setPricingRule('poin_tarif_persen', '2.00');
+        $this->setPricingRule('pengalaman_per_tahun_persen', '1.00');
+        $this->setPricingRule('pengalaman_batas_persen', '25.00');
+>>>>>>> 40abfce1492bc7d6974163b6b4b29023d1a61d3b
         $this->pricing->clearRulesCache();
+    }
+
+    private function setPricingRule(string $key, string $value): void
+    {
+        DB::table('pricing_rules')->updateOrInsert(
+            ['key' => $key],
+            [
+                'value' => $value,
+                'label' => $key,
+                'tipe' => 'number',
+                'updated_at' => now(),
+                'created_at' => now(),
+            ]
+        );
     }
 
     /**
@@ -91,8 +114,44 @@ class AlgoritmaTest extends TestCase
         $this->assertSame(107000.0, $adjusted['harga_layanan']);
 
         $capped = $pricing->adjustWorkerRate(100000, 5, 30);
-        $this->assertSame(1.25, $capped['faktor_kualifikasi']);
-        $this->assertSame(25000.0, $capped['biaya_kualifikasi']);
+        $this->assertSame(1.29, $capped['faktor_kualifikasi']);
+        $this->assertSame(4000.0, $capped['biaya_rating']);
+        $this->assertSame(25000.0, $capped['biaya_pengalaman']);
+        $this->assertSame(29000.0, $capped['biaya_kualifikasi']);
+    }
+
+    public function test_additional_fee_uses_worker_points_as_a_capped_percentage(): void
+    {
+        $this->assertSame(800.0, $this->pricing->calculateAdditionalFee(200000, 20));
+        $this->assertSame(2000.0, $this->pricing->calculateAdditionalFee(200000, 50));
+        $this->assertSame(4000.0, $this->pricing->calculateAdditionalFee(200000, 100));
+        $this->assertSame(4000.0, $this->pricing->calculateAdditionalFee(200000, 150));
+        $this->assertSame(0.0, $this->pricing->calculateAdditionalFee(200000, -10));
+
+        $pricing = $this->pricing->calculate(
+            hargaMin: 200000,
+            hargaMax: 200000,
+            durasiDasarMenit: 60,
+            kompleksitas: 'rendah',
+            urgensi: 'rendah',
+            biayaAdditional: $this->pricing->calculateAdditionalFee(200000, 100)
+        );
+
+        $this->assertSame(4000.0, $pricing['biaya_additional']);
+        $this->assertSame(204000.0, $pricing['estimasi_total']);
+    }
+
+    public function test_worker_experience_price_rules_are_configurable(): void
+    {
+        $this->setPricingRule('pengalaman_per_tahun_persen', '2.00');
+        $this->setPricingRule('pengalaman_batas_persen', '10.00');
+        $this->pricing->clearRulesCache();
+
+        $adjusted = $this->pricing->adjustWorkerRate(100000, 3, 8);
+
+        $this->assertSame(10.0, $adjusted['pengalaman_persen']);
+        $this->assertSame(10000.0, $adjusted['biaya_pengalaman']);
+        $this->assertSame(0.0, $adjusted['biaya_rating']);
     }
 
     public function test_google_compute_routes_distance_and_polyline_decoding(): void
@@ -221,9 +280,9 @@ class AlgoritmaTest extends TestCase
         $this->assertEquals(0, $res['biaya_transportasi'], 'Biaya transportasi harus Rp0');
         $this->assertEquals(3.0, $res['jarak_kantor_km'], 'Jarak kantor pusat ke user harus 3.0 km');
         $this->assertEquals(180000, $res['estimasi_total'], 'Total estimasi harus 180.000');
-        $this->assertEquals(90, $res['durasi_kerja_menit'], 'Durasi kerja sedang harus 90 menit (60 x 1.5)');
+        $this->assertEquals(60, $res['durasi_kerja_menit'], 'Durasi layanan harus mengikuti durasi yang dibooking');
         $this->assertEquals(6, $res['durasi_tempuh_menit'], 'Durasi tempuh harus 6 menit');
-        $this->assertEquals(96, $res['estimasi_durasi_menit'], 'Total durasi harus 96 menit');
+        $this->assertEquals(60, $res['estimasi_durasi_menit'], 'Durasi layanan tidak ditambah waktu tempuh');
 
         $damageEstimate = $this->pricing->calculate(
             hargaMin: 100000,
@@ -236,7 +295,22 @@ class AlgoritmaTest extends TestCase
         );
         $this->assertEquals(1.40, $damageEstimate['faktor_urgensi']);
         $this->assertEquals(1.10, $damageEstimate['faktor_kerusakan']);
-        $this->assertEquals(164000, $damageEstimate['estimasi_total']);
+        $this->assertEquals(40000, $damageEstimate['biaya_urgensi']);
+        $this->assertEquals(10000, $damageEstimate['biaya_kerusakan']);
+        $this->assertEquals(160000, $damageEstimate['estimasi_total']);
+
+        $qualifiedDamageEstimate = $this->pricing->calculate(
+            hargaMin: 150000,
+            hargaMax: 150000,
+            durasiDasarMenit: 60,
+            kompleksitas: 'rendah',
+            urgensi: 'darurat',
+            tingkatKerusakan: 'berat',
+            tarifDasarPerhitungan: 100000
+        );
+        $this->assertEquals(40000, $qualifiedDamageEstimate['biaya_urgensi']);
+        $this->assertEquals(10000, $qualifiedDamageEstimate['biaya_kerusakan']);
+        $this->assertEquals(200000, $qualifiedDamageEstimate['estimasi_total']);
 
         // Skenario 2: 9.0 km (biaya tambahan transportasi dari kantor pusat)
         $res2 = $this->pricing->calculate(
@@ -254,6 +328,7 @@ class AlgoritmaTest extends TestCase
             hargaMin: 100000,
             hargaMax: 200000,
             durasiDasarMenit: 60,
+            kompleksitas: 'tinggi',
             jarakKm: 1.0,
             userLat: -6.4239,
             userLon: 106.9401,
@@ -263,11 +338,12 @@ class AlgoritmaTest extends TestCase
         $this->assertEquals(9.0, $routeEstimate['jarak_kantor_km']);
         $this->assertEquals(10000, $routeEstimate['biaya_jarak']);
         $this->assertEquals(18, $routeEstimate['durasi_tempuh_menit']);
+        $this->assertEquals(60, $routeEstimate['estimasi_durasi_menit'], 'Durasi layanan tetap mengikuti layanan yang dibooking');
         $this->assertSame('jarak_jalan_osrm', $routeEstimate['tipe_jarak']);
     }
 
     /**
-     * Uji Algoritma 3: Weighted Scoring & Ranking Tukang (Jarak Kantor Pusat ke Rumah User)
+     * Uji ranking tukang berdasarkan rating tertinggi.
      */
     public function test_worker_scoring_and_ranking(): void
     {
@@ -290,14 +366,14 @@ class AlgoritmaTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        // 3. Siapkan data Tukang B (Rating 4.5, pengalaman setara)
+        // Pengalaman Tukang B lebih tinggi, tetapi rating lebih rendah.
         $idB = DB::table('workers')->insertGetId([
             'name' => 'Tukang B (Test)',
             'role' => 'Teknisi AC',
             'alamat' => 'Jakarta Utara',
             'phone' => '081234567892',
             'skills' => 'AC, Pendingin',
-            'pengalaman' => 5,
+            'pengalaman' => 50,
             'rating' => 4.50,
             'latitude' => -6.1191,
             'longitude' => 106.8000,
@@ -316,8 +392,9 @@ class AlgoritmaTest extends TestCase
 
         $this->assertCount(2, $filtered, 'Harus ada 2 kandidat tukang yang memenuhi kualifikasi');
 
-        // Tukang A harus di Peringkat 1 karena skor total lebih tinggi (rating & ketersediaan)
-        $this->assertEquals($idA, $filtered[0]['id_worker'], 'Tukang A harus di peringkat 1');
+        $this->assertEquals($idA, $filtered[0]['id_worker'], 'Rating tertinggi harus selalu mendapat peringkat pertama.');
+        $this->assertEquals($filtered[0]['rating'] / 5, $filtered[0]['skor_total']);
+        $this->assertEquals($filtered[1]['rating'] / 5, $filtered[1]['skor_total']);
 
         // Jarak kantor pusat ke rumah user harus identik untuk kedua tukang
         $this->assertEquals($filtered[0]['jarak_km'], $filtered[1]['jarak_km'], 'Jarak kantor pusat ke rumah user harus sama untuk semua tukang');

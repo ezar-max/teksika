@@ -7,10 +7,10 @@
             </div>
             <div>
                 <h3 style="margin:0; font-size:1.15rem; font-weight:800; color:#0f172a; letter-spacing:-0.01em;">
-                    Rekomendasi Tukang Terbaik (Algoritma Cerdas)
+                    Rekomendasi Tukang Berdasarkan Rating
                 </h3>
                 <p style="margin:3px 0 0 0; font-size:0.85rem; color:#64748b;">
-                    Peringkat dihitung otomatis berbasis formula <b>Haversine Distance</b> &amp; <b>Weighted Scoring</b> (Jarak, Rating, Jam Terbang &amp; Beban Kerja).
+                    Tukang yang cocok dengan layanan diurutkan dari rating tertinggi. Jarak kantor tetap digunakan sebagai batas wilayah layanan.
                 </p>
             </div>
         </div>
@@ -18,7 +18,7 @@
             <form action="{{ route('admin.booking.hitung-ulang', $booking->id_request) }}" method="POST" style="display:inline;">
                 @csrf
                 <button type="submit" style="background:#f1f5f9; color:#1e293b; border:1.5px solid #cbd5e1; padding:9px 16px; border-radius:10px; font-weight:700; font-size:0.86rem; cursor:pointer; display:inline-flex; align-items:center; gap:7px; transition:all 0.2s ease;" onmouseover="this.style.background='#e2e8f0'; this.style.borderColor='#94a3b8';" onmouseout="this.style.background='#f1f5f9'; this.style.borderColor='#cbd5e1';">
-                    <i class="fa-solid fa-arrows-rotate"></i> Hitung Ulang Skor
+                    <i class="fa-solid fa-arrows-rotate"></i> Perbarui Rekomendasi
                 </button>
             </form>
         </div>
@@ -28,7 +28,7 @@
         <div style="display:flex; flex-direction:column; gap:14px;">
             @foreach($rekomendasi as $rek)
                 @php
-                    $isTop = $rek->ranking == 1;
+                    $isTop = $loop->first;
                     $isAssigned = isset($booking->id_worker) && $booking->id_worker == $rek->id_worker;
                 @endphp
                 <div style="border:1.5px solid {{ $isTop ? '#93c5fd' : '#e2e8f0' }}; background:{{ $isTop ? '#f8faff' : '#ffffff' }}; border-radius:14px; padding:18px 20px; position:relative; transition:all 0.2s ease; box-shadow:0 2px 8px rgba(0,0,0,0.02);">
@@ -38,7 +38,7 @@
                         <!-- Info Profil Tukang -->
                         <div style="display:flex; gap:14px; align-items:center;">
                             <div style="width:48px; height:48px; border-radius:50%; background:{{ $isTop ? 'linear-gradient(135deg, #007bff 0%, #005ecf 100%)' : '#64748b' }}; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:1.1rem; flex-shrink:0; box-shadow:0 4px 10px rgba(0, 123, 255, 0.25);">
-                                #{{ $rek->ranking }}
+                                #{{ $loop->iteration }}
                             </div>
                             <div>
                                 <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
@@ -65,9 +65,9 @@
                         <!-- Skor & Tombol Aksi -->
                         <div style="display:flex; align-items:center; gap:18px;">
                             <div style="text-align:right;">
-                                <div style="font-size:0.76rem; color:#64748b; text-transform:uppercase; font-weight:700; letter-spacing:0.04em;">Skor Keseluruhan</div>
+                                <div style="font-size:0.76rem; color:#64748b; text-transform:uppercase; font-weight:700; letter-spacing:0.04em;">Rating Tukang</div>
                                 <div style="font-size:1.4rem; font-weight:800; color:{{ $isTop ? '#007bff' : '#0f172a' }};">
-                                    {{ number_format($rek->skor_total, 3) }}
+                                    {{ number_format($rek->skor_rating * 5, 1) }} <span style="font-size:.85rem;">/ 5</span>
                                 </div>
                             </div>
 
@@ -77,28 +77,18 @@
                                 </span>
                             @else
                                 <span style="background:#fffbeb; color:#92400e; padding:8px 16px; border-radius:10px; font-weight:700; font-size:0.85rem; border:1px solid #fde68a;">
-                                    Rekomendasi Algoritma
+                                    Urutan berdasarkan rating
                                 </span>
                             @endif
                         </div>
                     </div>
 
-                    <!-- Breakdown Detail 4 Parameter Algoritma -->
                     <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-top:14px; padding-top:14px; border-top:1px dashed #e2e8f0; font-size:0.82rem; color:#475569;">
                         <div style="background:#f8fafc; padding:6px 12px; border-radius:8px; border:1px solid #e2e8f0;">
-                            <span style="color:#64748b;">Jarak:</span> <b>{{ $rek->jarak_km }} km</b> 
-                            <span style="color:#0284c7; font-weight:700;">({{ number_format($rek->skor_jarak, 2) }})</span>
-                        </div>
-                        <div style="background:#f8fafc; padding:6px 12px; border-radius:8px; border:1px solid #e2e8f0;">
-                            <span style="color:#64748b;">Rating:</span> <b><i class="fa-solid fa-star" style="color:#f59e0b;"></i> {{ number_format($rek->rating, 1) }}</b>
-                            <span style="color:#0284c7; font-weight:700;">({{ number_format($rek->skor_rating, 2) }})</span>
+                            <span style="color:#64748b;">Rating:</span> <b><i class="fa-solid fa-star" style="color:#f59e0b;"></i> {{ number_format($rek->skor_rating * 5, 1) }} / 5</b>
                         </div>
                         <div style="background:#f8fafc; padding:6px 12px; border-radius:8px; border:1px solid #e2e8f0;">
                             <span style="color:#64748b;">Pengalaman:</span> <b>{{ $rek->pengalaman }} thn</b>
-                            <span style="color:#0284c7; font-weight:700;">({{ number_format($rek->skor_pengalaman, 2) }})</span>
-                        </div>
-                        <div style="background:#f8fafc; padding:6px 12px; border-radius:8px; border:1px solid #e2e8f0;">
-                            <span style="color:#64748b;">Skor Beban:</span> <b style="color:#0f172a;">{{ number_format($rek->skor_beban, 2) }}</b>
                         </div>
                     </div>
 

@@ -5,16 +5,25 @@ namespace Tests\Feature;
 use App\Models\Admin;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class QuoteApprovalWorkflowTest extends TestCase
 {
     use DatabaseTransactions;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(\Database\Seeders\PricingRuleSeeder::class);
+        Cache::flush();
+    }
 
     public function test_admin_creates_per_worker_offers_and_user_selects_one(): void
     {
@@ -42,8 +51,10 @@ class QuoteApprovalWorkflowTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        $this->createWorker('Offer Worker One', 'Listrik', 3, 3.5, 120000);
-        $this->createWorker('Offer Worker Two', 'Listrik', 9, 4.9, 180000);
+        $workerOneId = $this->createWorker('Offer Worker One', 'Listrik', 3, 3.5, 120000);
+        $workerTwoId = $this->createWorker('Offer Worker Two', 'Listrik', 9, 4.9, 180000);
+        DB::table('workers')->where('id', $workerOneId)->update(['poin' => 20]);
+        DB::table('workers')->where('id', $workerTwoId)->update(['poin' => 50]);
         $requestId = $this->createRequest($user, ['layanan' => 'Listrik Workflow Test']);
 
         $this->actingAs($admin, 'admin')
@@ -68,21 +79,39 @@ class QuoteApprovalWorkflowTest extends TestCase
         $this->assertGreaterThanOrEqual(2, $offers->count());
         $this->assertLessThanOrEqual(3, $offers->count());
         foreach ($offers as $offer) {
-            $this->assertEquals($offer->biaya_jasa_material + $offer->biaya_transportasi, $offer->total_estimasi);
+            $this->assertEquals($offer->biaya_jasa_material + $offer->biaya_transportasi + $offer->biaya_additional_snapshot, $offer->total_estimasi);
             $this->assertEquals($offer->biaya_jasa_snapshot + $offer->biaya_material_snapshot, $offer->biaya_jasa_material);
             $workerTarif = DB::table('workers')->where('id', $offer->id_worker)->value('tarif');
+            $workerPoints = DB::table('workers')->where('id', $offer->id_worker)->value('poin');
             $expectedTarif = (float) $workerTarif > 0 ? (float) $workerTarif : 100000;
-            $qualificationFee = round($expectedTarif * min(0.25, max(0, ((float) $offer->rating_snapshot - 3) * 0.02 + (int) $offer->pengalaman_snapshot * 0.01)));
+            $experiencePercent = min(
+                (int) $offer->pengalaman_snapshot * (float) DB::table('pricing_rules')->where('key', 'pengalaman_per_tahun_persen')->value('value'),
+                (float) DB::table('pricing_rules')->where('key', 'pengalaman_batas_persen')->value('value')
+            );
+            $ratingFee = round($expectedTarif * max(0, (float) $offer->rating_snapshot - 3) * 0.02);
+            $experienceFee = round($expectedTarif * $experiencePercent / 100);
+            $qualificationFee = $ratingFee + $experienceFee;
             $adjustedTarif = $expectedTarif + $qualificationFee;
             $this->assertEquals($expectedTarif, $offer->harga_dasar_snapshot);
+            $this->assertEquals(min(100, max(0, (int) $workerPoints)), $offer->poin_snapshot);
+            $this->assertEquals($ratingFee, $offer->biaya_rating_snapshot);
+            $this->assertEquals($experienceFee, $offer->biaya_pengalaman_snapshot);
+            $this->assertEquals($experiencePercent, $offer->pengalaman_persen_snapshot);
+            $this->assertEquals(
+                round($expectedTarif * (float) DB::table('pricing_rules')->where('key', 'poin_tarif_persen')->value('value') / 100 * min(100, max(0, (int) $workerPoints)) / 100),
+                $offer->biaya_additional_snapshot
+            );
             $this->assertEquals($qualificationFee, $offer->biaya_kualifikasi_snapshot);
             $this->assertEquals(0, $offer->biaya_urgensi_snapshot);
-            $this->assertEquals(round($adjustedTarif * 0.05), $offer->biaya_kerusakan_snapshot);
-            $this->assertEquals(round($adjustedTarif * 1.05), $offer->biaya_jasa_snapshot);
+            $this->assertEquals(round($expectedTarif * 0.05), $offer->biaya_kerusakan_snapshot);
+            $this->assertEquals($adjustedTarif + $offer->biaya_urgensi_snapshot + $offer->biaya_kerusakan_snapshot, $offer->biaya_jasa_snapshot);
             $this->assertSame('ditawarkan', $offer->status);
         }
         $this->assertGreaterThan(1, $offers->pluck('biaya_jasa_material')->unique()->count());
-        $this->get(route('admin.booking.show', $requestId))->assertOk()->assertSee('Penawaran per Tukang');
+        $this->get(route('admin.booking.show', $requestId))
+            ->assertOk()
+            ->assertSee('Penawaran per Tukang')
+            ->assertSee('Verifikasi tingkat kerusakan saat pemeriksaan');
         $this->get(route('booking'))->assertOk()->assertSee('Menunggu Persetujuan User');
 
         Auth::guard('admin')->logout();
@@ -144,8 +173,10 @@ class QuoteApprovalWorkflowTest extends TestCase
             'biaya_jasa_material' => 175000,
             'biaya_jasa_snapshot' => 125000,
             'biaya_material_snapshot' => 50000,
+            'poin_snapshot' => 20,
+            'biaya_additional_snapshot' => 2000,
             'biaya_transportasi' => 10000,
-            'total_estimasi' => 185000,
+            'total_estimasi' => 187000,
             'jarak_km' => 9,
             'estimasi_durasi_menit' => 120,
             'rating_snapshot' => 4.8,
@@ -171,9 +202,10 @@ class QuoteApprovalWorkflowTest extends TestCase
             'id_worker' => $workerId,
             'status' => 'dikonfirmasi',
             'status_admin' => 'diterima',
-            'estimasi_total' => 185000,
-            'jumlah_pembayaran' => 185000,
+            'estimasi_total' => 187000,
+            'jumlah_pembayaran' => 187000,
             'harga_layanan' => 125000,
+            'biaya_additional_estimasi' => 2000,
             'biaya_material' => 50000,
             'biaya_jarak' => 10000,
         ]);
@@ -181,7 +213,7 @@ class QuoteApprovalWorkflowTest extends TestCase
         $this->assertSame('sedang_bekerja', DB::table('workers')->where('id', $workerId)->value('status_ketersediaan'));
         $assignedRequest = DB::table('request')->where('id_request', $requestId)->first();
         $this->assertEquals(
-            $assignedRequest->harga_layanan + $assignedRequest->biaya_material + $assignedRequest->biaya_jarak,
+            $assignedRequest->harga_layanan + $assignedRequest->biaya_material + $assignedRequest->biaya_jarak + $assignedRequest->biaya_additional_estimasi,
             $assignedRequest->estimasi_total
         );
 
@@ -189,7 +221,7 @@ class QuoteApprovalWorkflowTest extends TestCase
         $this->actingAs($user, 'web')->post(route('bookinguser.ulasan', $requestId), ['rating' => 5])
             ->assertRedirect(route('bookinguser'));
         $this->assertDatabaseMissing('worker_reviews', ['id_request' => $requestId]);
-        $this->get(route('bookinguser'))->assertOk()->assertSee('Bayar Rp 185.000');
+        $this->get(route('bookinguser'))->assertOk()->assertSee('Bayar Rp 187.000');
         Auth::guard('web')->logout();
         $this->actingAs($admin, 'admin');
         $this->get(route('admin.booking.show', $requestId))
@@ -208,7 +240,7 @@ class QuoteApprovalWorkflowTest extends TestCase
         $this->actingAs($user, 'web')
             ->post(route('pembayaran.store'), [
                 'booking_kode' => 'BK-' . str_pad($requestId, 3, '0', STR_PAD_LEFT),
-                'jumlah' => 185000,
+                'jumlah' => 187000,
                 'metode_pembayaran' => 'Tunai',
                 'nama_pembayar' => $user->name,
             ])
@@ -219,7 +251,7 @@ class QuoteApprovalWorkflowTest extends TestCase
         ]);
         $this->assertDatabaseHas('pembayarans', [
             'user_id' => $user->id,
-            'jumlah' => 185000,
+            'jumlah' => 187000,
             'status' => 'success',
         ]);
         $this->get(route('bookinguser'))->assertOk()->assertSee('Pembayaran lunas');
@@ -241,6 +273,7 @@ class QuoteApprovalWorkflowTest extends TestCase
             ->assertRedirect(route('bookinguser'));
         $this->assertDatabaseHas('worker_reviews', ['id_request' => $requestId, 'id_worker' => $workerId, 'rating' => 5]);
         $this->assertEquals(5, DB::table('workers')->where('id', $workerId)->value('rating'));
+        $this->assertSame(20, (int) DB::table('workers')->where('id', $workerId)->value('poin'));
         $this->post(route('bookinguser.ulasan', $requestId), ['rating' => 1, 'ulasan' => 'Duplikat'])
             ->assertRedirect(route('bookinguser'));
         $this->assertSame(1, DB::table('worker_reviews')->where('id_request', $requestId)->count());
@@ -283,6 +316,7 @@ class QuoteApprovalWorkflowTest extends TestCase
     public function test_request_submission_shows_initial_estimate_without_requiring_osrm(): void
     {
         Http::fake();
+        Storage::fake('public');
         $user = $this->createCustomer();
         DB::table('services')->insert([
             'nama' => 'Request Intake Test',
@@ -314,6 +348,7 @@ class QuoteApprovalWorkflowTest extends TestCase
                 'tingkat_kerusakan' => 'berat',
                 'detail' => 'Perlu diperiksa oleh admin.',
                 'metode_pembayaran' => 'COD',
+                'foto' => [$this->fakeDamagePhoto()],
             ])
             ->assertRedirect(route('bookinguser'));
 
@@ -334,6 +369,7 @@ class QuoteApprovalWorkflowTest extends TestCase
     public function test_initial_estimate_uses_the_worker_selected_in_the_request_form(): void
     {
         Http::fake();
+        Storage::fake('public');
         $user = $this->createCustomer();
         DB::table('services')->insert([
             'nama' => 'Chosen Worker Estimate Test',
@@ -358,6 +394,7 @@ class QuoteApprovalWorkflowTest extends TestCase
                 'tingkat_kerusakan' => 'berat',
                 'detail' => 'Estimasi sesuai teknisi pilihan.',
                 'metode_pembayaran' => 'COD',
+                'foto' => [$this->fakeDamagePhoto()],
             ])
             ->assertRedirect(route('bookinguser'));
 
@@ -453,6 +490,35 @@ class QuoteApprovalWorkflowTest extends TestCase
         $this->get(route('dashboard_admin'))->assertRedirect(route('dashboard_user'));
     }
 
+    public function test_customer_dashboard_limits_notification_payload_without_limiting_booking_count(): void
+    {
+        $user = $this->createCustomer();
+
+        for ($index = 0; $index < 11; $index++) {
+            $createdAt = now()->addSeconds($index);
+            $this->createRequest($user, [
+                'layanan' => 'Notification ' . $index,
+                'created_at' => $createdAt,
+                'updated_at' => $createdAt,
+            ]);
+        }
+
+        $response = $this->actingAs($user)
+            ->get(route('dashboard_user'))
+            ->assertOk()
+            ->assertSee('"layanan":"Notification 10"', false)
+            ->assertDontSee('"layanan":"Notification 0"', false)
+            ->assertDontSee('"estimasi_total"', false)
+            ->assertSee('Lihat semua booking');
+
+        $this->assertSame(11, \App\Models\Request::where('id_user', $user->id)->count());
+
+        $this->get('/dashboard-user')
+            ->assertOk()
+            ->assertSee('"layanan":"Notification 10"', false)
+            ->assertDontSee('"layanan":"Notification 0"', false);
+    }
+
     private function createCustomer(): User
     {
         return User::create([
@@ -461,6 +527,14 @@ class QuoteApprovalWorkflowTest extends TestCase
             'password' => Hash::make('password'),
             'role' => 'customer',
         ]);
+    }
+
+    private function fakeDamagePhoto(): UploadedFile
+    {
+        return UploadedFile::fake()->createWithContent(
+            'kerusakan.png',
+            base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADUlEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC')
+        );
     }
 
     private function createAdmin(): Admin

@@ -33,28 +33,39 @@ class PricingRuleAdminTest extends TestCase
             ->get(route('admin.pricing.index'));
 
         $response->assertOk()
-            ->assertSee('Aturan Tarif &amp; Parameter Algoritma', false)
+            ->assertSee('Aturan Tarif &amp; Biaya', false)
             ->assertSee('Radius Jangkauan Maksimal')
             ->assertSee('Tarif Tambahan Per KM')
-            ->assertSee('Status Bobot Rekomendasi');
+            ->assertSee('Tambahan Pengalaman (% per tahun)')
+            ->assertSee('Batas Tambahan Pengalaman (%)')
+            ->assertDontSee('Pengali Durasi')
+            ->assertDontSee('Estimasi Kecepatan Tempuh')
+            ->assertDontSee('Weighted Scoring')
+            ->assertDontSee('Bobot Jarak');
     }
 
     public function test_admin_can_update_pricing_rules_and_persists_in_database(): void
     {
+        DB::table('pricing_rules')->where('key', 'jarak_gratis_km')->delete();
+
         $payload = [
             'jarak_gratis_km' => '6.5',
             'tarif_per_km' => '3500',
             'radius_maksimal_km' => '20.0',
+<<<<<<< HEAD
             'bobot_rating' => '0.60',
             'bobot_pengalaman' => '0.40',
+=======
+>>>>>>> 40abfce1492bc7d6974163b6b4b29023d1a61d3b
             'faktor_urgensi_rendah' => '1.00',
             'faktor_urgensi_sedang' => '1.25',
             'faktor_urgensi_tinggi' => '1.50',
             'faktor_kerusakan_ringan' => '1.00',
             'faktor_kerusakan_sedang' => '1.08',
             'faktor_kerusakan_berat' => '1.15',
-            'pengali_durasi_sedang' => '1.60',
-            'pengali_durasi_tinggi' => '2.20',
+            'poin_tarif_persen' => '2.50',
+            'pengalaman_per_tahun_persen' => '1.50',
+            'pengalaman_batas_persen' => '20.00',
         ];
 
         $response = $this->withSession(['role' => 'admin'])
@@ -75,6 +86,7 @@ class PricingRuleAdminTest extends TestCase
         ]);
 
         $this->assertDatabaseHas('pricing_rules', [
+<<<<<<< HEAD
             'key' => 'bobot_rating',
             'value' => '0.60',
         ]);
@@ -82,6 +94,23 @@ class PricingRuleAdminTest extends TestCase
         $this->assertDatabaseHas('pricing_rules', [
             'key' => 'bobot_pengalaman',
             'value' => '0.40',
+=======
+            'key' => 'jarak_gratis_km',
+            'value' => '6.5',
+            'label' => 'Batas Jarak Gratis (km)',
+        ]);
+        $this->assertDatabaseHas('pricing_rules', [
+            'key' => 'poin_tarif_persen',
+            'value' => '2.50',
+        ]);
+        $this->assertDatabaseHas('pricing_rules', [
+            'key' => 'pengalaman_per_tahun_persen',
+            'value' => '1.50',
+        ]);
+        $this->assertDatabaseHas('pricing_rules', [
+            'key' => 'pengalaman_batas_persen',
+            'value' => '20.00',
+>>>>>>> 40abfce1492bc7d6974163b6b4b29023d1a61d3b
         ]);
 
         // Verifikasi pada halaman index bahwa nilai yang baru tersimpan muncul di kartu atas
@@ -94,17 +123,31 @@ class PricingRuleAdminTest extends TestCase
             ->assertSee('3.500');
     }
 
-    public function test_update_fails_if_total_weights_not_equal_one(): void
+    public function test_pricing_update_no_longer_requires_recommendation_weights(): void
     {
+        $existingWeight = DB::table('pricing_rules')->where('key', 'bobot_rating')->value('value');
         $payload = [
+<<<<<<< HEAD
             'bobot_rating' => '0.70',
             'bobot_pengalaman' => '0.50', // total 1.20 != 1.00
+=======
+            'poin_tarif_persen' => '2.00',
+            'pengalaman_per_tahun_persen' => '1.00',
+            'pengalaman_batas_persen' => '25.00',
+            'bobot_rating' => '0.99',
+>>>>>>> 40abfce1492bc7d6974163b6b4b29023d1a61d3b
         ];
 
         $response = $this->withSession(['role' => 'admin'])
             ->actingAs($this->admin)
             ->post(route('admin.pricing.update'), $payload);
 
-        $response->assertSessionHas('error');
+        $response->assertRedirect(route('admin.pricing.index'))
+            ->assertSessionHas('success')
+            ->assertSessionMissing('error');
+        $this->assertSame(
+            $existingWeight,
+            DB::table('pricing_rules')->where('key', 'bobot_rating')->value('value')
+        );
     }
 }

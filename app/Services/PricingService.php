@@ -40,20 +40,41 @@ class PricingService
         Cache::forget('teksika_pricing_rules');
     }
 
-    public function adjustWorkerRate(float $baseRate, float $rating, int $experienceYears): array
+    public function adjustWorkerRate(float $baseRate, float $rating, int $experienceYears, int $points = 0): array
     {
         $ratingPremium = max(0, $rating - 3) * 0.02;
-        $experiencePremium = max(0, $experienceYears) * 0.01;
-        $factor = min(1.25, 1 + $ratingPremium + $experiencePremium);
+        $rules = $this->getRules();
+        $experienceRate = min(100, max(0, (float) ($rules['pengalaman_per_tahun_persen'] ?? 1)));
+        $experienceCap = min(100, max(0, (float) ($rules['pengalaman_batas_persen'] ?? 25)));
+        $experiencePremium = min(max(0, $experienceYears) * $experienceRate, $experienceCap) / 100;
         $baseRate = round(max(0, $baseRate));
-        $adjustedRate = round($baseRate * $factor);
+        $ratingFee = round($baseRate * $ratingPremium);
+        $experienceFee = round($baseRate * $experiencePremium);
+        $points = max(0, min(100, $points));
+        $pointsRate = min(100, max(0, (float) ($rules['poin_tarif_persen'] ?? 2)));
+        $adjustedRate = $baseRate + $ratingFee + $experienceFee;
 
         return [
             'harga_dasar' => (float) $baseRate,
-            'faktor_kualifikasi' => (float) $factor,
-            'biaya_kualifikasi' => (float) ($adjustedRate - $baseRate),
+            'faktor_kualifikasi' => (float) ($baseRate > 0 ? $adjustedRate / $baseRate : 1),
+            'biaya_kualifikasi' => (float) ($ratingFee + $experienceFee),
+            'biaya_rating' => (float) $ratingFee,
+            'biaya_pengalaman' => (float) $experienceFee,
+            'pengalaman_persen' => (float) ($experiencePremium * 100),
             'harga_layanan' => (float) $adjustedRate,
+            'poin' => $points,
+            'poin_persen' => (float) $pointsRate,
+            'biaya_additional' => $this->calculateAdditionalFee($baseRate, $points),
         ];
+    }
+
+    public function calculateAdditionalFee(float $baseRate, int $points): float
+    {
+        $baseRate = max(0, $baseRate);
+        $points = max(0, min(100, $points));
+        $pointsRate = min(100, max(0, (float) ($this->getRules()['poin_tarif_persen'] ?? 2)));
+
+        return (float) round($baseRate * ($pointsRate / 100) * ($points / 100));
     }
 
     /**
@@ -102,7 +123,9 @@ class PricingService
         ?float $userLon = null,
         ?float $routeDistanceKm = null,
         ?int $routeDurationMinutes = null,
-        string $tingkatKerusakan = 'ringan'
+        string $tingkatKerusakan = 'ringan',
+        float $biayaAdditional = 0.0,
+        ?float $tarifDasarPerhitungan = null
     ): array {
         $rules = $this->getRules();
 
@@ -168,9 +191,14 @@ class PricingService
             $biayaJarak = round($jarakDikenakanBiaya * $tarifPerKm);
         }
 
-        // 5. Total Estimasi Biaya
-        $estimasiTotal = round(($hargaLayanan * $faktorUrgensi * $faktorKerusakan) + $biayaJarak);
+        // 5. Calculate urgency and damage fees independently from the base tariff.
+        $tarifDasarPerhitungan = max(0, $tarifDasarPerhitungan ?? $hargaLayanan);
+        $biayaUrgensi = round($tarifDasarPerhitungan * ($faktorUrgensi - 1));
+        $biayaKerusakan = round($tarifDasarPerhitungan * ($faktorKerusakan - 1));
+        $biayaAdditional = max(0, $biayaAdditional);
+        $estimasiTotal = round($hargaLayanan + $biayaUrgensi + $biayaKerusakan + $biayaJarak + $biayaAdditional);
 
+<<<<<<< HEAD
         // 6. Estimasi Durasi Pengerjaan & Perjalanan
         // Multiplier durasi kerja berdasarkan kompleksitas
         $pengaliDurasi = 1.00;
@@ -187,6 +215,13 @@ class PricingService
         $durasiTempuhMenit = $routeDurationMinutes
             ?? (int) round($jarakKm * 2);
         $estimasiDurasiMenit = $durasiKerjaMenit + $durasiTempuhMenit;
+=======
+        // Durasi layanan mengikuti durasi yang ditetapkan pada layanan yang dibooking.
+        $durasiKerjaMenit = max(0, $durasiDasarMenit);
+        // Waktu tempuh perjalanan dari kantor pusat ke rumah user
+        $durasiTempuhMenit = $routeDurationMinutes
+            ?? $this->haversine->estimateTravelTimeMinutes($jarakKm);
+>>>>>>> 40abfce1492bc7d6974163b6b4b29023d1a61d3b
 
         return [
             'kompleksitas' => $kompleksitas,
@@ -197,12 +232,15 @@ class PricingService
             'harga_layanan' => (float) $hargaLayanan,
             'faktor_urgensi' => (float) $faktorUrgensi,
             'faktor_kerusakan' => (float) $faktorKerusakan,
+            'biaya_urgensi' => (float) $biayaUrgensi,
+            'biaya_kerusakan' => (float) $biayaKerusakan,
             'biaya_jarak' => (float) $biayaJarak,
             'biaya_transportasi' => (float) $biayaJarak,
+            'biaya_additional' => (float) $biayaAdditional,
             'estimasi_total' => (float) $estimasiTotal,
             'durasi_kerja_menit' => $durasiKerjaMenit,
             'durasi_tempuh_menit' => $durasiTempuhMenit,
-            'estimasi_durasi_menit' => $estimasiDurasiMenit,
+            'estimasi_durasi_menit' => $durasiKerjaMenit,
             'tipe_jarak' => $routeDistanceKm !== null ? 'jarak_jalan_osrm' : 'garis_lurus_haversine',
         ];
     }
