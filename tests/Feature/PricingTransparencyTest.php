@@ -277,18 +277,20 @@ class PricingTransparencyTest extends TestCase
         $estimate = $estimateResponse->json('estimate');
 
         // Rating 3.0 -> 9% * 200.000 = 18.000; Pengalaman 10 thn -> 20% * 200.000 = 40.000
-        // Biaya tukang = 1.000.000 + 18.000 + 40.000 = 1.058.000
+        // Biaya jasa tukang = 200.000 + 18.000 + 40.000 = 258.000
         // Urgensi sedang (+20% * 1.000.000 = 200.000), Kerusakan berat (+10% * 1.000.000 = 100.000)
-        // Subtotal jasa = 1.358.000, Transportasi = (9 - 5) * 2.500 = 10.000, Total = 1.368.000
+        // Subtotal jasa = 1.000.000 + 258.000 + 200.000 + 100.000 = 1.558.000
+        // Transportasi = (9 - 5) * 2.500 = 10.000, Total = 1.568.000
         $this->assertEquals(1000000, $estimate['tarif_dasar_layanan']);
+        $this->assertEquals(200000, $estimate['harga_tukang']);
         $this->assertEquals(18000, $estimate['biaya_rating']);
         $this->assertEquals(40000, $estimate['biaya_pengalaman']);
-        $this->assertEquals(1058000, $estimate['biaya_tukang']);
+        $this->assertEquals(258000, $estimate['biaya_tukang']);
         $this->assertEquals(200000, $estimate['biaya_urgensi']);
         $this->assertEquals(100000, $estimate['biaya_kerusakan']);
-        $this->assertEquals(1358000, $estimate['subtotal_jasa']);
+        $this->assertEquals(1558000, $estimate['subtotal_jasa']);
         $this->assertEquals(10000, $estimate['biaya_transportasi']);
-        $this->assertEquals(1368000, $estimate['estimasi_total']);
+        $this->assertEquals(1568000, $estimate['estimasi_total']);
 
         Storage::fake('public');
         $this->actingAs($user, 'web')
@@ -310,7 +312,7 @@ class PricingTransparencyTest extends TestCase
         $this->assertEquals($estimate['tarif_dasar_layanan'], (float) $saved->harga_dasar_estimasi);
         $this->assertEquals($estimate['biaya_rating'], (float) $saved->biaya_rating_estimasi);
         $this->assertEquals($estimate['biaya_pengalaman'], (float) $saved->biaya_pengalaman_estimasi);
-        $this->assertEquals($estimate['biaya_tukang'], (float) $saved->harga_layanan);
+        $this->assertEquals($estimate['tarif_dasar_layanan'] + $estimate['biaya_tukang'], (float) $saved->harga_layanan);
         $this->assertEquals($estimate['biaya_urgensi'], (float) $saved->biaya_urgensi_estimasi);
         $this->assertEquals($estimate['biaya_kerusakan'], (float) $saved->biaya_kerusakan_estimasi);
         $this->assertEquals($estimate['biaya_transportasi'], (float) $saved->biaya_jarak);

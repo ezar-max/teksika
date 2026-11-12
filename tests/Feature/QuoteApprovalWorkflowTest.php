@@ -85,10 +85,10 @@ class QuoteApprovalWorkflowTest extends TestCase
             $expectedWorkerTarif = (float) DB::table('workers')->where('id', $offer->id_worker)->value('tarif');
             $ratingPct = min(5, max(0, (float) $offer->rating_snapshot)) / 5 * 15;
             $expPct = min((int) $offer->pengalaman_snapshot * 2, 20);
-            $ratingFee = round($expectedWorkerTarif * ($ratingPct / 100) / 100) * 100;
-            $experienceFee = round($expectedWorkerTarif * ($expPct / 100) / 100) * 100;
+            $ratingFee = round($expectedWorkerTarif * ($ratingPct / 100));
+            $experienceFee = round($expectedWorkerTarif * ($expPct / 100));
             $qualificationFee = $ratingFee + $experienceFee;
-            $adjustedTarif = $expectedServiceTarif + $qualificationFee;
+            $adjustedTarif = $expectedServiceTarif + $expectedWorkerTarif + $qualificationFee;
             $this->assertEquals($expectedServiceTarif, $offer->harga_dasar_snapshot);
             $this->assertSame(0, (int) $offer->poin_snapshot);
             $this->assertEquals($ratingFee, $offer->biaya_rating_snapshot);
@@ -97,7 +97,7 @@ class QuoteApprovalWorkflowTest extends TestCase
             $this->assertEquals(0, $offer->biaya_additional_snapshot);
             $this->assertEquals($qualificationFee, $offer->biaya_kualifikasi_snapshot);
             $this->assertEquals(0, $offer->biaya_urgensi_snapshot);
-            $this->assertEquals(round($expectedServiceTarif * 0.05 / 100) * 100, $offer->biaya_kerusakan_snapshot);
+            $this->assertEquals(round($expectedServiceTarif * 0.05), $offer->biaya_kerusakan_snapshot);
             $this->assertEquals($adjustedTarif + $offer->biaya_urgensi_snapshot + $offer->biaya_kerusakan_snapshot, $offer->biaya_jasa_snapshot);
             $this->assertSame('ditawarkan', $offer->status);
         }
@@ -523,10 +523,11 @@ class QuoteApprovalWorkflowTest extends TestCase
         $saved = DB::table('request')->where('id_user', $user->id)->latest('id_request')->first();
         $this->assertSame($workerId, (int) $saved->id_worker_pilihan);
         $this->assertSame($workerId, (int) $saved->id_worker_estimasi);
-        // Service base Rp 100.000; worker tarif Rp 135.000 (rating 4.5 -> 13.5% = 18.200, exp 4 thn -> 8% = 10.800 => kualifikasi 29.000)
+        // Service base Rp 100.000; worker tarif Rp 135.000 (rating 4.5 -> 13.5% = 18.225, exp 4 thn -> 8% = 10.800 => kualifikasi 29.025)
+        // Harga layanan gabungan = 100.000 + 135.000 + 29.025 = 264.025
         $this->assertEquals(100000, $saved->harga_dasar_estimasi);
-        $this->assertEquals(29000, $saved->biaya_kualifikasi_estimasi);
-        $this->assertEquals(129000, $saved->harga_layanan);
+        $this->assertEquals(29025, $saved->biaya_kualifikasi_estimasi);
+        $this->assertEquals(264025, $saved->harga_layanan);
         $this->assertGreaterThan(0, $saved->biaya_urgensi_estimasi);
         $this->assertGreaterThan(0, $saved->biaya_kerusakan_estimasi);
         $this->assertEquals(

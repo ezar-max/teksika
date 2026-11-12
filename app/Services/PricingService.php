@@ -62,9 +62,9 @@ class PricingService
             $batasMax = $batasMin;
         }
 
-        $roundingStep = (int) round($num('pembulatan_harga', 100.0, 1.0, 1000.0));
+        $roundingStep = (int) round($num('pembulatan_harga', 1.0, 1.0, 1000.0));
         if (!in_array($roundingStep, self::ALLOWED_ROUNDING_STEPS, true)) {
-            $roundingStep = 100;
+            $roundingStep = 1;
         }
 
         $modeTransportasi = strtolower(trim((string) ($raw['mode_transportasi'] ?? 'satu_arah')));
@@ -151,18 +151,21 @@ class PricingService
     ): array {
         $rules = $this->getNormalizedRules();
         $serviceBase = max(0, (int) round(is_finite($baseRate) ? $baseRate : 0));
-        $qualificationBase = ($workerCustomRate !== null && is_finite($workerCustomRate) && $workerCustomRate > 0)
+        $workerBasePrice = ($workerCustomRate !== null && is_finite($workerCustomRate) && $workerCustomRate > 0)
             ? (int) round($workerCustomRate)
-            : $serviceBase;
+            : 0;
+        $qualificationBase = $workerBasePrice > 0 ? $workerBasePrice : $serviceBase;
 
         if ($rating === null) {
             return [
                 'harga_dasar' => (float) $serviceBase,
+                'harga_tukang' => (float) $workerBasePrice,
                 'basis_tukang' => (float) $qualificationBase,
                 'faktor_kualifikasi' => 1.0,
                 'biaya_kualifikasi' => 0.0,
                 'biaya_rating' => 0.0,
                 'biaya_pengalaman' => 0.0,
+                'biaya_tukang' => (float) $workerBasePrice,
                 'persen_rating' => 0.0,
                 'persen_pengalaman' => 0.0,
                 'persen_kualifikasi' => 0.0,
@@ -170,7 +173,7 @@ class PricingService
                 'skor_pengalaman' => 0.0,
                 'skor_total' => null,
                 'pengalaman_persen' => 0.0,
-                'harga_layanan' => (float) $serviceBase,
+                'harga_layanan' => (float) ($serviceBase + $workerBasePrice),
                 'biaya_additional' => 0.0,
             ];
         }
@@ -178,22 +181,17 @@ class PricingService
         $clampedRating = min(5.0, max(0.0, is_finite($rating) ? $rating : 0.0));
         $clampedExp = max(0, $experienceYears);
 
-        $ratingPct = ($clampedRating / 5.0) * $rules['persen_rating_maks'];
-        $expPct = min($clampedExp * $rules['persen_pengalaman_per_tahun'], $rules['persen_pengalaman_maks']);
-        $rawTotalPct = $ratingPct + $expPct;
-
-        $cappedTotalPct = min($rules['persen_kualifikasi_maks'], max($rules['persen_kualifikasi_min'], $rawTotalPct));
-        if ($rawTotalPct > 0 && $rawTotalPct > $rules['persen_kualifikasi_maks']) {
-            $scale = $rules['persen_kualifikasi_maks'] / $rawTotalPct;
-            $ratingPct *= $scale;
-            $expPct *= $scale;
-        }
+        $ratingPct = min($rules['persen_kualifikasi_maks'], ($clampedRating / 5.0) * $rules['persen_rating_maks']);
+        $remainingCap = max(0.0, $rules['persen_kualifikasi_maks'] - $ratingPct);
+        $expPct = min($clampedExp * $rules['persen_pengalaman_per_tahun'], $rules['persen_pengalaman_maks'], $remainingCap);
+        $cappedTotalPct = min($rules['persen_kualifikasi_maks'], max($rules['persen_kualifikasi_min'], $ratingPct + $expPct));
 
         $step = $rules['pembulatan_harga'];
         $ratingFee = $this->roundMoney($qualificationBase * ($ratingPct / 100), $step);
         $experienceFee = $this->roundMoney($qualificationBase * ($expPct / 100), $step);
         $qualificationFee = $ratingFee + $experienceFee;
-        $workerServiceTotal = $serviceBase + $qualificationFee;
+        $biayaTukang = $workerBasePrice + $qualificationFee;
+        $workerServiceTotal = $serviceBase + $biayaTukang;
 
         $faktorKualifikasi = $serviceBase > 0
             ? round($workerServiceTotal / $serviceBase, 4)
@@ -201,11 +199,13 @@ class PricingService
 
         return [
             'harga_dasar' => (float) $serviceBase,
+            'harga_tukang' => (float) $workerBasePrice,
             'basis_tukang' => (float) $qualificationBase,
             'faktor_kualifikasi' => (float) $faktorKualifikasi,
             'biaya_kualifikasi' => (float) $qualificationFee,
             'biaya_rating' => (float) $ratingFee,
             'biaya_pengalaman' => (float) $experienceFee,
+            'biaya_tukang' => (float) $biayaTukang,
             'persen_rating' => round($ratingPct, 2),
             'persen_pengalaman' => round($expPct, 2),
             'persen_kualifikasi' => round($cappedTotalPct, 2),

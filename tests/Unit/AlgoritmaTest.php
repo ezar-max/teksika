@@ -123,13 +123,15 @@ class AlgoritmaTest extends TestCase
         $this->assertSame(35.0, $example['persen_kualifikasi']);
         $this->assertSame(135000.0, $example['harga_layanan']);
 
-        // Skenario kasus bug lama: layanan Rp 1.000.000, tarif tukang Rp 2.000, rating 3, pengalaman 10 thn
-        // Penyesuaian tetap proporsional dari tarif tukang, sedangkan biaya jasa tukang minimal tarif dasar layanan (Rp 1.000.000 + Rp 580)
+        // Skenario kasus: layanan Rp 1.000.000, tarif tukang Rp 2.000, rating 3, pengalaman 10 thn
+        // Biaya tukang = 2.000 + 180 + 400 = 2.580; Harga layanan + tukang = 1.002.580
         $realistic = $pricing->adjustWorkerRate(1000000, 3, 10, 2000);
         $this->assertSame(1000000.0, $realistic['harga_dasar']);
+        $this->assertSame(2000.0, $realistic['harga_tukang']);
         $this->assertSame(180.0, $realistic['biaya_rating']);
         $this->assertSame(400.0, $realistic['biaya_pengalaman']);
-        $this->assertSame(1000580.0, $realistic['harga_layanan']);
+        $this->assertSame(2580.0, $realistic['biaya_tukang']);
+        $this->assertSame(1002580.0, $realistic['harga_layanan']);
     }
 
     public function test_worker_rate_adjustment_clamps_invalid_rating_and_experience(): void

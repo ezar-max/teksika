@@ -138,10 +138,10 @@ class PricingRuleSeeder extends Seeder
             ],
             [
                 'key' => 'pembulatan_harga',
-                'value' => '100',
+                'value' => '1',
                 'label' => 'Kelipatan Pembulatan Harga (Rp)',
                 'tipe' => 'number',
-                'keterangan' => 'Pembulatan nominal biaya (1, 100, 500, atau 1000).',
+                'keterangan' => 'Pembulatan nominal biaya (1 = presisi rupiah, 100, 500, atau 1000).',
             ],
 
         ];

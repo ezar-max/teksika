@@ -466,7 +466,7 @@
                                     <span>Estimasi total</span>
                                     <strong id="priceTotal">-</strong>
                                 </div>
-                                <p class="price-breakdown-note">Rumus: Biaya jasa tukang = Tarif dasar layanan + Penyesuaian rating + Penyesuaian pengalaman (maks {{ rtrim(rtrim(number_format((float) ($pricingRules['persen_kualifikasi_maks'] ?? 35), 2, '.', ''), '0'), '.') }}%). Subtotal jasa = Biaya jasa tukang + Tambahan urgensi + Tambahan kerusakan. Estimasi total = Subtotal jasa + Biaya transportasi. Material/suku cadang belum termasuk; harga final dikonfirmasi admin setelah pemeriksaan.</p>
+                                <p class="price-breakdown-note">Rumus: Biaya jasa tukang = Harga tukang + Penyesuaian rating + Penyesuaian pengalaman (maks {{ rtrim(rtrim(number_format((float) ($pricingRules['persen_kualifikasi_maks'] ?? 35), 2, '.', ''), '0'), '.') }}%). Subtotal jasa = Tarif dasar layanan + Biaya jasa tukang + Tambahan urgensi + Tambahan kerusakan. Estimasi total = Subtotal jasa + Biaya transportasi.</p>
                             </div>
 
                             <div class="form-group" style="margin-top: 16px;">
@@ -713,7 +713,7 @@
                 ? `Harga tukang (${estimate.worker_name})`
                 : 'Harga tukang';
             workerRateEl.textContent = estimate && estimate.worker_id
-                ? formatRupiah(estimate.basis_tukang)
+                ? (estimate.harga_tukang > 0 ? formatRupiah(estimate.harga_tukang) : 'Rp 0 (Ikut tarif layanan)')
                 : '-';
         }
         document.getElementById('priceRatingLabel').textContent = estimate && estimate.rating !== null
@@ -731,7 +731,7 @@
             : '-';
 
         document.getElementById('priceWorkerFeeLabel').textContent = estimate && estimate.worker_id
-            ? `Biaya jasa tukang (basis penyesuaian ${formatRupiah(estimate.basis_tukang)})`
+            ? `Biaya jasa tukang (Harga tukang + rating + pengalaman)`
             : 'Biaya jasa tukang';
         document.getElementById('priceWorkerFee').textContent = estimate
             ? formatRupiah(estimate.biaya_tukang)
@@ -836,7 +836,7 @@
                     if (!input || !priceEl) return;
                     const workerEstimate = workersMap[String(input.value)];
                     if (workerEstimate) {
-                        priceEl.textContent = `Tarif tukang ${formatRupiah(workerEstimate.basis_tukang)} · Biaya jasa ${formatRupiah(workerEstimate.biaya_tukang)} (+${workerEstimate.persen_kualifikasi}%)`;
+                        priceEl.textContent = `Tarif tukang ${formatRupiah(workerEstimate.harga_tukang)} · Biaya jasa tukang ${formatRupiah(workerEstimate.biaya_tukang)} (+${workerEstimate.persen_kualifikasi}%)`;
                     }
                 });
 
