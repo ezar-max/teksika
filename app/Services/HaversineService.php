@@ -23,8 +23,23 @@ class HaversineService
      * @param int $decimals Jumlah angka di belakang koma
      * @return float Jarak garis lurus dalam kilometer
      */
+    public function isValidCoordinate(float $lat, float $lon): bool
+    {
+        if (!is_finite($lat) || !is_finite($lon)) {
+            return false;
+        }
+        if ($lat < -90.0 || $lat > 90.0 || $lon < -180.0 || $lon > 180.0) {
+            return false;
+        }
+
+        return !($lat === 0.0 && $lon === 0.0);
+    }
+
     public function calculateDistance(float $lat1, float $lon1, float $lat2, float $lon2, int $decimals = 2): float
     {
+        if (!$this->isValidCoordinate($lat1, $lon1) || !$this->isValidCoordinate($lat2, $lon2)) {
+            return 0.0;
+        }
         $dLat = deg2rad($lat2 - $lat1);
         $dLon = deg2rad($lon2 - $lon1);
 
@@ -50,6 +65,10 @@ class HaversineService
         float $lon2,
         float $speedKmh = 30
     ): ?array {
+        if (!$this->isValidCoordinate($lat1, $lon1) || !$this->isValidCoordinate($lat2, $lon2)) {
+            return null;
+        }
+
         $cacheKey = sprintf('osrm_route_%.5f_%.5f_to_%.5f_%.5f', $lat1, $lon1, $lat2, $lon2);
         $cachedRoute = Cache::get($cacheKey);
         if ($cachedRoute !== null) {

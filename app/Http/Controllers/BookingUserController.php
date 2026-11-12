@@ -55,9 +55,7 @@ class BookingUserController extends Controller
             }
 
             $routeDistanceKm = (float) $route['distance_km'];
-            $transportFee = $routeDistanceKm > $freeDistanceKm
-                ? round(($routeDistanceKm - $freeDistanceKm) * $pricePerKm)
-                : 0;
+            $transportFee = $pricingService->calculateTransportFee($routeDistanceKm);
             $routeFields = [
                 'jarak_km' => $routeDistanceKm,
                 'durasi_perjalanan_menit' => $route['duration_minutes'],
@@ -77,9 +75,7 @@ class BookingUserController extends Controller
                 foreach ($booking->offers->where('status', 'ditawarkan') as $offer) {
                     $previousTransportFee = (float) $offer->biaya_transportasi;
                     $previousTotal = (float) $offer->total_estimasi;
-                    $offerTransportFee = $routeDistanceKm > $freeDistanceKm
-                        ? round(($routeDistanceKm - $freeDistanceKm) * $pricePerKm)
-                        : 0;
+                    $offerTransportFee = $pricingService->calculateTransportFee($routeDistanceKm);
                     DB::table('worker_offers')->where('id', $offer->id)->update([
                         'jarak_km' => $routeDistanceKm,
                         'biaya_transportasi' => $offerTransportFee,

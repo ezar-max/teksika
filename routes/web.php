@@ -83,6 +83,7 @@ Route::middleware(['customer.auth'])->group(function () {
     Route::post('/request/alamat', [App\Http\Controllers\User\ServiceRequestController::class, 'reverseAddress'])->middleware('throttle:10,1')->name('user.request.alamat');
     Route::post('/request/lokasi-alamat', [App\Http\Controllers\User\ServiceRequestController::class, 'locateAddress'])->middleware('throttle:10,1')->name('user.request.lokasi-alamat');
     Route::post('/request/hitung', [App\Http\Controllers\User\ServiceRequestController::class, 'hitung'])->name('user.request.hitung');
+    Route::post('/request/estimasi', [App\Http\Controllers\User\ServiceRequestController::class, 'estimate'])->name('user.request.estimate');
     Route::post('/request', [App\Http\Controllers\User\ServiceRequestController::class, 'store'])->name('user.request.store');
     Route::post('/request-store', [App\Http\Controllers\User\ServiceRequestController::class, 'store'])->name('request.store');
 

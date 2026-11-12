@@ -56,8 +56,12 @@ class PricingTransparencyTest extends TestCase
             ->get(route('request'))
             ->assertOk()
             ->assertSee('Transparansi Estimasi Biaya')
-            ->assertSee('tarif dasar')
-            ->assertSee('rating × 0,25')
+            ->assertSee('Tarif dasar layanan')
+            ->assertSee('Penyesuaian rating tukang')
+            ->assertSee('Penyesuaian pengalaman tukang')
+            ->assertSee('Biaya jasa tukang')
+            ->assertSee('Jarak lokasi ke tukang')
+            ->assertSee('Tarif transportasi per km')
             ->assertDontSee('Biaya poin')
             ->assertDontSee('Estimasi pengerjaan')
             ->assertSee('Tingkat Kerusakan')
@@ -212,6 +216,105 @@ class PricingTransparencyTest extends TestCase
             ->assertSee('data-biaya-kerusakan="10000.00"', false)
             ->assertDontSee('Biaya poin', false)
             ->assertSee('Transparansi harga');
+    }
+
+    public function test_estimate_endpoint_matches_stored_request_and_reflects_admin_rule_changes(): void
+    {
+        Http::fake([
+            'router.project-osrm.org/*' => Http::response([
+                'code' => 'Ok',
+                'routes' => [[
+                    'distance' => 9000,
+                    'duration' => 900,
+                    'geometry' => ['coordinates' => [[106.9401, -6.4239], [106.9500, -6.4200]]],
+                ]],
+            ]),
+        ]);
+
+        $user = User::create([
+            'name' => 'Consistency Customer',
+            'email' => uniqid('consistency-', true) . '@example.test',
+            'password' => Hash::make('password'),
+            'role' => 'customer',
+        ]);
+
+        DB::table('services')->insert([
+            'nama' => 'AC Konsistensi',
+            'deskripsi' => 'Uji konsistensi backend & frontend',
+            'harga_min' => 1000000,
+            'harga_max' => 1500000,
+            'durasi_dasar_menit' => 60,
+            'status' => 'aktif',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $workerId = DB::table('workers')->insertGetId([
+            'name' => 'Teknisi Konsisten',
+            'role' => 'Teknisi AC',
+            'alamat' => 'Gunung Putri',
+            'phone' => '08111111111',
+            'skills' => 'AC Konsistensi',
+            'tarif' => 200000,
+            'pengalaman' => 10,
+            'rating' => 3.0,
+            'status' => 'aktif',
+            'status_ketersediaan' => 'siap',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $estimateResponse = $this->actingAs($user, 'web')
+            ->postJson(route('user.request.estimate'), [
+                'layanan' => 'AC Konsistensi',
+                'id_worker_pilihan' => $workerId,
+                'urgensi' => 'sedang',
+                'tingkat_kerusakan' => 'berat',
+                'distance_km' => 9.0,
+            ]);
+
+        $estimateResponse->assertOk()->assertJsonPath('success', true);
+        $estimate = $estimateResponse->json('estimate');
+
+        // Rating 3.0 -> 9% * 200.000 = 18.000; Pengalaman 10 thn -> 20% * 200.000 = 40.000
+        // Biaya tukang = 1.000.000 + 18.000 + 40.000 = 1.058.000
+        // Urgensi sedang (+20% * 1.000.000 = 200.000), Kerusakan berat (+10% * 1.000.000 = 100.000)
+        // Subtotal jasa = 1.358.000, Transportasi = (9 - 5) * 2.500 = 10.000, Total = 1.368.000
+        $this->assertEquals(1000000, $estimate['tarif_dasar_layanan']);
+        $this->assertEquals(18000, $estimate['biaya_rating']);
+        $this->assertEquals(40000, $estimate['biaya_pengalaman']);
+        $this->assertEquals(1058000, $estimate['biaya_tukang']);
+        $this->assertEquals(200000, $estimate['biaya_urgensi']);
+        $this->assertEquals(100000, $estimate['biaya_kerusakan']);
+        $this->assertEquals(1358000, $estimate['subtotal_jasa']);
+        $this->assertEquals(10000, $estimate['biaya_transportasi']);
+        $this->assertEquals(1368000, $estimate['estimasi_total']);
+
+        Storage::fake('public');
+        $this->actingAs($user, 'web')
+            ->post(route('user.request.store'), [
+                'layanan' => 'AC Konsistensi',
+                'id_worker_pilihan' => $workerId,
+                'lokasi' => 'Jalan Konsisten, Gunung Putri',
+                'latitude' => -6.4200,
+                'longitude' => 106.9500,
+                'urgensi' => 'sedang',
+                'tingkat_kerusakan' => 'berat',
+                'detail' => 'Tes konsistensi penuh.',
+                'metode_pembayaran' => 'COD',
+                'foto' => [$this->fakeDamagePhoto()],
+            ])
+            ->assertRedirect(route('bookinguser'));
+
+        $saved = DB::table('request')->where('id_user', $user->id)->latest('id_request')->first();
+        $this->assertEquals($estimate['tarif_dasar_layanan'], (float) $saved->harga_dasar_estimasi);
+        $this->assertEquals($estimate['biaya_rating'], (float) $saved->biaya_rating_estimasi);
+        $this->assertEquals($estimate['biaya_pengalaman'], (float) $saved->biaya_pengalaman_estimasi);
+        $this->assertEquals($estimate['biaya_tukang'], (float) $saved->harga_layanan);
+        $this->assertEquals($estimate['biaya_urgensi'], (float) $saved->biaya_urgensi_estimasi);
+        $this->assertEquals($estimate['biaya_kerusakan'], (float) $saved->biaya_kerusakan_estimasi);
+        $this->assertEquals($estimate['biaya_transportasi'], (float) $saved->biaya_jarak);
+        $this->assertEquals($estimate['estimasi_total'], (float) $saved->estimasi_total);
     }
 
     private function fakeDamagePhoto(): UploadedFile

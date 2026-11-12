@@ -78,6 +78,71 @@ class PricingRuleSeeder extends Seeder
                 'tipe' => 'number',
                 'keterangan' => 'Tambahan harga 10% untuk kerusakan berat.',
             ],
+            // Penyesuaian Rating & Pengalaman Tukang
+            [
+                'key' => 'persen_rating_maks',
+                'value' => '15.00',
+                'label' => 'Penyesuaian Rating Maksimal (%)',
+                'tipe' => 'percent',
+                'keterangan' => 'Persentase tambahan maksimal untuk tukang dengan rating 5.0.',
+            ],
+            [
+                'key' => 'persen_pengalaman_per_tahun',
+                'value' => '2.00',
+                'label' => 'Penyesuaian Pengalaman per Tahun (%)',
+                'tipe' => 'percent',
+                'keterangan' => 'Persentase tambahan untuk setiap tahun pengalaman tukang.',
+            ],
+            [
+                'key' => 'persen_pengalaman_maks',
+                'value' => '20.00',
+                'label' => 'Batas Penyesuaian Pengalaman Maksimal (%)',
+                'tipe' => 'percent',
+                'keterangan' => 'Batas maksimal persentase tambahan dari pengalaman kerja.',
+            ],
+            [
+                'key' => 'persen_kualifikasi_min',
+                'value' => '0.00',
+                'label' => 'Batas Minimum Penyesuaian Kualifikasi (%)',
+                'tipe' => 'percent',
+                'keterangan' => 'Persentase minimum gabungan penyesuaian rating dan pengalaman.',
+            ],
+            [
+                'key' => 'persen_kualifikasi_maks',
+                'value' => '35.00',
+                'label' => 'Batas Maksimum Penyesuaian Kualifikasi (%)',
+                'tipe' => 'percent',
+                'keterangan' => 'Persentase maksimal gabungan penyesuaian rating dan pengalaman agar harga tetap wajar.',
+            ],
+            // Transportasi, Batas Harga & Pembulatan
+            [
+                'key' => 'mode_transportasi',
+                'value' => 'satu_arah',
+                'label' => 'Mode Jarak Transportasi',
+                'tipe' => 'text',
+                'keterangan' => 'Gunakan satu_arah (1x jarak) atau pulang_pergi (2x jarak).',
+            ],
+            [
+                'key' => 'batas_harga_jasa_min',
+                'value' => '0',
+                'label' => 'Batas Minimum Harga Jasa (Rp)',
+                'tipe' => 'number',
+                'keterangan' => 'Batas bawah subtotal jasa (0 berarti tidak dibatasi).',
+            ],
+            [
+                'key' => 'batas_harga_jasa_max',
+                'value' => '0',
+                'label' => 'Batas Maksimum Harga Jasa (Rp)',
+                'tipe' => 'number',
+                'keterangan' => 'Batas atas subtotal jasa (0 berarti tidak dibatasi).',
+            ],
+            [
+                'key' => 'pembulatan_harga',
+                'value' => '100',
+                'label' => 'Kelipatan Pembulatan Harga (Rp)',
+                'tipe' => 'number',
+                'keterangan' => 'Pembulatan nominal biaya (1, 100, 500, atau 1000).',
+            ],
 
         ];
 

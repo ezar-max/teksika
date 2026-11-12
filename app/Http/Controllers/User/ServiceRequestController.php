@@ -65,7 +65,7 @@ class ServiceRequestController extends Controller
         }
 
         $user = Auth::user();
-        $pricingRules = $pricingService->getRules();
+        $pricingRules = $pricingService->getNormalizedRules();
 
         return view('user.request', compact('services', 'selected', 'user', 'workers', 'pricingRules'));
     }
@@ -178,6 +178,155 @@ class ServiceRequestController extends Controller
     }
 
     /**
+     * Endpoint AJAX tunggal untuk menghitung estimasi biaya resmi dari backend.
+     */
+    public function estimate(Request $request, PricingService $pricingService)
+    {
+        $validated = $request->validate([
+            'layanan' => 'required|string|max:100',
+            'id_worker_pilihan' => 'nullable|integer|exists:workers,id',
+            'urgensi' => 'nullable|in:rendah,sedang,tinggi',
+            'tingkat_kerusakan' => 'nullable|in:ringan,sedang,berat',
+            'distance_km' => 'nullable|numeric|min:0|max:500',
+        ]);
+
+        $service = DB::table('services')->where('nama', $validated['layanan'])->where('status', 'aktif')->first();
+        if (!$service) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Layanan tidak ditemukan atau tidak aktif.',
+            ], 422);
+        }
+
+        $urgensi = $validated['urgensi'] ?? 'rendah';
+        $tingkatKerusakan = $validated['tingkat_kerusakan'] ?? 'ringan';
+        $distanceKm = isset($validated['distance_km']) ? (float) $validated['distance_km'] : null;
+
+        $reviewStats = DB::table('worker_reviews')
+            ->select('id_worker', DB::raw('COUNT(*) as review_count'), DB::raw('AVG(rating) as review_average'))
+            ->groupBy('id_worker');
+
+        $workers = DB::table('workers')
+            ->leftJoinSub($reviewStats, 'review_stats', function ($join) {
+                $join->on('workers.id', '=', 'review_stats.id_worker');
+            })
+            ->where('workers.status', 'aktif')
+            ->whereNotIn('workers.status_ketersediaan', ['tidak_tersedia', 'libur'])
+            ->select('workers.*', DB::raw('COALESCE(review_stats.review_count, 0) as review_count'), 'review_stats.review_average')
+            ->get();
+
+        $workerBreakdowns = [];
+        $matchingCandidates = [];
+        $serviceNeedle = strtolower(trim($service->nama));
+
+        foreach ($workers as $worker) {
+            $skills = array_map('strtolower', array_map('trim', explode(',', $worker->skills ?? '')));
+            if (!in_array($serviceNeedle, $skills, true)) {
+                continue;
+            }
+
+            $hasActiveJob = DB::table('request')
+                ->where('id_worker', $worker->id)
+                ->whereIn('status', ['dikonfirmasi', 'dikerjakan'])
+                ->exists();
+            if ($hasActiveJob || ($worker->status_ketersediaan ?? 'siap') === 'sedang_bekerja') {
+                continue;
+            }
+
+            $rating = (int) $worker->review_count > 0
+                ? (float) $worker->review_average
+                : (float) ($worker->rating ?? 5);
+
+            $full = $pricingService->calculateFullEstimate(
+                serviceBaseRate: (float) $service->harga_min,
+                workerRating: $rating,
+                workerExperienceYears: (int) ($worker->pengalaman ?? 0),
+                workerCustomRate: isset($worker->tarif) && is_numeric($worker->tarif) ? (float) $worker->tarif : null,
+                durasiDasarMenit: (int) ($service->durasi_dasar_menit ?? 60),
+                kompleksitas: 'sedang',
+                urgensi: $urgensi,
+                tingkatKerusakan: $tingkatKerusakan,
+                routeDistanceKm: $distanceKm
+            );
+
+            $payload = $this->formatEstimatePayload($full, $worker, $distanceKm !== null);
+            $workerBreakdowns[(string) $worker->id] = $payload;
+            $matchingCandidates[] = $payload;
+        }
+
+        usort($matchingCandidates, fn ($a, $b) => $a['estimasi_total'] <=> $b['estimasi_total']);
+
+        $selectedEstimate = null;
+        if (!empty($validated['id_worker_pilihan'])) {
+            $chosenId = (string) $validated['id_worker_pilihan'];
+            if (isset($workerBreakdowns[$chosenId])) {
+                $selectedEstimate = $workerBreakdowns[$chosenId];
+            }
+        }
+
+        if ($selectedEstimate === null && !empty($matchingCandidates)) {
+            $selectedEstimate = $matchingCandidates[0];
+        }
+
+        if ($selectedEstimate === null) {
+            $fallback = $pricingService->calculateFullEstimate(
+                serviceBaseRate: (float) $service->harga_min,
+                workerRating: null,
+                workerExperienceYears: 0,
+                workerCustomRate: null,
+                durasiDasarMenit: (int) ($service->durasi_dasar_menit ?? 60),
+                kompleksitas: 'sedang',
+                urgensi: $urgensi,
+                tingkatKerusakan: $tingkatKerusakan,
+                routeDistanceKm: $distanceKm
+            );
+            $selectedEstimate = $this->formatEstimatePayload($fallback, null, $distanceKm !== null);
+        }
+
+        return response()->json([
+            'success' => true,
+            'workers' => $workerBreakdowns,
+            'estimate' => $selectedEstimate,
+            'rules' => $pricingService->getNormalizedRules(),
+        ]);
+    }
+
+    private function formatEstimatePayload(array $full, ?object $worker, bool $hasDistance): array
+    {
+        $wr = $full['worker_rate'];
+        $p = $full['pricing'];
+
+        return [
+            'worker_id' => $worker?->id,
+            'worker_name' => $worker?->name,
+            'rating' => $worker ? round((int) ($worker->review_count ?? 0) > 0 ? (float) $worker->review_average : (float) ($worker->rating ?? 5), 2) : null,
+            'pengalaman' => $worker ? (int) ($worker->pengalaman ?? 0) : 0,
+            'tarif_dasar_layanan' => $wr['harga_dasar'],
+            'basis_tukang' => $wr['basis_tukang'],
+            'persen_rating' => $wr['persen_rating'],
+            'biaya_rating' => $wr['biaya_rating'],
+            'persen_pengalaman' => $wr['persen_pengalaman'],
+            'biaya_pengalaman' => $wr['biaya_pengalaman'],
+            'persen_kualifikasi' => $wr['persen_kualifikasi'],
+            'biaya_kualifikasi' => $wr['biaya_kualifikasi'],
+            'biaya_tukang' => $wr['harga_layanan'],
+            'persen_urgensi' => $p['persen_urgensi'],
+            'biaya_urgensi' => $p['biaya_urgensi'],
+            'persen_kerusakan' => $p['persen_kerusakan'],
+            'biaya_kerusakan' => $p['biaya_kerusakan'],
+            'subtotal_jasa' => $p['subtotal_jasa'],
+            'jarak_km' => $hasDistance ? $p['jarak_km'] : null,
+            'jarak_gratis_km' => $p['jarak_gratis_km'],
+            'jarak_ditagih_km' => $hasDistance ? $p['jarak_ditagih_km'] : null,
+            'tarif_per_km' => $p['tarif_per_km'],
+            'mode_transportasi' => $p['mode_transportasi'],
+            'biaya_transportasi' => $hasDistance ? $p['biaya_transportasi'] : null,
+            'pembulatan_harga' => $p['pembulatan_harga'],
+            'estimasi_total' => $hasDistance ? $p['estimasi_total'] : null,
+        ];
+    }
+
+    /**
      * Simpan Permintaan Layanan (Request)
      */
     public function store(Request $request, PricingService $pricingService)
@@ -269,9 +418,10 @@ class ServiceRequestController extends Controller
             usort($workerCandidates, function ($left, $right) use ($service, $pricingService) {
                 $leftRating = $left->review_count > 0 ? (float) $left->review_average : (float) ($left->rating ?? 5);
                 $rightRating = $right->review_count > 0 ? (float) $right->review_average : (float) ($right->rating ?? 5);
-                $serviceRate = (float) ($worker->tarif ?? $service->harga_min);
-                $leftRate = $pricingService->adjustWorkerRate($serviceRate, $leftRating, (int) ($left->pengalaman ?? 0));
-                $rightRate = $pricingService->adjustWorkerRate($serviceRate, $rightRating, (int) ($right->pengalaman ?? 0));
+                $leftCustomRate = isset($left->tarif) && is_numeric($left->tarif) ? (float) $left->tarif : null;
+                $rightCustomRate = isset($right->tarif) && is_numeric($right->tarif) ? (float) $right->tarif : null;
+                $leftRate = $pricingService->adjustWorkerRate((float) $service->harga_min, $leftRating, (int) ($left->pengalaman ?? 0), $leftCustomRate);
+                $rightRate = $pricingService->adjustWorkerRate((float) $service->harga_min, $rightRating, (int) ($right->pengalaman ?? 0), $rightCustomRate);
                 $leftPrice = $leftRate['harga_layanan'];
                 $rightPrice = $rightRate['harga_layanan'];
 
@@ -299,27 +449,23 @@ class ServiceRequestController extends Controller
             return back()->withInput()->with('error', 'Rute jalan tidak dapat dihitung saat ini. Permintaan belum disimpan. Silakan coba kembali.');
         }
 
-        $hargaDasar = $estimateWorker
-            ? (float) ($estimateWorker->tarif ?? $service->harga_min)
-            : (float) $service->harga_min;
-        $workerRate = $pricingService->adjustWorkerRate(
-            $hargaDasar,
-            $estimateWorker ? $estimateWorkerRating : null,
-            (int) ($estimateWorker->pengalaman ?? 0)
-        );
-        $hargaAwal = $workerRate['harga_layanan'];
-        $pricing = $pricingService->calculate(
-            hargaMin: $hargaAwal,
-            hargaMax: $hargaAwal,
+        $fullEstimate = $pricingService->calculateFullEstimate(
+            serviceBaseRate: (float) $service->harga_min,
+            workerRating: $estimateWorker ? $estimateWorkerRating : null,
+            workerExperienceYears: (int) ($estimateWorker->pengalaman ?? 0),
+            workerCustomRate: $estimateWorker && isset($estimateWorker->tarif) && is_numeric($estimateWorker->tarif)
+                ? (float) $estimateWorker->tarif
+                : null,
             durasiDasarMenit: (int) ($service->durasi_dasar_menit ?? 60),
             kompleksitas: 'sedang',
             urgensi: $validated['urgensi'],
-            routeDistanceKm: $route['distance_km'],
-            routeDurationMinutes: $route['duration_minutes'],
             tingkatKerusakan: $validated['tingkat_kerusakan'],
-            biayaAdditional: $workerRate['biaya_additional'],
-            tarifDasarPerhitungan: $workerRate['harga_dasar']
+            routeDistanceKm: $route['distance_km'],
+            routeDurationMinutes: $route['duration_minutes']
         );
+        $workerRate = $fullEstimate['worker_rate'];
+        $pricing = $fullEstimate['pricing'];
+        $hargaAwal = $workerRate['harga_layanan'];
         $biayaUrgensi = $pricing['biaya_urgensi'];
         $biayaKerusakan = $pricing['biaya_kerusakan'];
 

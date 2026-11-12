@@ -37,7 +37,9 @@ class PricingRuleAdminTest extends TestCase
             ->assertSee('Radius Jangkauan Maksimal')
             ->assertSee('Tarif Tambahan Per KM')
             ->assertSee('Tarif Rating &amp; Pengalaman Tukang', false)
-            ->assertSee('Setiap tahun pengalaman bernilai 0,25')
+            ->assertSee('Penyesuaian Rating Maksimal (%)')
+            ->assertSee('Mode Jarak Transportasi')
+            ->assertSee('Kelipatan Pembulatan Harga')
             ->assertDontSee('Biaya Poin')
             ->assertDontSee('Pengali Durasi')
             ->assertDontSee('Estimasi Kecepatan Tempuh')
@@ -58,6 +60,15 @@ class PricingRuleAdminTest extends TestCase
             'jarak_gratis_km' => '6.5',
             'tarif_per_km' => '3500',
             'radius_maksimal_km' => '20.0',
+            'mode_transportasi' => 'pulang_pergi',
+            'persen_rating_maks' => '12',
+            'persen_pengalaman_per_tahun' => '1.5',
+            'persen_pengalaman_maks' => '15',
+            'persen_kualifikasi_min' => '0',
+            'persen_kualifikasi_maks' => '25',
+            'batas_harga_jasa_min' => '50000',
+            'batas_harga_jasa_max' => '1000000',
+            'pembulatan_harga' => '500',
             'faktor_urgensi_rendah' => '1.00',
             'faktor_urgensi_sedang' => '1.25',
             'faktor_urgensi_tinggi' => '1.50',

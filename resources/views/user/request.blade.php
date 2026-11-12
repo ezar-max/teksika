@@ -417,21 +417,25 @@
 
                             <div class="price-breakdown" id="priceBreakdown" aria-live="polite">
                                 <h3><i class="fa-solid fa-receipt"></i> Transparansi Estimasi Biaya</h3>
-                                <p class="price-breakdown-worker" id="priceBreakdownWorker">Pilih layanan untuk melihat estimasi tarif layanan dan skor teknisi.</p>
+                                <p class="price-breakdown-worker" id="priceBreakdownWorker">Pilih layanan untuk melihat estimasi tarif layanan dan penyesuaian teknisi dari server.</p>
                                 <div class="price-breakdown-row">
-                                    <span id="priceBaseLabel">Tarif layanan</span>
+                                    <span id="priceBaseLabel">Tarif dasar layanan</span>
                                     <strong id="priceBase">-</strong>
                                 </div>
                                 <div class="price-breakdown-row">
-                                    <span id="priceRatingLabel">Penyesuaian rating</span>
+                                    <span id="priceWorkerRateLabel">Harga tukang</span>
+                                    <strong id="priceWorkerRate">-</strong>
+                                </div>
+                                <div class="price-breakdown-row">
+                                    <span id="priceRatingLabel">Penyesuaian rating tukang</span>
                                     <strong id="priceRating">-</strong>
                                 </div>
                                 <div class="price-breakdown-row">
-                                    <span id="priceExperienceLabel">Penyesuaian pengalaman</span>
+                                    <span id="priceExperienceLabel">Penyesuaian pengalaman tukang</span>
                                     <strong id="priceExperience">-</strong>
                                 </div>
                                 <div class="price-breakdown-row">
-                                    <span id="priceWorkerFeeLabel">Biaya tukang</span>
+                                    <span id="priceWorkerFeeLabel">Biaya jasa tukang</span>
                                     <strong id="priceWorkerFee">-</strong>
                                 </div>
                                 <div class="price-breakdown-row">
@@ -447,14 +451,22 @@
                                     <strong id="priceLaborTotal">-</strong>
                                 </div>
                                 <div class="price-breakdown-row">
+                                    <span>Jarak lokasi ke tukang</span>
+                                    <strong id="priceDistance">-</strong>
+                                </div>
+                                <div class="price-breakdown-row">
+                                    <span>Tarif transportasi per km</span>
+                                    <strong id="priceTransportRate">-</strong>
+                                </div>
+                                <div class="price-breakdown-row">
                                     <span>Biaya transportasi</span>
-                                    <strong id="priceTransport">Menghitung jarak...</strong>
+                                    <strong id="priceTransport">Menunggu jarak...</strong>
                                 </div>
                                 <div class="price-breakdown-row price-breakdown-total">
                                     <span>Estimasi total</span>
                                     <strong id="priceTotal">-</strong>
                                 </div>
-                                <p class="price-breakdown-note">Tarif tukang dihitung dari rating dan pengalaman: (rating × 0,25 + tahun pengalaman × 0,25) × tarif dasar. Material/suku cadang belum termasuk; harga final dikonfirmasi admin setelah pemeriksaan.</p>
+                                <p class="price-breakdown-note">Rumus: Biaya jasa tukang = Tarif dasar layanan + Penyesuaian rating + Penyesuaian pengalaman (maks {{ rtrim(rtrim(number_format((float) ($pricingRules['persen_kualifikasi_maks'] ?? 35), 2, '.', ''), '0'), '.') }}%). Subtotal jasa = Biaya jasa tukang + Tambahan urgensi + Tambahan kerusakan. Estimasi total = Subtotal jasa + Biaya transportasi. Material/suku cadang belum termasuk; harga final dikonfirmasi admin setelah pemeriksaan.</p>
                             </div>
 
                             <div class="form-group" style="margin-top: 16px;">
@@ -666,179 +678,173 @@
         updatePricingBreakdown();
     }
 
-    const pricingRules = @json($pricingRules);
+    const estimateEndpoint = @json(route('user.request.estimate'));
+    const csrfToken = @json(csrf_token());
     const rupiahFormatter = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 });
+    let estimateDebounce = null;
+    let estimateSequence = 0;
 
     function formatRupiah(amount) {
-        return `Rp ${rupiahFormatter.format(Math.round(amount))}`;
+        return `Rp ${rupiahFormatter.format(Math.round(Number(amount) || 0))}`;
     }
 
-    function calculateWorkerEstimate(workerCard, serviceBasePrice) {
-        const configuredWorkerRate = workerCard?.dataset?.tarif;
-        const workerBaseRate = configuredWorkerRate === undefined || configuredWorkerRate === ''
-            ? serviceBasePrice
-            : Number(configuredWorkerRate);
-        if (!Number.isFinite(workerBaseRate) || workerBaseRate < 0) return null;
+    function renderEstimateBreakdown(estimate, hasSelectedService) {
+        const workerDescEl = document.getElementById('priceBreakdownWorker');
+        if (workerDescEl) {
+            if (!hasSelectedService || !estimate) {
+                workerDescEl.textContent = 'Pilih kategori layanan di atas untuk melihat rincian estimasi tarif.';
+            } else if (estimate.worker_id) {
+                workerDescEl.textContent = `Estimasi dihitung backend menggunakan tarif dasar layanan & kualifikasi ${estimate.worker_name}.`;
+            } else {
+                workerDescEl.textContent = 'Belum ada mitra siap bekerja untuk kategori ini. Estimasi memakai tarif dasar layanan.';
+            }
+        }
 
-        const rating = workerCard?.dataset?.rating === ''
-            ? null
-            : Math.min(5, Math.max(0, Number(workerCard?.dataset?.rating || 0)));
-        const experience = Math.max(0, Number(workerCard?.dataset?.experience || 0));
-        const ratingFee = rating === null ? 0 : Math.round(workerBaseRate * rating * 0.25);
-        const experienceFee = Math.round(workerBaseRate * experience * 0.25);
-        const adjustedRate = rating === null
-            ? Math.round(workerBaseRate)
-            : ratingFee + experienceFee;
+        const priceBaseLabel = document.getElementById('priceBaseLabel');
+        if (priceBaseLabel) {
+            priceBaseLabel.textContent = 'Tarif dasar layanan';
+        }
 
-        const urgency = document.querySelector('input[name="urgensi"]:checked')?.value || 'rendah';
-        const damage = document.querySelector('input[name="tingkat_kerusakan"]:checked')?.value || 'ringan';
-        const urgencyFactor = Number(pricingRules[`faktor_urgensi_${urgency}`] || (urgency === 'tinggi' ? 1.40 : (urgency === 'sedang' ? 1.20 : 1.00)));
-        const damageFactor = Number(pricingRules[`faktor_kerusakan_${damage}`] || (damage === 'berat' ? 1.10 : (damage === 'sedang' ? 1.05 : 1.00)));
+        document.getElementById('priceBase').textContent = estimate ? formatRupiah(estimate.tarif_dasar_layanan) : '-';
+        const workerRateLabelEl = document.getElementById('priceWorkerRateLabel');
+        const workerRateEl = document.getElementById('priceWorkerRate');
+        if (workerRateLabelEl && workerRateEl) {
+            workerRateLabelEl.textContent = estimate && estimate.worker_id
+                ? `Harga tukang (${estimate.worker_name})`
+                : 'Harga tukang';
+            workerRateEl.textContent = estimate && estimate.worker_id
+                ? formatRupiah(estimate.basis_tukang)
+                : '-';
+        }
+        document.getElementById('priceRatingLabel').textContent = estimate && estimate.rating !== null
+            ? `Penyesuaian rating tukang (${estimate.rating} ★ → +${estimate.persen_rating}%)`
+            : 'Penyesuaian rating tukang';
+        document.getElementById('priceRating').textContent = estimate
+            ? `+ ${formatRupiah(estimate.biaya_rating)}`
+            : '-';
 
-        const urgencyFee = Math.round(workerBaseRate * (urgencyFactor - 1));
-        const damageFee = Math.round(workerBaseRate * (damageFactor - 1));
-        const laborTotal = adjustedRate + urgencyFee + damageFee;
+        document.getElementById('priceExperienceLabel').textContent = estimate && estimate.worker_id
+            ? `Penyesuaian pengalaman tukang (${estimate.pengalaman} thn → +${estimate.persen_pengalaman}%)`
+            : 'Penyesuaian pengalaman tukang';
+        document.getElementById('priceExperience').textContent = estimate
+            ? `+ ${formatRupiah(estimate.biaya_pengalaman)}`
+            : '-';
 
-        const distance = typeof window.currentRouteDistanceKm === 'number' && !window.currentRouteUnavailable
-            ? window.currentRouteDistanceKm
-            : null;
-        const jarakGratisKm = Number(pricingRules.jarak_gratis_km || 5);
-        const tarifPerKm = Number(pricingRules.tarif_per_km || 2500);
-        const transportFee = distance !== null && distance > jarakGratisKm
-            ? Math.round((distance - jarakGratisKm) * tarifPerKm)
-            : (distance === null ? null : 0);
+        document.getElementById('priceWorkerFeeLabel').textContent = estimate && estimate.worker_id
+            ? `Biaya jasa tukang (basis penyesuaian ${formatRupiah(estimate.basis_tukang)})`
+            : 'Biaya jasa tukang';
+        document.getElementById('priceWorkerFee').textContent = estimate
+            ? formatRupiah(estimate.biaya_tukang)
+            : '-';
 
-        return {
-            baseRate: Math.round(workerBaseRate),
-            rating: rating,
-            ratingScore: rating === null ? null : rating * 0.25,
-            experience: experience,
-            ratingFee: ratingFee,
-            experienceFee: experienceFee,
-            experienceScore: experience * 0.25,
-            adjustedRate: adjustedRate,
-            workerScore: rating === null ? null : (rating * 0.25) + (experience * 0.25),
-            urgency: urgency,
-            urgencyFactor: urgencyFactor,
-            urgencyFee: urgencyFee,
-            damage: damage,
-            damageFactor: damageFactor,
-            damageFee: damageFee,
-            laborTotal: laborTotal,
-            distance: distance,
-            jarakGratisKm: jarakGratisKm,
-            transportFee: transportFee,
-            total: transportFee === null ? null : laborTotal + transportFee
-        };
+        document.getElementById('priceUrgencyLabel').textContent = estimate
+            ? `Tambahan urgensi (+${estimate.persen_urgensi}%)`
+            : 'Tambahan urgensi';
+        document.getElementById('priceUrgency').textContent = estimate
+            ? `+ ${formatRupiah(estimate.biaya_urgensi)}`
+            : '-';
+
+        document.getElementById('priceDamageLabel').textContent = estimate
+            ? `Tambahan tingkat kerusakan (+${estimate.persen_kerusakan}%)`
+            : 'Tambahan tingkat kerusakan';
+        document.getElementById('priceDamage').textContent = estimate
+            ? `+ ${formatRupiah(estimate.biaya_kerusakan)}`
+            : '-';
+
+        document.getElementById('priceLaborTotal').textContent = estimate
+            ? formatRupiah(estimate.subtotal_jasa)
+            : '-';
+
+        const distanceEl = document.getElementById('priceDistance');
+        if (distanceEl) {
+            distanceEl.textContent = estimate && estimate.jarak_km !== null
+                ? `${estimate.jarak_km} km (${estimate.mode_transportasi === 'pulang_pergi' ? 'Pulang-pergi' : 'Satu arah'})`
+                : 'Menunggu rute berkendara...';
+        }
+
+        const transportRateEl = document.getElementById('priceTransportRate');
+        if (transportRateEl) {
+            transportRateEl.textContent = estimate
+                ? `${formatRupiah(estimate.tarif_per_km)} / km (gratis ≤ ${estimate.jarak_gratis_km} km)`
+                : '-';
+        }
+
+        const priceTransportEl = document.getElementById('priceTransport');
+        if (priceTransportEl) {
+            if (!estimate || estimate.biaya_transportasi === null) {
+                priceTransportEl.textContent = 'Menunggu rute berkendara...';
+            } else {
+                priceTransportEl.textContent = estimate.biaya_transportasi > 0
+                    ? `${formatRupiah(estimate.biaya_transportasi)} (${estimate.jarak_ditagih_km} km ditagihkan)`
+                    : `Rp 0 (Bebas biaya ≤ ${estimate.jarak_gratis_km} km)`;
+            }
+        }
+
+        document.getElementById('priceTotal').textContent = !estimate || estimate.estimasi_total === null
+            ? 'Menunggu rute berkendara...'
+            : formatRupiah(estimate.estimasi_total);
     }
 
     function updatePricingBreakdown() {
         const breakdown = document.getElementById('priceBreakdown');
         if (!breakdown) return;
 
-        const selectedWorker = document.querySelector('.worker-choice-card input[name="id_worker_pilihan"]:checked');
         const serviceInput = document.getElementById('layananInput');
         const selectedOption = serviceInput && serviceInput.tagName === 'SELECT'
             ? serviceInput.selectedOptions[0]
             : document.getElementById('id_service');
         const serviceName = serviceInput && serviceInput.value ? serviceInput.value : (selectedOption?.dataset?.serviceName || '');
-        const serviceBasePrice = selectedOption ? Number(selectedOption.dataset.hargaMin || 0) : 0;
-
-        const matchingWorkers = Array.from(document.querySelectorAll('.worker-choice-card')).filter(function (card) {
-            const skills = JSON.parse(card.dataset.skills || '[]').map(skill => skill.trim().toLowerCase());
-            return card.dataset.available === '1' && serviceName && skills.includes(serviceName.trim().toLowerCase());
-        });
-        const chosenCard = selectedWorker ? selectedWorker.closest('.worker-choice-card') : null;
-
-        const estimatedWorkers = matchingWorkers.map(card => ({
-            card: card,
-            estimate: calculateWorkerEstimate(card, serviceBasePrice)
-        })).filter(item => item.estimate !== null)
-            .sort((left, right) => left.estimate.total - right.estimate.total);
-
-        estimatedWorkers.forEach(function (item) {
-            const priceEl = item.card.querySelector('.worker-choice-price');
-            if (priceEl) {
-                priceEl.textContent = item.estimate.workerScore === null
-                    ? `Tarif layanan ${formatRupiah(item.estimate.baseRate)}`
-                    : `Biaya tukang (${item.estimate.workerScore.toFixed(2)} × ${formatRupiah(item.estimate.baseRate)}) ${formatRupiah(item.estimate.adjustedRate)}`;
-            }
-        });
-
-        const estimateCard = chosenCard || estimatedWorkers[0]?.card || null;
-        const estimate = estimateCard
-            ? calculateWorkerEstimate(estimateCard, serviceBasePrice)
-            : (serviceBasePrice > 0
-                ? calculateWorkerEstimate({ dataset: { rating: '', experience: '0' } }, serviceBasePrice)
-                : null);
-
-        let priceSource = '';
-        if (estimateCard) {
-            priceSource = chosenCard
-                ? `${estimateCard.dataset.workerName} (Tukang pilihan)`
-                : `${estimateCard.dataset.workerName} (Rekomendasi tarif terendah)`;
-        } else if (serviceBasePrice > 0) {
-            priceSource = `${serviceName} (Tarif standar layanan)`;
+        if (!serviceName) {
+            renderEstimateBreakdown(null, false);
+            return;
         }
 
+        const selectedWorker = document.querySelector('.worker-choice-card input[name="id_worker_pilihan"]:checked');
         const urgency = document.querySelector('input[name="urgensi"]:checked')?.value || 'rendah';
         const damage = document.querySelector('input[name="tingkat_kerusakan"]:checked')?.value || 'ringan';
-        const urgencyFactor = Number(pricingRules[`faktor_urgensi_${urgency}`] || (urgency === 'tinggi' ? 1.40 : (urgency === 'sedang' ? 1.20 : 1.00)));
-        const damageFactor = Number(pricingRules[`faktor_kerusakan_${damage}`] || (damage === 'berat' ? 1.10 : (damage === 'sedang' ? 1.05 : 1.00)));
-        const urgencyPercent = Math.round((urgencyFactor - 1) * 100);
-        const damagePercent = Math.round((damageFactor - 1) * 100);
+        const distanceKm = typeof window.currentRouteDistanceKm === 'number' && !window.currentRouteUnavailable
+            ? window.currentRouteDistanceKm
+            : null;
 
-        const workerDescEl = document.getElementById('priceBreakdownWorker');
-        if (workerDescEl) {
-            if (estimateCard) {
-                workerDescEl.textContent = `Estimasi memakai tarif dasar tukang yang diatur admin. Setiap bintang rating dan tahun pengalaman bernilai 0,25 poin.`;
-            } else if (serviceName) {
-                workerDescEl.textContent = `Belum ada mitra khusus siap bekerja untuk kategori ini. Estimasi memakai tarif dasar layanan ${serviceName}.`;
-            } else {
-                workerDescEl.textContent = 'Pilih kategori layanan di atas untuk melihat rincian estimasi tarif.';
+        clearTimeout(estimateDebounce);
+        const seq = ++estimateSequence;
+        estimateDebounce = setTimeout(async () => {
+            try {
+                const response = await fetch(estimateEndpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                    body: JSON.stringify({
+                        layanan: serviceName,
+                        id_worker_pilihan: selectedWorker ? Number(selectedWorker.value) : null,
+                        urgensi: urgency,
+                        tingkat_kerusakan: damage,
+                        distance_km: distanceKm,
+                    }),
+                });
+                if (!response.ok || seq !== estimateSequence) return;
+                const data = await response.json();
+                if (!data?.success || seq !== estimateSequence) return;
+
+                const workersMap = data.workers || {};
+                document.querySelectorAll('.worker-choice-card').forEach((card) => {
+                    const input = card.querySelector('input[name="id_worker_pilihan"]');
+                    const priceEl = card.querySelector('.worker-choice-price');
+                    if (!input || !priceEl) return;
+                    const workerEstimate = workersMap[String(input.value)];
+                    if (workerEstimate) {
+                        priceEl.textContent = `Tarif tukang ${formatRupiah(workerEstimate.basis_tukang)} · Biaya jasa ${formatRupiah(workerEstimate.biaya_tukang)} (+${workerEstimate.persen_kualifikasi}%)`;
+                    }
+                });
+
+                renderEstimateBreakdown(data.estimate || null, true);
+            } catch (e) {
+                // Pertahankan tampilan terakhir jika permintaan jaringan gagal sementara
             }
-        }
-
-        const priceBaseLabel = document.getElementById('priceBaseLabel');
-        if (priceBaseLabel) {
-            priceBaseLabel.textContent = estimateCard ? 'Tarif dasar tukang' : 'Tarif layanan';
-        }
-        document.getElementById('priceBase').textContent = estimate ? formatRupiah(estimate.baseRate) : '-';
-        document.getElementById('priceRatingLabel').textContent = estimate?.rating === null
-            ? 'Skor rating'
-            : `Skor rating (${estimate.rating} bintang × 0,25 = ${(estimate.rating * 0.25).toFixed(2)})`;
-        document.getElementById('priceRating').textContent = estimate?.ratingScore === null
-            ? '-'
-            : (estimate ? estimate.ratingScore.toFixed(2) : '-');
-        document.getElementById('priceExperienceLabel').textContent = estimate
-            ? `Skor pengalaman (${estimate.experience} thn × 0,25 = ${estimate.experienceScore.toFixed(2)})`
-            : 'Skor pengalaman';
-        document.getElementById('priceExperience').textContent = estimate ? estimate.experienceScore.toFixed(2) : '-';
-        document.getElementById('priceWorkerFeeLabel').textContent = estimate?.workerScore === null
-            ? 'Biaya layanan'
-            : `Biaya tukang (${estimate.workerScore.toFixed(2)} × ${formatRupiah(estimate.baseRate)})`;
-        document.getElementById('priceWorkerFee').textContent = estimate ? formatRupiah(estimate.adjustedRate) : '-';
-        document.getElementById('priceUrgencyLabel').textContent = `Tambahan urgensi (+${urgencyPercent}%)`;
-        document.getElementById('priceUrgency').textContent = estimate ? `+ ${formatRupiah(estimate.urgencyFee)}` : '-';
-        document.getElementById('priceDamageLabel').textContent = `Kerusakan tambahan (+${damagePercent}%)`;
-        document.getElementById('priceDamage').textContent = estimate ? `+ ${formatRupiah(estimate.damageFee)}` : '-';
-        document.getElementById('priceLaborTotal').textContent = estimate ? formatRupiah(estimate.laborTotal) : '-';
-
-        const priceTransportEl = document.getElementById('priceTransport');
-        if (priceTransportEl) {
-            if (estimate?.transportFee === null) {
-                priceTransportEl.textContent = 'Menunggu rute berkendara...';
-            } else if (estimate) {
-                priceTransportEl.textContent = estimate.transportFee > 0
-                    ? formatRupiah(estimate.transportFee)
-                    : `Rp 0 (Bebas biaya \u2264 ${estimate.jarakGratisKm} km)`;
-            } else {
-                priceTransportEl.textContent = '-';
-            }
-        }
-        document.getElementById('priceTotal').textContent = estimate?.total === null
-            ? 'Menunggu rute berkendara...'
-            : (estimate ? formatRupiah(estimate.total) : '-');
+        }, 120);
     }
 
     const layananEl = document.getElementById('layananInput');

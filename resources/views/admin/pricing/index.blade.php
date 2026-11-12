@@ -517,6 +517,19 @@
                             <input type="number" min="1" max="100" step="0.5" class="field-input" id="radius_maksimal_km" name="radius_maksimal_km" value="{{ $rules['radius_maksimal_km']->value ?? '15.0' }}" oninput="updateSummaryCards()" required>
                             <span class="field-hint">Lokasi di luar radius ini akan ditolak otomatis oleh sistem.</span>
                         </div>
+
+                        <div class="field-group">
+                            <label class="field-label" for="mode_transportasi">
+                                <i class="fa-solid fa-route" style="color:#0ea5e9;"></i>
+                                Mode Jarak Transportasi
+                            </label>
+                            @php $modeTrans = $rules['mode_transportasi']->value ?? 'satu_arah'; @endphp
+                            <select class="field-input" id="mode_transportasi" name="mode_transportasi" required>
+                                <option value="satu_arah" {{ $modeTrans === 'satu_arah' ? 'selected' : '' }}>Satu Arah (1× jarak)</option>
+                                <option value="pulang_pergi" {{ $modeTrans === 'pulang_pergi' ? 'selected' : '' }}>Pulang-Pergi (2× jarak)</option>
+                            </select>
+                            <span class="field-hint">Menentukan apakah jarak ditagihkan dihitung satu arah atau pulang-pergi.</span>
+                        </div>
                     </div>
                 </div>
 
@@ -529,23 +542,36 @@
                             </div>
                             <div>
                                 <h3 class="card-title">Tarif Rating &amp; Pengalaman Tukang</h3>
-                                <p class="card-desc">Rating dan lama pengalaman menentukan tarif jasa berdasarkan tarif dasar tukang.</p>
+                                <p class="card-desc">Persentase penyesuaian harga berdasarkan rating dan pengalaman kerja dengan batas minimum &amp; maksimum yang terukur.</p>
                             </div>
                         </div>
                     </div>
 
                     <div class="form-grid">
                         <div class="field-group">
-                            <span class="field-label">Nilai rating</span>
-                            <span class="field-hint">Rating 5 = 1,25; rating 4 = 1,00; rating 3 = 0,75; rating 2 = 0,50; rating 1 = 0,25.</span>
+                            <label class="field-label" for="persen_rating_maks">Penyesuaian Rating Maksimal (%)</label>
+                            <input type="number" step="0.5" min="0" max="100" class="field-input" id="persen_rating_maks" name="persen_rating_maks" value="{{ $rules['persen_rating_maks']->value ?? '15.00' }}" required>
+                            <span class="field-hint">Tambahan maksimal untuk rating 5.0 (proporsional: rating/5 × nilai ini).</span>
                         </div>
                         <div class="field-group">
-                            <span class="field-label">Nilai pengalaman</span>
-                            <span class="field-hint">Setiap tahun pengalaman bernilai 0,25. Nilai dihitung untuk seluruh tahun pengalaman.</span>
+                            <label class="field-label" for="persen_pengalaman_per_tahun">Pengalaman per Tahun (%)</label>
+                            <input type="number" step="0.5" min="0" max="50" class="field-input" id="persen_pengalaman_per_tahun" name="persen_pengalaman_per_tahun" value="{{ $rules['persen_pengalaman_per_tahun']->value ?? '2.00' }}" required>
+                            <span class="field-hint">Tambahan persentase untuk setiap tahun pengalaman kerja.</span>
                         </div>
                         <div class="field-group">
-                            <span class="field-label">Rumus tarif jasa</span>
-                            <span class="field-hint">(Nilai rating + (0,25 × tahun pengalaman)) × tarif dasar tukang. Contoh rating 5, pengalaman 7 tahun, dan tarif dasar Rp100.000 menghasilkan Rp300.000.</span>
+                            <label class="field-label" for="persen_pengalaman_maks">Batas Pengalaman Maksimal (%)</label>
+                            <input type="number" step="0.5" min="0" max="100" class="field-input" id="persen_pengalaman_maks" name="persen_pengalaman_maks" value="{{ $rules['persen_pengalaman_maks']->value ?? '20.00' }}" required>
+                            <span class="field-hint">Batas maksimal tambahan dari pengalaman kerja.</span>
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label" for="persen_kualifikasi_min">Batas Min Penyesuaian Gabungan (%)</label>
+                            <input type="number" step="0.5" min="0" max="100" class="field-input" id="persen_kualifikasi_min" name="persen_kualifikasi_min" value="{{ $rules['persen_kualifikasi_min']->value ?? '0.00' }}" required>
+                            <span class="field-hint">Batas minimum gabungan rating + pengalaman (0% agar tukang baru tetap kompetitif).</span>
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label" for="persen_kualifikasi_maks">Batas Maks Penyesuaian Gabungan (%)</label>
+                            <input type="number" step="0.5" min="0" max="100" class="field-input" id="persen_kualifikasi_maks" name="persen_kualifikasi_maks" value="{{ $rules['persen_kualifikasi_maks']->value ?? '35.00' }}" required>
+                            <span class="field-hint">Batas atas gabungan rating + pengalaman agar harga tidak melonjak tidak wajar.</span>
                         </div>
                     </div>
                 </div>
@@ -601,6 +627,45 @@
                             <span class="field-hint">+10% penyesuaian pekerjaan berat.</span>
                         </div>
 
+                    </div>
+                </div>
+
+                <!-- Section 5: Batas Harga & Pembulatan -->
+                <div class="card-box">
+                    <div class="card-header-row">
+                        <div class="card-title-group">
+                            <div class="card-icon-bubble bubble-green">
+                                <i class="fa-solid fa-shield-halved"></i>
+                            </div>
+                            <div>
+                                <h3 class="card-title">Batas Harga Jasa &amp; Aturan Pembulatan</h3>
+                                <p class="card-desc">Menjaga nominal subtotal jasa tetap dalam rentang wajar dan membulatkan nominal secara konsisten.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="field-group">
+                            <label class="field-label" for="batas_harga_jasa_min">Batas Minimum Harga Jasa (Rp)</label>
+                            <input type="number" step="1000" min="0" class="field-input" id="batas_harga_jasa_min" name="batas_harga_jasa_min" value="{{ $rules['batas_harga_jasa_min']->value ?? '0' }}" required>
+                            <span class="field-hint">Isi 0 jika tidak ada batas bawah khusus.</span>
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label" for="batas_harga_jasa_max">Batas Maksimum Harga Jasa (Rp)</label>
+                            <input type="number" step="1000" min="0" class="field-input" id="batas_harga_jasa_max" name="batas_harga_jasa_max" value="{{ $rules['batas_harga_jasa_max']->value ?? '0' }}" required>
+                            <span class="field-hint">Isi 0 jika tidak ada batas atas khusus.</span>
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label" for="pembulatan_harga">Kelipatan Pembulatan Harga</label>
+                            @php $roundStep = (string) ($rules['pembulatan_harga']->value ?? '100'); @endphp
+                            <select class="field-input" id="pembulatan_harga" name="pembulatan_harga" required>
+                                <option value="1" {{ $roundStep === '1' ? 'selected' : '' }}>Rp 1 (Tanpa kelipatan)</option>
+                                <option value="100" {{ $roundStep === '100' ? 'selected' : '' }}>Kelipatan Rp 100</option>
+                                <option value="500" {{ $roundStep === '500' ? 'selected' : '' }}>Kelipatan Rp 500</option>
+                                <option value="1000" {{ $roundStep === '1000' ? 'selected' : '' }}>Kelipatan Rp 1.000</option>
+                            </select>
+                            <span class="field-hint">Seluruh komponen biaya dan total dibulatkan ke kelipatan ini.</span>
+                        </div>
                     </div>
                 </div>
 

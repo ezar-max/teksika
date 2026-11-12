@@ -1555,8 +1555,8 @@
                   $detailRatingCharge = $detailOffer?->biaya_rating_snapshot ?? $request->biaya_rating_estimasi;
                   $detailExperienceCharge = $detailOffer?->biaya_pengalaman_snapshot ?? $request->biaya_pengalaman_estimasi;
                   $detailExperiencePercent = $detailOffer?->pengalaman_persen_snapshot ?? $request->pengalaman_persen_estimasi;
-                  $detailWorkerFee = $detailOffer
-                    ? (float) ($detailOffer->biaya_kualifikasi_snapshot ?? ((float) ($detailRatingCharge ?? 0) + (float) ($detailExperienceCharge ?? 0)))
+                  $detailWorkerFee = $detailBasePrice !== null
+                    ? (float) $detailBasePrice + (float) ($detailRatingCharge ?? 0) + (float) ($detailExperienceCharge ?? 0)
                     : (float) ($detailQualificationCharge ?? 0);
                   $detailRating = $detailOffer?->rating_snapshot ?? $request->rating_estimasi ?? $detailOfferWorker?->rating;
                   $detailExperience = $detailOffer?->pengalaman_snapshot ?? $request->pengalaman_estimasi ?? $detailOfferWorker?->pengalaman;
@@ -1814,11 +1814,11 @@
                 <div class="detail-price-panel">
                     <h3><i class="fa-solid fa-receipt"></i> Transparansi harga</h3>
                     <p class="detail-price-caption" id="dHargaStatus"></p>
-                    <div class="detail-price-row"><span>Tarif layanan</span><strong id="dHargaDasar"></strong></div>
+                    <div class="detail-price-row"><span>Tarif dasar layanan</span><strong id="dHargaDasar"></strong></div>
                     <div class="detail-price-row" id="dRowLegacyQualification" style="display:none;"><span>Penyesuaian kualifikasi (data lama)</span><strong id="dBiayaKualifikasi"></strong></div>
-                    <div class="detail-price-row" id="dRowRating"><span id="dRatingLabel">Skor rating</span><strong id="dBiayaRating"></strong></div>
-                    <div class="detail-price-row" id="dRowExperience"><span id="dExperienceLabel">Skor pengalaman</span><strong id="dBiayaPengalaman"></strong></div>
-                    <div class="detail-price-row" id="dRowWorkerFee"><span id="dWorkerFeeLabel">Biaya tukang</span><strong id="dBiayaTukang"></strong></div>
+                    <div class="detail-price-row" id="dRowRating"><span id="dRatingLabel">Penyesuaian rating tukang</span><strong id="dBiayaRating"></strong></div>
+                    <div class="detail-price-row" id="dRowExperience"><span id="dExperienceLabel">Penyesuaian pengalaman tukang</span><strong id="dBiayaPengalaman"></strong></div>
+                    <div class="detail-price-row" id="dRowWorkerFee"><span id="dWorkerFeeLabel">Biaya jasa tukang</span><strong id="dBiayaTukang"></strong></div>
                     <div class="detail-price-row" id="dRowAdditional" style="display:none;"><span>Biaya tambahan (data booking lama)</span><strong id="dBiayaAdditional"></strong></div>
                     <div class="detail-price-row"><span>Tambahan urgensi</span><strong id="dBiayaUrgensi"></strong></div>
                     <div class="detail-price-row"><span>Tambahan tingkat kerusakan</span><strong id="dBiayaKerusakan"></strong></div>
@@ -2083,12 +2083,12 @@
             document.getElementById('dRowExperience').style.display = hasDetailedQualification ? '' : 'none';
             document.getElementById('dRowWorkerFee').style.display = hasDetailedQualification ? '' : 'none';
             document.getElementById('dBiayaKualifikasi').textContent = formatMoney(card.dataset.biayaKualifikasi);
-            document.getElementById('dBiayaRating').textContent = card.dataset.skorRating || '-';
-            document.getElementById('dBiayaPengalaman').textContent = card.dataset.skorPengalaman || '-';
+            document.getElementById('dBiayaRating').textContent = formatMoney(card.dataset.biayaRating || 0);
+            document.getElementById('dBiayaPengalaman').textContent = formatMoney(card.dataset.biayaPengalaman || 0);
             document.getElementById('dBiayaTukang').textContent = formatMoney(card.dataset.biayaTukang);
-            document.getElementById('dRatingLabel').textContent = `Skor rating (${card.dataset.rating || '-'} bintang × 0,25)`;
-            document.getElementById('dExperienceLabel').textContent = `Skor pengalaman (${card.dataset.pengalaman || '-'} thn × 0,25)`;
-            document.getElementById('dWorkerFeeLabel').textContent = `Biaya tukang (${Number(card.dataset.skorRating || 0) + Number(card.dataset.skorPengalaman || 0)} × ${formatMoney(card.dataset.hargaDasar)})`;
+            document.getElementById('dRatingLabel').textContent = `Penyesuaian rating (${card.dataset.rating || '-'} ★)`;
+            document.getElementById('dExperienceLabel').textContent = `Penyesuaian pengalaman (${card.dataset.pengalaman || '0'} thn)`;
+            document.getElementById('dWorkerFeeLabel').textContent = 'Biaya jasa tukang';
             document.getElementById('dBiayaAdditional').textContent = formatMoney(card.dataset.biayaAdditional);
             document.getElementById('dRowAdditional').style.display = Number(card.dataset.biayaAdditional || 0) > 0 ? '' : 'none';
             document.getElementById('dBiayaUrgensi').textContent = formatMoney(card.dataset.biayaUrgensi);

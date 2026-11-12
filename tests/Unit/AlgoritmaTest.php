@@ -91,38 +91,101 @@ class AlgoritmaTest extends TestCase
         Http::assertSent(fn (ClientRequest $request) => str_contains($request->url(), 'router.project-osrm.org/route/v1/driving/'));
     }
 
-    public function test_worker_rate_adjustment_uses_rating_and_experience_formula_without_a_cap(): void
+    public function test_worker_rate_adjustment_uses_capped_percentage_model(): void
     {
+        $this->setPricingRule('persen_rating_maks', '15');
+        $this->setPricingRule('persen_pengalaman_per_tahun', '2');
+        $this->setPricingRule('persen_pengalaman_maks', '20');
+        $this->setPricingRule('persen_kualifikasi_min', '0');
+        $this->setPricingRule('persen_kualifikasi_maks', '35');
+        $this->setPricingRule('pembulatan_harga', '1');
+        $this->pricing->clearRulesCache();
+
         $pricing = new PricingService($this->haversine);
 
+        // Rating 4.5 (13.5%) + 4 tahun (8%) = 21.5% dari basis 100.000 = 21.500 -> total 121.500
         $adjusted = $pricing->adjustWorkerRate(100000, 4.5, 4);
         $this->assertSame(100000.0, $adjusted['harga_dasar']);
-        $this->assertSame(2.125, $adjusted['faktor_kualifikasi']);
-        $this->assertSame(212500.0, $adjusted['harga_layanan']);
-        $this->assertSame(112500.0, $adjusted['biaya_rating']);
-        $this->assertSame(100000.0, $adjusted['biaya_pengalaman']);
-        $this->assertSame(1.125, $adjusted['skor_rating']);
-        $this->assertSame(1.0, $adjusted['skor_pengalaman']);
-        $this->assertSame(2.125, $adjusted['skor_total']);
+        $this->assertSame(1.215, $adjusted['faktor_kualifikasi']);
+        $this->assertSame(121500.0, $adjusted['harga_layanan']);
+        $this->assertSame(13500.0, $adjusted['biaya_rating']);
+        $this->assertSame(8000.0, $adjusted['biaya_pengalaman']);
+        $this->assertSame(13.5, $adjusted['persen_rating']);
+        $this->assertSame(8.0, $adjusted['persen_pengalaman']);
+        $this->assertSame(21.5, $adjusted['persen_kualifikasi']);
         $this->assertSame(0.0, $adjusted['biaya_additional']);
 
-        $example = $pricing->adjustWorkerRate(100000, 5, 7);
-        $this->assertSame(3.0, $example['faktor_kualifikasi']);
-        $this->assertSame(125000.0, $example['biaya_rating']);
-        $this->assertSame(175000.0, $example['biaya_pengalaman']);
-        $this->assertSame(1.25, $example['skor_rating']);
-        $this->assertSame(1.75, $example['skor_pengalaman']);
-        $this->assertSame(3.0, $example['skor_total']);
-        $this->assertSame(300000.0, $example['harga_layanan']);
+        // Rating 5 (15%) + 15 tahun (cap 20%) = 35% (di batas maks 35%) -> 135.000
+        $example = $pricing->adjustWorkerRate(100000, 5, 15);
+        $this->assertSame(1.35, $example['faktor_kualifikasi']);
+        $this->assertSame(15000.0, $example['biaya_rating']);
+        $this->assertSame(20000.0, $example['biaya_pengalaman']);
+        $this->assertSame(35.0, $example['persen_kualifikasi']);
+        $this->assertSame(135000.0, $example['harga_layanan']);
+
+        // Skenario kasus bug lama: layanan Rp 1.000.000, tarif tukang Rp 2.000, rating 3, pengalaman 10 thn
+        // Penyesuaian tetap proporsional dari tarif tukang, sedangkan biaya jasa tukang minimal tarif dasar layanan (Rp 1.000.000 + Rp 580)
+        $realistic = $pricing->adjustWorkerRate(1000000, 3, 10, 2000);
+        $this->assertSame(1000000.0, $realistic['harga_dasar']);
+        $this->assertSame(180.0, $realistic['biaya_rating']);
+        $this->assertSame(400.0, $realistic['biaya_pengalaman']);
+        $this->assertSame(1000580.0, $realistic['harga_layanan']);
     }
 
     public function test_worker_rate_adjustment_clamps_invalid_rating_and_experience(): void
     {
+        $this->setPricingRule('pembulatan_harga', '1');
+        $this->pricing->clearRulesCache();
+
         $adjusted = $this->pricing->adjustWorkerRate(100000, 8, -3);
 
-        $this->assertSame(1.25, $adjusted['faktor_kualifikasi']);
-        $this->assertSame(125000.0, $adjusted['harga_layanan']);
+        $this->assertSame(1.15, $adjusted['faktor_kualifikasi']);
+        $this->assertSame(115000.0, $adjusted['harga_layanan']);
+        $this->assertSame(15000.0, $adjusted['biaya_rating']);
         $this->assertSame(0.0, $adjusted['biaya_pengalaman']);
+
+        // Rating 0 tidak error dan tukang baru tetap mendapat tarif dasar layanan
+        $newWorker = $this->pricing->adjustWorkerRate(100000, 0, 0);
+        $this->assertSame(100000.0, $newWorker['harga_layanan']);
+        $this->assertSame(0.0, $newWorker['biaya_kualifikasi']);
+    }
+
+    public function test_transport_mode_rounding_price_bounds_and_coordinate_validation(): void
+    {
+        $this->assertFalse($this->haversine->isValidCoordinate(0.0, 0.0));
+        $this->assertFalse($this->haversine->isValidCoordinate(95.0, 106.9));
+        $this->assertFalse($this->haversine->isValidCoordinate(-6.4, 200.0));
+        $this->assertNull($this->haversine->getDrivingRoute(-6.4239, 106.9401, 0.0, 0.0));
+
+        $this->setPricingRule('mode_transportasi', 'pulang_pergi');
+        $this->setPricingRule('pembulatan_harga', '500');
+        $this->setPricingRule('batas_harga_jasa_min', '120000');
+        $this->setPricingRule('batas_harga_jasa_max', '300000');
+        $this->pricing->clearRulesCache();
+
+        $calc = $this->pricing->calculate(
+            hargaMin: 100000,
+            hargaMax: 100000,
+            durasiDasarMenit: 60,
+            kompleksitas: 'rendah',
+            urgensi: 'rendah',
+            routeDistanceKm: 8.0,
+            tingkatKerusakan: 'ringan'
+        );
+
+        // Subtotal jasa dibatasi min 120.000; jarak ditagih = (8 - 5) * 2 = 6 km * 2.500 = 15.000
+        $this->assertSame(120000.0, $calc['subtotal_jasa']);
+        $this->assertSame(6.0, $calc['jarak_ditagih_km']);
+        $this->assertSame(15000.0, $calc['biaya_transportasi']);
+        $this->assertSame(135000.0, $calc['estimasi_total']);
+
+        // Parameter negatif di database harus dinormalisasi aman
+        $this->setPricingRule('tarif_per_km', '-5000');
+        $this->setPricingRule('persen_rating_maks', '-10');
+        $this->pricing->clearRulesCache();
+        $normalized = $this->pricing->getNormalizedRules();
+        $this->assertSame(0.0, $normalized['tarif_per_km']);
+        $this->assertSame(0.0, $normalized['persen_rating_maks']);
     }
 
     public function test_worker_rate_uses_the_service_base_rate_when_no_worker_is_available(): void

@@ -221,30 +221,28 @@ class BookingController extends Controller
         $biayaMaterial = (float) $validated['biaya_material'];
         $offers = [];
         foreach (array_slice($rankedWorkers, 0, 3) as $candidate) {
-            $workerRate = $this->pricingService->adjustWorkerRate(
-                (float) ($candidate['tarif'] ?? $service->harga_min),
-                (float) $candidate['rating'],
-                (int) $candidate['pengalaman']
-            );
-            $pricing = $this->pricingService->calculate(
-                hargaMin: $workerRate['harga_layanan'],
-                hargaMax: $workerRate['harga_layanan'],
+            $fullEstimate = $this->pricingService->calculateFullEstimate(
+                serviceBaseRate: (float) $service->harga_min,
+                workerRating: (float) $candidate['rating'],
+                workerExperienceYears: (int) $candidate['pengalaman'],
+                workerCustomRate: isset($candidate['tarif']) && is_numeric($candidate['tarif']) ? (float) $candidate['tarif'] : null,
                 durasiDasarMenit: (int) ($service->durasi_dasar_menit ?? 60),
                 kompleksitas: $validated['kompleksitas'],
                 urgensi: $validated['urgensi'],
+                tingkatKerusakan: $validated['tingkat_kerusakan'],
                 routeDistanceKm: $route['distance_km'],
                 routeDurationMinutes: $route['duration_minutes'],
-                tingkatKerusakan: $validated['tingkat_kerusakan'],
-                biayaAdditional: $workerRate['biaya_additional'],
-                tarifDasarPerhitungan: $workerRate['harga_dasar']
+                biayaMaterial: $biayaMaterial
             );
+            $workerRate = $fullEstimate['worker_rate'];
+            $pricing = $fullEstimate['pricing'];
             $faktorHarga = $workerRate['faktor_kualifikasi']
                 + ($pricing['faktor_urgensi'] - 1)
                 + ($pricing['faktor_kerusakan'] - 1);
             $hargaDasar = (float) $pricing['harga_layanan'];
             $biayaUrgensi = $pricing['biaya_urgensi'];
             $biayaKerusakan = $pricing['biaya_kerusakan'];
-            $biayaJasa = round($hargaDasar + $biayaUrgensi + $biayaKerusakan);
+            $biayaJasa = (float) $pricing['subtotal_jasa'];
             $jasaMaterial = round($biayaJasa + $biayaMaterial);
             $biayaTransport = (float) $pricing['biaya_transportasi'];
             $offers[] = [
@@ -260,7 +258,7 @@ class BookingController extends Controller
                 'biaya_urgensi_snapshot' => $biayaUrgensi,
                 'biaya_kerusakan_snapshot' => $biayaKerusakan,
                 'biaya_transportasi' => $biayaTransport,
-                'total_estimasi' => round($jasaMaterial + $biayaTransport + $pricing['biaya_additional']),
+                'total_estimasi' => (float) $pricing['estimasi_total'],
                 'jarak_km' => $route['distance_km'],
                 'estimasi_durasi_menit' => $pricing['estimasi_durasi_menit'],
                 'rating_snapshot' => $candidate['rating'],
