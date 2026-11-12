@@ -283,6 +283,7 @@
                                                data-available="{{ $worker->display_availability === 'Siap Bekerja' ? '1' : '0' }}" 
                                                data-rating="{{ $worker->display_rating }}"
                                                data-experience="{{ $worker->pengalaman ?? 0 }}"
+                                               data-tarif="{{ $worker->tarif ?? '' }}"
                                                data-worker-name="{{ $worker->name }}"
                                                onclick="const r = this.querySelector('input[type=radio]'); if(!r.disabled){ r.checked = true; selectWorker(r); }">
                                         @if($worker->foto)
@@ -637,7 +638,12 @@
                     : `Rp ${new Intl.NumberFormat('id-ID').format(hargaMin)} - Rp ${new Intl.NumberFormat('id-ID').format(hargaMax)}`;
                 const priceEl = card.querySelector('.worker-choice-price');
                 if (priceEl) {
-                    priceEl.textContent = `Tarif dasar: ${range}`;
+                    const estimate = calculateWorkerEstimate(card, hargaMin);
+                    priceEl.textContent = estimate
+                        ? (estimate.workerScore === null
+                            ? `Tarif tukang: ${formatRupiah(estimate.baseRate)}`
+                            : `Biaya tukang (${estimate.workerScore.toFixed(2)} × ${formatRupiah(estimate.baseRate)}) ${formatRupiah(estimate.adjustedRate)}`)
+                        : `Tarif layanan: ${range}`;
                 }
             } else {
                 card.hidden = true;
@@ -668,8 +674,11 @@
     }
 
     function calculateWorkerEstimate(workerCard, serviceBasePrice) {
-        const workerBaseRate = serviceBasePrice;
-        if (!(workerBaseRate > 0)) return null;
+        const configuredWorkerRate = workerCard?.dataset?.tarif;
+        const workerBaseRate = configuredWorkerRate === undefined || configuredWorkerRate === ''
+            ? serviceBasePrice
+            : Number(configuredWorkerRate);
+        if (!Number.isFinite(workerBaseRate) || workerBaseRate < 0) return null;
 
         const rating = workerCard?.dataset?.rating === ''
             ? null
@@ -782,7 +791,7 @@
         const workerDescEl = document.getElementById('priceBreakdownWorker');
         if (workerDescEl) {
             if (estimateCard) {
-                workerDescEl.textContent = `Estimasi memakai tarif layanan ${serviceName}. Setiap bintang rating dan tahun pengalaman bernilai 0,25 poin.`;
+                workerDescEl.textContent = `Estimasi memakai tarif dasar tukang yang diatur admin. Setiap bintang rating dan tahun pengalaman bernilai 0,25 poin.`;
             } else if (serviceName) {
                 workerDescEl.textContent = `Belum ada mitra khusus siap bekerja untuk kategori ini. Estimasi memakai tarif dasar layanan ${serviceName}.`;
             } else {
@@ -792,7 +801,7 @@
 
         const priceBaseLabel = document.getElementById('priceBaseLabel');
         if (priceBaseLabel) {
-            priceBaseLabel.textContent = 'Tarif layanan';
+            priceBaseLabel.textContent = estimateCard ? 'Tarif dasar tukang' : 'Tarif layanan';
         }
         document.getElementById('priceBase').textContent = estimate ? formatRupiah(estimate.baseRate) : '-';
         document.getElementById('priceRatingLabel').textContent = estimate?.rating === null

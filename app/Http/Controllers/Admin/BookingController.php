@@ -219,15 +219,10 @@ class BookingController extends Controller
         }
 
         $biayaMaterial = (float) $validated['biaya_material'];
-        $tarifLayanan = $this->pricingService->serviceRateForComplexity(
-            (float) $service->harga_min,
-            (float) $service->harga_max,
-            $validated['kompleksitas']
-        );
         $offers = [];
         foreach (array_slice($rankedWorkers, 0, 3) as $candidate) {
             $workerRate = $this->pricingService->adjustWorkerRate(
-                $tarifLayanan,
+                (float) ($candidate['tarif'] ?? $service->harga_min),
                 (float) $candidate['rating'],
                 (int) $candidate['pengalaman']
             );
@@ -241,7 +236,7 @@ class BookingController extends Controller
                 routeDurationMinutes: $route['duration_minutes'],
                 tingkatKerusakan: $validated['tingkat_kerusakan'],
                 biayaAdditional: $workerRate['biaya_additional'],
-                tarifDasarPerhitungan: $tarifLayanan
+                tarifDasarPerhitungan: $workerRate['harga_dasar']
             );
             $faktorHarga = $workerRate['faktor_kualifikasi']
                 + ($pricing['faktor_urgensi'] - 1)

@@ -269,7 +269,7 @@ class ServiceRequestController extends Controller
             usort($workerCandidates, function ($left, $right) use ($service, $pricingService) {
                 $leftRating = $left->review_count > 0 ? (float) $left->review_average : (float) ($left->rating ?? 5);
                 $rightRating = $right->review_count > 0 ? (float) $right->review_average : (float) ($right->rating ?? 5);
-                $serviceRate = (float) $service->harga_min;
+                $serviceRate = (float) ($worker->tarif ?? $service->harga_min);
                 $leftRate = $pricingService->adjustWorkerRate($serviceRate, $leftRating, (int) ($left->pengalaman ?? 0));
                 $rightRate = $pricingService->adjustWorkerRate($serviceRate, $rightRating, (int) ($right->pengalaman ?? 0));
                 $leftPrice = $leftRate['harga_layanan'];
@@ -299,7 +299,9 @@ class ServiceRequestController extends Controller
             return back()->withInput()->with('error', 'Rute jalan tidak dapat dihitung saat ini. Permintaan belum disimpan. Silakan coba kembali.');
         }
 
-        $hargaDasar = (float) $service->harga_min;
+        $hargaDasar = $estimateWorker
+            ? (float) ($estimateWorker->tarif ?? $service->harga_min)
+            : (float) $service->harga_min;
         $workerRate = $pricingService->adjustWorkerRate(
             $hargaDasar,
             $estimateWorker ? $estimateWorkerRating : null,

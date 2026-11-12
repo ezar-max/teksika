@@ -81,7 +81,7 @@ class QuoteApprovalWorkflowTest extends TestCase
         foreach ($offers as $offer) {
             $this->assertEquals($offer->biaya_jasa_material + $offer->biaya_transportasi + $offer->biaya_additional_snapshot, $offer->total_estimasi);
             $this->assertEquals($offer->biaya_jasa_snapshot + $offer->biaya_material_snapshot, $offer->biaya_jasa_material);
-            $expectedTarif = 150000;
+            $expectedTarif = (float) DB::table('workers')->where('id', $offer->id_worker)->value('tarif');
             $experiencePercent = (int) $offer->pengalaman_snapshot * 25;
             $ratingFee = round($expectedTarif * (float) $offer->rating_snapshot * 0.25);
             $experienceFee = round($expectedTarif * (int) $offer->pengalaman_snapshot * 0.25);
@@ -498,6 +498,11 @@ class QuoteApprovalWorkflowTest extends TestCase
         $workerId = $this->createWorker('Form Selected Estimator', 'Chosen Worker Estimate Test', 4, 4.5, 135000);
 
         $this->actingAs($user, 'web')
+            ->get(route('request'))
+            ->assertOk()
+            ->assertSee('data-tarif="135000.00"', false);
+
+        $this->actingAs($user, 'web')
             ->post(route('user.request.store'), [
                 'layanan' => 'Chosen Worker Estimate Test',
                 'id_worker_pilihan' => $workerId,
@@ -516,9 +521,9 @@ class QuoteApprovalWorkflowTest extends TestCase
         $saved = DB::table('request')->where('id_user', $user->id)->latest('id_request')->first();
         $this->assertSame($workerId, (int) $saved->id_worker_pilihan);
         $this->assertSame($workerId, (int) $saved->id_worker_estimasi);
-        $this->assertEquals(100000, $saved->harga_dasar_estimasi);
-        $this->assertEquals(212500, $saved->biaya_kualifikasi_estimasi);
-        $this->assertEquals(212500, $saved->harga_layanan);
+        $this->assertEquals(135000, $saved->harga_dasar_estimasi);
+        $this->assertEquals(286875, $saved->biaya_kualifikasi_estimasi);
+        $this->assertEquals(286875, $saved->harga_layanan);
         $this->assertGreaterThan(0, $saved->biaya_urgensi_estimasi);
         $this->assertGreaterThan(0, $saved->biaya_kerusakan_estimasi);
         $this->assertEquals(
